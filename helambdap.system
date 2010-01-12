@@ -1,0 +1,10 @@
+;;;; -*- Mode: Lisp -*-
+
+(mk:defsystem "HELAMBDAP"
+  :components ("helambdap-pkg"
+               "naming"
+               "doc-bit"
+               "extract-doc"
+               "helambdap"))
+
+;;;; end of file -- helambdap.system --
