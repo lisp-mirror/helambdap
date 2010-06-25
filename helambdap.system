@@ -5,6 +5,8 @@
                "naming"
                "doc-bit"
                "extract-doc"
-               "helambdap"))
+               "helambdap")
+  :depends-on ("CL-FAD"
+               "CL-WHO"))
 
 ;;;; end of file -- helambdap.system --

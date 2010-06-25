@@ -3,7 +3,7 @@
 ;;;; helambdap-pkg.lisp --
 ;;;; Separate doc string for CL elements.
 
-(defpackage "IT.UNIMIB.DISCO.MA.CL.HELambdaP" (:use "CL")
+(defpackage "IT.UNIMIB.DISCO.MA.CL.HELambdaP" (:use "CL" "CL-WHO")
   (:nicknames "HELAMBDAP" "HELambdaP")
   (:shadow "DOCUMENTATION")
   (:documentation "The HELambdaP Package.

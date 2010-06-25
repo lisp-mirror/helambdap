@@ -47,7 +47,7 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 
 (defmethod save-doc-bits-db ((out stream)
                              &optional (db *doc-bits-db*))
-    (format out ";;;; -*- Mode: Lisp -*-~2%;;; DOC-BITS DB File.~2%")
+    (format out ";;;; -*- Mode: Lisp -*-~2%;;;; DOC-BITS DB File.~2%")
     (loop for doc-bits being the hash-value of db
           do (map nil (lambda (doc-bit) (prin1 doc-bit out)) doc-bits))
     (format out "~2%;;;; end of file -- DOC BITS DB File. --~%"))

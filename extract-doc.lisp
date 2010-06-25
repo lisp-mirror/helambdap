@@ -1,5 +1,7 @@
 ;;;; -*- Mode: Lisp -*-
 
+;;;; extract-doc.lisp --
+
 (in-package "HELAMBDAP")
 
 
@@ -10,23 +12,34 @@
    "Extracts the documentation from a form tagged with a specific kind."))
 
 
+;;; extract-documentation --
+
 (defmethod extract-documentation ((forms-stream stream))
   (loop with eof = (gensym "FORMS-STREAM-EOF-")
         for form = (read forms-stream nil eof)
         while (not (eq form eof))
-        collect (form-documentation form)))
+        collect (form-documentation form) into doc-bits
+        finally (return ; Inefficient, but WTF.
+                 (delete nil
+                         (delete nil (flatten-if (complement 'doc-bit-p) doc-bits))
+                         :key 'doc-bit-doc-string
+                         ))))
 
 
 (defmethod extract-documentation ((file pathname))
   (with-open-file (in file
                       :direction :input
                       :if-does-not-exist :error)
-    (extract-documentation in)))
+    (let ((file-doc-bits (extract-documentation in)))
+      (dolist (fdb file-doc-bits file-doc-bits)
+        (setf (doc-bit-location fdb) file)))))
 
 
 (defmethod extract-documentation ((filename string))
   (extract-documentation (pathname filename)))
 
+
+;;; Form handling.
 
 (defun form-documentation (form)
   (when (consp form)
@@ -59,6 +72,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
        ,.forms)))
        
 
+;;; extract-form-documentation --
+
 (defmethod extract-form-documentation ((fk symbol) (form cons))
   nil)
 
@@ -67,64 +82,109 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (deftype name ll &rest forms)
       form
     (declare (ignore deftype))
-    (extricate-doc-string forms)))
+    (make-type-doc-bit :name name
+                       :kind 'type
+                       :lambda-list ll
+                       :doc-string (extricate-doc-string forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defun)) (form cons))
   (destructuring-bind (defun name ll &rest forms)
       form
     (declare (ignore defun))
-    (extricate-doc-string forms)))
+    (make-function-doc-bit :name name
+                           :kind 'function
+                           :lambda-list ll
+                           :doc-string (extricate-doc-string forms))))
+
+
+(defmethod extract-form-documentation ((fk (eql 'defmacro)) (form cons))
+  (destructuring-bind (defmacro name ll &rest forms)
+      form
+    (declare (ignore defmacro))
+    (make-macro-doc-bit :name name
+                        :kind 'function
+                        :lambda-list ll
+                        :doc-string (extricate-doc-string forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'define-compiler-macro)) (form cons))
   (destructuring-bind (define-compiler-macro name ll &rest forms)
       form
     (declare (ignore define-compiler-macro))
-    (extricate-doc-string forms)))
+    (make-compiler-macro-doc-bit :name name
+                                 :kind 'compiler-macro
+                                 :lambda-list ll
+                                 :doc-string (extricate-doc-string forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'define-setf-expander)) (form cons))
   (destructuring-bind (define-setf-expander name ll &rest forms)
       form
     (declare (ignore define-setf-expander))
-    (extricate-doc-string forms)))
+    (make-setf-expander-doc-bit :name name
+                                :kind 'setf
+                                :lambda-list ll
+                                :doc-string (extricate-doc-string forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defclass)) (form cons))
   (destructuring-bind (defclass name supers slots &rest options)
       form
-    (declare (ignore defclass))
-    (second (find :documentation options-and-methods :key #'first))))
+    (declare (ignore defclass slots))
+    (make-class-doc-bit :name name
+                        :kind 'type
+                        :superclasses supers
+                        :doc-string (second (find :documentation options
+                                                  :key #'first)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'define-condition)) (form cons))
   (destructuring-bind (define-condition name supers slots &rest options)
       form
-    (declare (ignore define-condition))
-    (second (find :documentation options-and-methods :key #'first))))
+    (declare (ignore define-condition slots))
+    (make-condition-doc-bit :name name
+                            :kind 'type
+                            :superclasses supers
+                            :doc-string (second (find :documentation options
+                                                      :key #'first)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defgeneric)) (form cons))
   (destructuring-bind (defgeneric name ll &rest options-and-methods)
       form
     (declare (ignore defgeneric))
-    (second (find :documentation options-and-methods :key #'first))))
+    (make-generic-function-doc-bit :name name
+                                   :kind 'function
+                                   :lambda-list ll
+                                   :doc-string (second (find :documentation options-and-methods
+                                                             :key #'first)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defpackage)) (form cons))
   (destructuring-bind (defpackage name &rest options)
       form
     (declare (ignore defpackage))
-    (second (find :documentation options :key #'first))))
+    (make-package-doc-bit :name name
+                          :kind 'package
+                          :use-list (rest (find :use options :key #'first))
+                          :nicknames (rest (find :nicknames options :key #'first))
+                          :doc-string (second (find :documentation options
+                                                    :key #'first)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defmethod)) (form cons))
   (destructuring-bind (defmethod name &rest rest-method)
       form
     (declare (ignore defmethod))
-    (extricate-doc-string (subseq rest-method
-                                  (1+ (position-if #'consp rest-method))))))
+    (let ((arglist-pos (position-if #'consp rest-method)))
+      (make-method-doc-bit :name name
+                           :kind 'method ; Incorrect.
+                           :qualifiers (subseq rest-method 0 arglist-pos)
+                           :lambda-list (nth arglist-pos rest-method)
+                           :doc-string (extricate-doc-string
+                                        (subseq rest-method (1+ arglist-pos)))))
+    ))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defstruct)) (form cons))
@@ -132,13 +192,24 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       form
     (declare (ignore defstruct))
     (when (stringp (first doc-string-and-slots))
-      (first doc-string-and-slots))))
+      (make-doc-bit :name (if (symbolp name-and-options)
+                              name-and-options
+                              (first name-and-options))
+                    :kind 'type
+                    :doc-string (first doc-string-and-slots)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'eval-when)) (form cons))
   (destructuring-bind (eval-when times &rest forms)
       form
-    (declare (ignore eval-when))
+    (declare (ignore eval-when times))
+    (mapcar #'form-documentation forms)))
+
+
+(defmethod extract-form-documentation ((fk (eql 'progn)) (form cons))
+  (destructuring-bind (progn &rest forms)
+      form
+    (declare (ignore progn))
     (mapcar #'form-documentation forms)))
 
 
@@ -147,37 +218,81 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 
 
 (defmethod extract-form-documentation ((fk (eql 'defparameter)) (form cons))
-  (extract-symbol-form-documentation form))
+  (let ((doc (extract-symbol-form-documentation form)))
+    (when doc
+      (make-doc-bit :name (second form)
+                    :kind 'variable
+                    :doc-string doc))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defvar)) (form cons))
-  (extract-symbol-form-documentation form))
+  (let ((doc (extract-symbol-form-documentation form)))
+    (when doc
+      (make-doc-bit :name (second form)
+                    :kind 'variable
+                    :doc-string doc))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defconstant)) (form cons))
-  (extract-symbol-form-documentation form))
+  (let ((doc (extract-symbol-form-documentation form)))
+    (when doc
+      (make-doc-bit :name (second form)
+                    :kind 'variable
+                    :doc-string doc))))
 
 
 (define-documentation-extractor (defsetf access-fn &rest form)
   (if (symbolp (first form))
-      (second form)
-      (extricate-doc-string (nthcdr 2 form))))
+      (let ((doc (second form)))
+        (when doc
+          (make-doc-bit :name access-fn
+                        :kind 'setf
+                        :doc-string doc)))
+      (let ((doc (extricate-doc-string (nthcdr 2 form)))
+            (ll (first form))
+            )
+        (when doc
+          (make-doc-bit :name access-fn
+                        :kind 'setf
+                        :lambda-list ll
+                        :doc-string doc)))))
 
 
 (define-documentation-extractor (define-modify-macro name ll function
                                   &optional doc-string)
-  (declare (ignore ll))
-  doc-string)
+  (declare (ignore ll function))
+  (make-doc-bit :name name
+                :kind 'function
+                :doc-string doc-string))
 
 
 (define-documentation-extractor (define-method-combination name &rest rest-dmc)
-  (if (keywordp (first form)) ; Short form.
-      (getf rest-dmc :documentation)
-      (let ((options-and-forms (copy-list (nthcdr 2 rest-dmc)))) ; Paranoid!
-        (when (eq :arguments (first options-and-forms))
-          (pop options-and-forms))
-        (when (eq :generic-function (first options-and-forms))
-          (pop options-and-forms))
-        (extricate-doc-string options-and-forms))))
-  
+  (let ((doc (if (keywordp (first rest-dmc)) ; Short form.
+                 (getf rest-dmc :documentation)
+                 (let ((options-and-forms (copy-list (nthcdr 2 rest-dmc)))) ; Paranoid!
+                   (when (eq :arguments (first options-and-forms))
+                     (pop options-and-forms))
+                   (when (eq :generic-function (first options-and-forms))
+                     (pop options-and-forms))
+                   (extricate-doc-string options-and-forms))))
+        )
+    (when doc
+      (make-doc-bit :name name
+                    :kind 'method-combination
+                    :doc-string doc))))
+
+;;;;===========================================================================
+;;;; Utilities.
+
+(defun flatten-if (p l)
+  (cond ((null l) nil)
+        ((funcall p (first l))
+         (cons (flatten-if p (first l))
+               (flatten-if p (rest l))))
+        (t
+         (cons (first l)
+               (flatten-if p (rest l))))
+        ))
+
+
 ;;;; end of file -- extract-doc.lisp --
