@@ -1,0 +1,7 @@
+# HELamdaP git igtoned files.
+
+# Emacs backups.
+*~
+
+# Various CL FASL files.
+*fasl
