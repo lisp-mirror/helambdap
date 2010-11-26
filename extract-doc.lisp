@@ -17,13 +17,17 @@
 (defmethod extract-documentation ((forms-stream stream))
   (loop with eof = (gensym "FORMS-STREAM-EOF-")
         for form = (read forms-stream nil eof)
+        for form-doc = (form-documentation form)
         while (not (eq form eof))
-        collect (form-documentation form) into doc-bits
-        finally (return ; Inefficient, but WTF.
-                 (delete nil
-                         (delete nil (flatten-if (complement 'doc-bit-p) doc-bits))
-                         :key 'doc-bit-doc-string
-                         ))))
+        when form-doc
+        if (consp form-doc)
+        nconc (delete nil form-doc) into doc-bits
+        else
+        collect form-doc into doc-bits
+        end
+
+        finally (return
+                 (delete-if (complement 'doc-bit-doc-string) doc-bits))))
 
 
 (defmethod extract-documentation ((file pathname))
@@ -66,6 +70,7 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 (defmacro define-documentation-extractor (spec &body forms)
   `(defmethod extract-form-documentation ((_%FK%_ (eql ',(first spec)))
                                           (_%FORM%_ cons))
+     ;; I know I should gensym these...
      (destructuring-bind ,spec
          _%FORM%_
        (declare (ignore ,(first spec)))
@@ -75,6 +80,7 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 ;;; extract-form-documentation --
 
 (defmethod extract-form-documentation ((fk symbol) (form cons))
+  (warn "Operator ~A not handled." fk)
   nil)
 
 
@@ -173,6 +179,28 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                                                     :key #'first)))))
 
 
+(defvar *try-to-ensure-packages* t
+  "Controls whether the system should try to create the packages it encouters.
+
+DEFPACKAGE and IN-PACKAGE forms will be evaluated if non-NIL (default
+T). Only top-level occurrences of these forms are considered.")
+
+
+(defmethod extract-form-documentation :before ((fk (eql 'defpackage)) (form cons))
+  (when *try-to-ensure-packages*
+    (eval form)))
+
+
+(defmethod extract-form-documentation :before ((fk (eql 'in-package)) (form cons))
+  (when *try-to-ensure-packages*
+    (let* ((pkg-name (second form))
+           (pkg (find-package pkg-name))
+           )
+      (when *try-to-ensure-packages*
+        (unless pkg
+          (make-package pkg-name))))))
+
+
 (defmethod extract-form-documentation ((fk (eql 'defmethod)) (form cons))
   (destructuring-bind (defmethod name &rest rest-method)
       form
@@ -192,11 +220,15 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       form
     (declare (ignore defstruct))
     (when (stringp (first doc-string-and-slots))
-      (make-doc-bit :name (if (symbolp name-and-options)
-                              name-and-options
-                              (first name-and-options))
-                    :kind 'type
-                    :doc-string (first doc-string-and-slots)))))
+      (make-struct-doc-bit :name (if (symbolp name-and-options)
+                                     name-and-options
+                                     (first name-and-options))
+                           :kind 'structure
+                           :doc-string (first doc-string-and-slots)
+                           :include (when (consp name-and-options)
+                                      (second (find :include (remove #'symbolp name-and-options)
+                                                    :key #'first)))
+                           ))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'eval-when)) (form cons))
@@ -220,25 +252,25 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 (defmethod extract-form-documentation ((fk (eql 'defparameter)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
     (when doc
-      (make-doc-bit :name (second form)
-                    :kind 'variable
-                    :doc-string doc))))
+      (make-parameter-doc-bit :name (second form)
+                              :kind 'variable
+                              :doc-string doc))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defvar)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
     (when doc
-      (make-doc-bit :name (second form)
-                    :kind 'variable
-                    :doc-string doc))))
+      (make-variable-doc-bit :name (second form)
+                             :kind 'variable
+                             :doc-string doc))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defconstant)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
     (when doc
-      (make-doc-bit :name (second form)
-                    :kind 'variable
-                    :doc-string doc))))
+      (make-constant-doc-bit :name (second form)
+                             :kind 'constant
+                             :doc-string doc))))
 
 
 (define-documentation-extractor (defsetf access-fn &rest form)
@@ -280,6 +312,33 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       (make-doc-bit :name name
                     :kind 'method-combination
                     :doc-string doc))))
+
+
+#+mk-defsystem
+(define-documentation-extractor (mk:defsystem name &rest rest-system)
+  (make-mk-system-doc-bit :name name
+                          :kind 'mk::system
+                          :doc-string (second
+                                       (member :documentation rest-system
+                                               :test #'eq))))
+
+
+#+asdf
+(define-documentation-extractor (asdf:defsystem name &rest rest-system)
+  (make-mk-system-doc-bit :name name
+                          :kind 'asdf:system
+                          :doc-string (second
+                                       (member :description rest-system
+                                               :test #'eq))))
+
+
+#+lispworks
+(define-documentation-extractor (lw:defsystem name options &rest keys)
+  (declare (ignore keys))
+  (make-lw-system-doc-bit :name name
+                          :kind 'scm:scm-system
+                          :doc-string (getf options :documentation "")))
+
 
 ;;;;===========================================================================
 ;;;; Utilities.

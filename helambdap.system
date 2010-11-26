@@ -1,11 +1,19 @@
 ;;;; -*- Mode: Lisp -*-
 
 (mk:defsystem "HELAMBDAP"
+  :documentation "The HELambdaP System."
   :components ("helambdap-pkg"
-               "naming"
+               (:module "utilities"
+                :depends-on ("helambdap-pkg")
+                :components ("text-utilities"))
                "doc-bit"
                "extract-doc"
-               "helambdap")
+               "helambdap"
+               "collect-documentation"
+               (:file "xml-producer" :depends-on ("doc-structure" "utilities"))
+               (:file "xhtml-producer" :depends-on ("doc-structure" "utilities"))
+               "doc-structure"
+               "documentation-production")
   :depends-on ("CL-FAD"
                "CL-WHO"))
 

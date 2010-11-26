@@ -6,9 +6,8 @@
 
 
 ;;; doc-bit struture --
-;;; The use of the :TYPE LIST option is for easiness of READ/WRITE.
 
-(defstruct (doc-bit)
+(defstruct doc-bit
   "The DOC-BIT Structure.
 
 The structure of a documentation bit."
@@ -16,6 +15,7 @@ The structure of a documentation bit."
   (name nil :type (or symbol naming) :read-only t) ; Either a name a CONS like (SETF s).
   (kind t :read-only t) ; As per CL:DOCUMENTATION second argument, with extra "naming"
                         ; accepted, in the fashion of LW DSPEC package
+  (kind-tag "" :type string :read-only t)
   (doc-string "" :type string)
   (timestamp (get-universal-time) :type integer)
   location ; We assume that NAME is unique, hence LOCATION must be as
@@ -24,54 +24,81 @@ The structure of a documentation bit."
   )
 
 
-(defstruct (parameterized-doc-bit (:include doc-bit))
-  (lambda-list ()))
+(defstruct (variable-doc-bit (:include doc-bit (kind-tag "Variable")))
+  (initial-value nil :read-only t))
 
 
-(defstruct (function-doc-bit (:include parameterized-doc-bit)))
+(defstruct (parameter-doc-bit (:include variable-doc-bit (kind-tag "Parameter"))))
+
+(defstruct (constant-doc-bit (:include variable-doc-bit (kind-tag "Constant"))))
 
 
-(defstruct (macro-doc-bit (:include parameterized-doc-bit)))
+(defstruct (parameterized-doc-bit (:include doc-bit)
+                                  (:constructor nil))
+  (lambda-list () :read-only t :type list))
 
 
-(defstruct (compiler-macro-doc-bit (:include parameterized-doc-bit)))
+(defstruct (function-doc-bit (:include parameterized-doc-bit (kind-tag "Function"))))
 
 
-(defstruct (setf-expander-doc-bit (:include parameterized-doc-bit)))
+(defstruct (macro-doc-bit (:include parameterized-doc-bit (kind-tag "Macro"))))
 
 
-(defstruct (modify-macro-doc-bit (:include macro-doc-bit)))
+(defstruct (compiler-macro-doc-bit (:include parameterized-doc-bit (kind-tag "Compiler Macro"))))
 
 
-(defstruct (generic-function-doc-bit (:include parameterized-doc-bit)))
+(defstruct (setf-expander-doc-bit (:include parameterized-doc-bit (kind-tag "SETF Expander"))))
 
 
-(defstruct (method-doc-bit (:include parameterized-doc-bit))
-  qualifiers)
+(defstruct (modify-macro-doc-bit (:include macro-doc-bit (kind-tag "Modifier Macro"))))
 
 
-(defstruct (type-doc-bit (:include parameterized-doc-bit)))
+(defstruct (generic-function-doc-bit (:include parameterized-doc-bit (kind-tag "Generic Function"))))
 
 
-(defstruct (class-doc-bit (:include type-doc-bit))
-  superclasses)
+(defstruct (method-doc-bit (:include parameterized-doc-bit (kind-tag "Method")))
+  (qualifiers () :type list :read-only t))
 
 
-(defstruct (condition-doc-bit (:include class-doc-bit))
+(defstruct (type-doc-bit (:include parameterized-doc-bit (kind-tag "Type"))))
+
+
+(defstruct (class-doc-bit (:include type-doc-bit (kind-tag "Class")))
+  (superclasses () :type list :read-only t))
+
+
+(defstruct (condition-doc-bit (:include class-doc-bit (kind-tag "Condition")))
   )
 
 
-(defstruct (struct-doc-bit (:include type-doc-bit))
-  include)
+(defstruct (struct-doc-bit (:include type-doc-bit (kind-tag "Structure")))
+  (include nil :type symbol :read-only t)
+  )
 
 
 (defstruct (method-combination-doc-bit (:include type-doc-bit))
   )
 
 
-(defstruct (package-doc-bit (:include doc-bit))
-  use-list
-  nicknames
+(defstruct (package-doc-bit (:include doc-bit (kind-tag "Package")))
+  (use-list '("CL") :type list :read-only t)
+  (nicknames () :type list :read-only t)
   )
+
+
+(defstruct (system-doc-bit (:include doc-bit (kind-tag "System"))
+                           (:constructor nil))
+  (depends-on () :type list :read-only t))
+
+
+#+mk-defsystem
+(defstruct (mk-system-doc-bit (:include system-doc-bit)))
+
+#+asdf
+(defstruct (asdf-system-doc-bit (:include system-doc-bit)))
+
+#+lispworks
+(defstruct (lw-system-doc-bit (:include system-doc-bit)))
+
 
 ;;; end of file -- doc-bit.lisp --
