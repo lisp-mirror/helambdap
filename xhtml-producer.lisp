@@ -92,10 +92,16 @@
 
 
 (defmethod produce-documentation ((format (eql 'html))
-                                  (structure framesets)
+                                  (fss framesets)
                                   (where pathname)
                                   doc-bits)
-  )
+  (let ((ds (element-doc-structure fss))
+        (fs-order -1)
+        )
+    (dolist (fs (framesets-list fss))
+      (let ((e (gethash fs (structure-table ds))))
+        (when (frameset-p e)
+          (setf (frameset-order e) (incf fs-order)))))))
 
 
 (declaim (type string +doctype-frameset-control-string+))
@@ -142,7 +148,7 @@
                    (:link :rel "stylesheet" :href "clstyle.css"))
                   (:body
                    (:frameset :rows "65px,*" :border 0 :noresize "noresize"
-                    (produce-header-frame 'html structure fs-file where)
+                    (produce-header-frame 'html structure fs-file where doc-bits)
                     #|(when (non-empty-string-p fs-header)
                       (htm (:frame :src fs-header)))|#
                     
@@ -203,7 +209,7 @@
                                  doc-bits
                                  )
   (let ((header (frameset-header fs)))
-    (unless (or (null header) (string= ""))
+    (unless (or (null header) (string= header ""))
       (let ((header-pathname
              (merge-pathnames
               (merge-pathnames header
@@ -373,9 +379,6 @@
 
 
 
-
-
-
 (defmethod produce-documentation ((format (eql 'html)) structure (out stream) doc-bit)
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
@@ -391,6 +394,97 @@
             (:h2 "Description:" (terpri out) (str doc-string))
             )))))
     t)
+
+;;;---------------------------------------------------------------------------
+;;; Auxiliary files production.
+
+(defmethod frameset-head-title ((fs frameset))
+  "FOOO")
+
+
+(defmethod frameset-body-title ((fs frameset))
+  "FFFFOOOOO")
+
+
+(defun produce-header-file (fs header-pathname)
+  (declare (type frameset fs)
+           (type pathname header-pathname))
+  (let ((fs-order (frameset-order fs))
+        (fs-head-title (frameset-head-title fs))
+        (fs-body-title (frameset-body-title fs))
+        )
+    (with-open-file (hs header-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (with-html-output (hs hs :indent t)
+        (fmt "<!-- ~A.html -->" (cl-fad:pathname-as-file header-pathname))
+        (fmt +doctype-frameset-control-string+)
+        (:html
+         (:head
+          (:title (str fs-head-title))
+          (:link :rel "stylesheet" :href "clstyle.css"))
+         (:body :style "margin: 0pt 0pt 0pt 0pt;"
+          (:div
+           :class "header"
+           :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"
+           (:strong (str fs-body-title))
+           (:div
+            :class "navigation"
+            :style "right: 2m"
+            (:a
+             :href "index.html"
+             :class "navigation-link-selected"
+             :target "_parent"
+             (str "Home"))
+            )))))
+      )))
+
+
+#|
+<!-- header.html -->
+
+<!DOCTYPE HTML PUBLIC
+"-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html>
+<head>
+<title>HE&Lambda;P: The Common Lisp Help and Documentation Center</title>
+<link rel="stylesheet" href="clstyle.css">
+</head>
+
+<body style="margin: 0pt 0pt 0pt 0pt;">
+
+<div class="header"
+  style="padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt">
+<!-- <div class="text"> -->
+  <strong><i>HE&Lambda;P</i></strong><br/>
+<!-- </div> -->
+
+
+<div class="navigation" style="right: 2m">
+  <a href="index.html" class="navigation-link-selected" target=_parent>Home</a>
+  | <a href="dictionary/dictionary-frame.html" class="navigation-link" target=_parent>Dictionary</a>
+  | <a href="downloads-frame.html" class="navigation-link" target=_parent>Downloads</a>
+  | <a href="mailing-lists-frame.html" class="navigation-link" target=_parent>Mailing Lists</a>
+  | <a href="links-frame.html" class="navigation-link" target=_parent>Links</a>
+</div>
+
+<!--
+<div class="black-line"><img src="images/shim.gif" height="1" width="1"></div>
+<div class="middle-bar"><img src="images/shim.gif" height="5" width="1"></div>
+<div class="black-line"><img src="images/shim.gif" height="1" width="1"></div>
+-->
+
+</div>
+
+</body>
+</html>
+
+<!-- end of file : header.html -->
+
+|#
 
 
 ;;;; end of file -- xhtml-producer.lisp --

@@ -9,8 +9,22 @@
                                  &key
                                  layout
                                  source
-                                 destination)
+                                 destination
+                                 &allow-other-keys)
   (:documentation "Produces the documentation according to a number of parameters"))
+
+
+(defgeneric build-doc-skeleton (for-what
+                                format
+                                &key
+                                layout
+                                source
+                                destination
+                                &allow-other-keys)
+  (:documentation "Produces a skeleton for the documentation.
+
+The skeleton consists of a number of 'judiciously' editable files that
+can be used asbuilding blocks for the final documentation."))
 
 
 (defun document (for-what
