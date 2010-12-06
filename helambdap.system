@@ -10,11 +10,13 @@
                "extract-doc"
                "helambdap"
                "collect-documentation"
+               "doc-structure"
+               "documentation-production"
                (:file "xml-producer" :depends-on ("doc-structure" "utilities"))
                (:file "xhtml-producer" :depends-on ("doc-structure" "utilities"))
-               "doc-structure"
-               "documentation-production")
+               )
   :depends-on ("CL-FAD"
-               "CL-WHO"))
+               "CL-WHO"
+               "HTML-TEMPLATE"))
 
 ;;;; end of file -- helambdap.system --
