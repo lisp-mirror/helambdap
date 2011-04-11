@@ -7,7 +7,7 @@
 
 
 (defgeneric translate-doc-bit-to-xml (doc-bit out
-                                              &key (print-pretty *print-pretty*)
+                                              &key (print-pretty)
                                               &allow-other-keys))
 
 

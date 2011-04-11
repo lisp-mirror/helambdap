@@ -4,6 +4,17 @@
 
 (in-package "HELAMBDAP")
 
+
+;;;;===========================================================================
+;;;; Protocol.
+
+(defgeneric produce-documentation (format element out doc-bits
+                                          &key documentation-title
+                                          &allow-other-keys)
+  (:documentation "Produces documentation for ELEMENT according to FORMAT.")
+  )
+
+
 (defgeneric build-documentation (for-what
                                  format
                                  &key
@@ -11,7 +22,8 @@
                                  source
                                  destination
                                  &allow-other-keys)
-  (:documentation "Produces the documentation according to a number of parameters"))
+  (:documentation
+   "Produces the documentation according to a number of parameters"))
 
 
 (defgeneric build-doc-skeleton (for-what
@@ -24,22 +36,32 @@
   (:documentation "Produces a skeleton for the documentation.
 
 The skeleton consists of a number of 'judiciously' editable files that
-can be used asbuilding blocks for the final documentation."))
+can be used as building blocks for the final documentation."))
+
+
+(declaim (ftype (function (T &key &allow-other-keys) T) document))
+
+
+;;;;===========================================================================
+;;;; Implementation.
 
 
 (defun document (for-what
                  &key
+                 (documentation-title)
                  (format 'html)
                  (layout *default-documentation-structure*)
                  (source #P"")
                  (destination 
                   (make-pathname :directory '(:relative "doc" "html")))
+                 &allow-other-keys
                  )
   (build-documentation for-what
                        format
                        :layout layout
                        :source source
-                       :destination destination))
+                       :destination destination
+                       :documentation-title documentation-title))
 
 
 ;;;;---------------------------------------------------------------------------
@@ -48,17 +70,20 @@ can be used asbuilding blocks for the final documentation."))
 (defmethod build-documentation ((p pathname)
                                 (format (eql 'html))
                                 &key
+                                (documentation-title)
                                 (layout *default-documentation-structure*)
                                 (source #P".")
                                 (destination
                                  (make-pathname :directory '(:relative "doc" "html")))
+                                &allow-other-keys
                                 )
   (declare (ignore source))
   (let ((doc-bits (collect-documentation p)))
     (produce-documentation format
                            layout
                            destination
-                           doc-bits))
+                           doc-bits
+                           :documentation-title documentation-title))
   )
   
 

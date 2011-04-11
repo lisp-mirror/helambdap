@@ -6,11 +6,8 @@
 (in-package "HELAMBDAP")
 
 
+;;;;===========================================================================
 ;;;; Protocol.
-
-(defgeneric produce-documentation (format element out doc-bits)
-  (:documentation "Produces documentation for ELEMENT according to FORMAT.")
-  )
 
 
 (defgeneric produce-frame (format element out)
@@ -21,7 +18,7 @@
   )
 
 
-(defgeneric produce-header-frame (format frameset frameset-stream where doc-bits)
+(defgeneric produce-header-frame (format frameset frameset-stream where doc-bits doc-title)
   )
 
 
@@ -29,12 +26,17 @@
   )
 
 
+;;;;===========================================================================
 ;;;; Implementation.
 
 (defmethod produce-documentation ((format (eql 'html)) ;
                                   (structure documentation-structure)
                                   (where pathname)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (ensure-directories-exist where)
   (dolist (c (documentation-structure-structure structure))
     (produce-documentation 'html c where doc-bits)
@@ -44,7 +46,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure style-file)
                                   (where pathname)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((doc-directory where)
         (sfn (style-file-name structure))
         )
@@ -59,7 +65,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure doc-file)
                                   (where pathname)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let* ((doc-directory where)
          (dfn (doc-file-name structure))
          (destination-path
@@ -74,7 +84,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure doc-file)
                                   (where file-stream)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let* ((doc-directory where)
          (dfn (doc-file-name structure))
          (destination-path
@@ -91,6 +105,7 @@
         )))
 
 
+#|
 (defmethod produce-documentation ((format (eql 'html))
                                   (fss framesets)
                                   (where pathname)
@@ -102,9 +117,23 @@
       (let ((e (gethash fs (structure-table ds))))
         (when (frameset-p e)
           (setf (frameset-order e) (incf fs-order)))))))
+|#
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (fss framesets)
+                                  (where pathname)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
+  (dolist (fs (framesets-list fss))
+    (produce-documentation 'html fs where doc-bits)))
 
 
 (declaim (type string +doctype-frameset-control-string+))
+
 
 (defconstant +doctype-frameset-control-string+
 "<!DOCTYPE HTML PUBLIC
@@ -117,7 +146,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure frameset)
                                   (where pathname)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (flet ((produce-frameset-file ()
            (let* ((fs-name (frameset-name structure))
                   (fs-filename (make-pathname :name fs-name
@@ -148,7 +181,12 @@
                    (:link :rel "stylesheet" :href "clstyle.css"))
                   (:body
                    (:frameset :rows "65px,*" :border 0 :noresize "noresize"
-                    (produce-header-frame 'html structure fs-file where doc-bits)
+                    (produce-header-frame 'html
+                                          structure
+                                          fs-file
+                                          where
+                                          doc-bits
+                                          documentation-title)
                     #|(when (non-empty-string-p fs-header)
                       (htm (:frame :src fs-header)))|#
                     
@@ -207,6 +245,7 @@
                                  (fs-file stream)
                                  (where pathname)
                                  doc-bits
+                                 documentation-title
                                  )
   (let ((header (frameset-header fs)))
     (unless (or (null header) (string= header ""))
@@ -218,7 +257,7 @@
             )
              
         (unless (probe-file header-pathname)
-          (produce-header-file fs header-pathname))
+          (produce-header-file fs header-pathname documentation-title))
         (with-html-output (out fs-file :indent cl-who::*indent*)
           (htm (:frame :src header)))
         ))))
@@ -238,7 +277,10 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure file-set)
                                   (where pathname)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
   (with-html-output (out where :indent cl-who::*indent*)
     (htm (:frame :src (element-name structure)))
     )
@@ -248,7 +290,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure file-set)
                                   (where file-stream)
-                                  doc-bits)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (with-html-output (out where :indent cl-who::*indent*)
     (htm (:frame :src (element-name structure)))
     )
@@ -270,7 +316,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit function-doc-bit))
+                                  (doc-bit function-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -281,7 +331,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit macro-doc-bit))
+                                  (doc-bit macro-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -291,7 +345,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit compiler-macro-doc-bit))
+                                  (doc-bit compiler-macro-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -301,7 +359,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit setf-expander-doc-bit))
+                                  (doc-bit setf-expander-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -311,7 +373,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit modify-macro-doc-bit))
+                                  (doc-bit modify-macro-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -321,7 +387,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit generic-function-doc-bit))
+                                  (doc-bit generic-function-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -331,7 +401,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit type-doc-bit))
+                                  (doc-bit type-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -341,7 +415,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit class-doc-bit))
+                                  (doc-bit class-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -351,7 +429,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit condition-doc-bit))
+                                  (doc-bit condition-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -361,7 +443,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit method-combination-doc-bit))
+                                  (doc-bit method-combination-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -371,7 +457,11 @@
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
                                   (out file-stream)
-                                  (doc-bit package-doc-bit))
+                                  (doc-bit package-doc-bit)
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -379,7 +469,14 @@
 
 
 
-(defmethod produce-documentation ((format (eql 'html)) structure (out stream) doc-bit)
+(defmethod produce-documentation ((format (eql 'html))
+                                  structure
+                                  (out stream)
+                                  doc-bit
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -406,7 +503,7 @@
   "FFFFOOOOO")
 
 
-(defun produce-header-file (fs header-pathname)
+(defun produce-header-file (fs header-pathname documentation-title)
   (declare (type frameset fs)
            (type pathname header-pathname))
   (let ((fs-order (frameset-order fs))

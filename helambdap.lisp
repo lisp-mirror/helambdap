@@ -102,6 +102,7 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 
 (defun fill-doc-bits-db (f &optional (dbdb *doc-bits-db*))
   ;; MK User Manual similar stuff.
+  (declare (ignore dbdb))
   (extract-documentation f)
   )
 
@@ -131,7 +132,7 @@ DOCUMENTATION falls back on CL:DOCUMENTATION.")
                           (db-store *doc-bits-db-file*)
                           (reload nil)
                           )
-  (declare (ignore dbdb db-store reload))
+  (declare (ignore db-store reload))
   (let ((doc-bits (get-doc-bits x dbdb)))
     (or (find doc-type doc-bits :key #'doc-bit-kind)
         (cl:documentation x doc-type))))

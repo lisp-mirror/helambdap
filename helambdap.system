@@ -12,8 +12,10 @@
                "collect-documentation"
                "doc-structure"
                "documentation-production"
-               (:file "xml-producer" :depends-on ("doc-structure" "utilities"))
-               (:file "xhtml-producer" :depends-on ("doc-structure" "utilities"))
+               (:file "xml-producer"
+                :depends-on ("doc-structure" "utilities" "documentation-production"))
+               (:file "xhtml-producer"
+                :depends-on ("doc-structure" "utilities" "documentation-production"))
                )
   :depends-on ("CL-FAD"
                "CL-WHO"
