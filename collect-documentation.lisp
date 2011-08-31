@@ -52,7 +52,7 @@
              (dfs (p)
                (let ((ntp (namestring (truename p))))
                  (when (is-white ntp)
-                   (format t "Considering ~S " p)
+                   (format t "~&Considering ~S " p)
                    (grey ntp)
                    (cond ((cl-fad:directory-pathname-p p)
                           (format t "[D]~%")

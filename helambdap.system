@@ -1,24 +1,56 @@
 ;;;; -*- Mode: Lisp -*-
 
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  ;; (pushnew :with-cxml *features*)
+  ;; (pushnew :with-ediware *features*)
+  (pushnew :with-xhtmlambda *features*)
+  )
+
 (mk:defsystem "HELAMBDAP"
   :documentation "The HELambdaP System."
   :components ("helambdap-pkg"
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
-                :components ("text-utilities"))
-               "doc-bit"
+                :components ("text-utilities"
+                             "filename-utilities"))
+               "naming"
+               (:file "doc-bit" :depends-on ("naming"))
                "extract-doc"
                "helambdap"
                "collect-documentation"
                "doc-structure"
                "documentation-production"
+
+               #+with-ediware
                (:file "xml-producer"
                 :depends-on ("doc-structure" "utilities" "documentation-production"))
+
+               #+with-ediware
                (:file "xhtml-producer"
                 :depends-on ("doc-structure" "utilities" "documentation-production"))
+
+               #+with-cxml
+               (:file "xhtml-cxml-producer"
+                :depends-on ("doc-structure" "utilities" "documentation-production"))
+
+               #+with-xhtmlambda
+               (:file "xhtml-lambda-producer"
+                :depends-on ("doc-structure" "utilities" "documentation-production"))
+
+	       (:module "impl-dependent"
+		:depends-on ("helambdap-pkg")
+		:components (
+			     #+lispworks
+			     "lispworks"
+			     ))
                )
   :depends-on ("CL-FAD"
-               "CL-WHO"
-               "HTML-TEMPLATE"))
+               #+with-cxml "CXML"
+               #+with-ediware "CL-WHO"
+               #+with-ediware "HTML-TEMPLATE"
+               #+with-xhtmlambda "XHTMLAMBDA"
+               )
+  :finally-do (pushnew :helambdap *features*)
+  )
 
 ;;;; end of file -- helambdap.system --

@@ -5,7 +5,7 @@
 
 (in-package "HELAMBDAP")
 
-(use-package "CL-WHO")
+;(use-package "XHTMLAMBDA")
 
 ;;;;===========================================================================
 ;;;; Protocol.
@@ -15,15 +15,30 @@
   )
 
 
-(defgeneric produce-navigation-frame (format nav element out doc-bits)
+(defgeneric produce-navigation-frame (format
+                                      element
+                                      frameset-stream
+                                      where
+                                      doc-bits
+                                      doc-title)
   )
 
 
-(defgeneric produce-header-frame (format frameset frameset-stream where doc-bits doc-title)
+(defgeneric produce-header-frame (format
+                                  frameset
+                                  frameset-stream
+                                  where
+                                  doc-bits
+                                  doc-title)
   )
 
 
-(defgeneric produce-footer-frame (format frameset frameset-stream where doc-bits)
+(defgeneric produce-footer-frame (format
+                                  frameset
+                                  frameset-stream
+                                  where
+                                  doc-bits
+                                  doc-title)
   )
 
 
@@ -44,7 +59,8 @@
   (declare (ignorable documentation-title))
   (ensure-directories-exist where)
   (dolist (c (documentation-structure-structure structure))
-    (produce-documentation 'html c where doc-bits)
+    (produce-documentation 'html c where doc-bits
+                           :documentation-title documentation-title)
     ))
 
 
@@ -138,10 +154,13 @@
                                   )
   (declare (ignorable documentation-title))
   (dolist (fs (framesets-list fss))
-    (produce-documentation 'html fs where doc-bits)))
+    (produce-documentation 'html fs where doc-bits
+                           :documentation-title documentation-title)))
 
 
-(declaim (type string +doctype-frameset-control-string+))
+(declaim (type string
+               +doctype-frameset-control-string+
+               +doctype-xhtml1-string-control-string+))
 
 
 (defconstant +doctype-frameset-control-string+
@@ -149,7 +168,15 @@
   \"-//W3C//DTD HTML 4.01 Frameset//EN\"
   \"http://www.w3.org/TR/html4/frameset.dtd\">"
 
-  "The standard 'DOCTYPE' w3c frameset DTD (X)HTML string.")
+"The standard 'DOCTYPE' w3c Frameset DTD (X)HTML string.")
+
+
+(defconstant +doctype-xhtml1-string-control-string+
+"<!DOCTYPE HTML PUBLIC
+  \"-//W3C//DTD XHTML 1.0 Strict//EN\"
+  \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+
+"The standard 'DOCTYPE' w3c DTD XHTML Strict DTD (X)HTML string.")
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -161,110 +188,119 @@
                                   &allow-other-keys
                                   )
   (declare (ignorable documentation-title))
-  (flet ((produce-frameset-file ()
-           (let* ((fs-name (frameset-name structure))
-                  (fs-filename (make-pathname :name fs-name
-                                              :type "htm"
-                                              :defaults where))
-                  (fs-header (frameset-header structure))
-                  (fs-content (frameset-content structure))
-                  (fs-navigation (frameset-navigation structure))
-                  (fs-footer (frameset-footer structure))
-                  (fs-location (frameset-location structure))
-                  (where (if fs-location
-                             (merge-pathnames fs-location where)
-                             where))
-                  #|(*xhtml-indent* (if (zerop *xhtml-indent*)
-                                      *xhtml-indent*
-                                      (+ 4 *xhtml-indent*)))
-                  |#
-                  ;; (cl-who::*indent* 1)
-                  )
+  (let* ((fs-location (frameset-location structure))
+         (where (if fs-location
+                    (merge-pathnames fs-location where)
+                    where))
 
-             ;; (format t ">>>> Indentation is ~D~%" cl-who::*indent*)
-
-             (ensure-directories-exist where)
-
-             (with-open-file (fs-file fs-filename
-                                      :direction :output
-                                      :if-does-not-exist :create
-                                      :if-exists :supersede)
-               (with-html-output (fs-file fs-file :indent 4)
-                 (fmt "<!-- ~A.htm -->~2%" fs-name)
-                 (fmt +doctype-frameset-control-string+)
-                 (:html
-                  (:head
-                   (:title (str fs-name))
-                   (:link :rel "stylesheet" :href "clstyle.css"))
-                  (:body
-                   (:frameset :rows "65px,*" :border 0 :noresize "noresize"
-                    ;; HEADER ROW.
-                    (let () ; ((cl-who::*indent* (+ 4 cl-who::*indent*)))
-                      (produce-header-frame 'html
-                                            structure
-                                            fs-file
-                                            where
-                                            doc-bits
-                                            documentation-title))
-                    #|(when (non-empty-string-p fs-header)
-                      (htm (:frame :src fs-header)))|#
-                    
-                    ;; NAVIGATION/CONTENT/SIDEBAR ROW.
-                    (:frameset :cols "150px,*" :border 0
-                     (when (non-empty-string-p fs-navigation)
-                       (produce-navigation-frame format
-                                                 fs-navigation
-                                                 structure
-                                                 fs-file
-                                                 doc-bits))
-                     
-                     (fmt "~&<!-- CONTENT ~S -->~%" fs-content)
-                     (if fs-content
-                         (progn
-                           (produce-documentation format (first fs-content) fs-file doc-bits)
-                           (produce-frame format (first fs-content) fs-file)
-                           ;; (htm (:frame :src (file-pathname (first fs-content))))
-                           )
-                         (htm (:frame :src (element-name structure)))))
-
-                    ;; FOOTER ROW.
-                    (when (non-empty-string-p fs-footer)
-                      (htm (:frame :src fs-footer)))
-                    
-                    (:noframes
-                     (:h2 "Frame Alert")
-                     (:p (fmt "This document is designed to be viewed using the frames feature. If~@
-                               you see this message, you are using a non-frame-capable web client.")
-                      (:br)
-                      "Link to "
-                      (:a :href "overview-summary.html" "Non-frame version.")))
-                    )))
-
-                 (fmt "~&<!-- end of file : ~A.htm -->~%" fs-name)
-                 ))))
+         (fs-name (frameset-name structure))
+         (fs-pathname (make-pathname :name fs-name
+                                     :type *default-html-extension*
+                                     :defaults where))
+         (fs-header (frameset-header structure))
+         (fs-content (frameset-content structure))
+         (fs-navigation (frameset-navigation structure))
+         (fs-footer (frameset-footer structure))
          )
-    (produce-frameset-file)
-    ))
+
+    (ensure-directories-exist where)
+
+    (with-open-file (fs-file fs-pathname
+                             :direction :output
+                             :if-does-not-exist :create
+                             :if-exists :supersede)
+      (<:with-html-syntax (fs-file :print-pretty t)
+          (<:htmlize
+           (<:document 
+            (format nil "<!-- ~A.htm -->~2%" fs-name)
+            +doctype-frameset-control-string+
+            (string #\newline)
+            (<:html
+
+             (<:head
+              (<:title fs-name)
+              (<:link :rel "stylesheet" :href "clstyle.css"))
+             
+             ((<:frameset :rows "65px,*" :border 0 :noresize "noresize")
+              ;; HEADER ROW.
+              (<:comment "HEADER ROW")
+              (produce-header-frame 'html
+                                    structure
+                                    fs-file
+                                    where
+                                    doc-bits
+                                    documentation-title)
+
+              ;; NAVIGATION/CONTENT/SIDEBAR ROW.
+              (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
+              ((<:frameset :cols "150px,*" :border 0)
+               (<:comment "NAVIGATION FRAME")
+               (produce-navigation-frame 'html
+                                         structure
+                                         fs-file
+                                         where
+                                         doc-bits
+                                         documentation-title)
+                         
+               (<:comment "CONTENT " fs-content)
+               (if fs-content
+                   (progn
+                     (produce-documentation format
+                                            (first fs-content)
+                                            fs-file
+                                            doc-bits)
+                     (produce-frame format (first fs-content) fs-file)
+                     )
+                   (<:frame (:src (base-name
+                                   (make-pathname
+                                    :type *default-html-extension*
+                                    :name (element-name structure))))))
+               )
+
+              ;; FOOTER ROW.
+              (<:comment () "FOOTER ROW")
+              (produce-footer-frame 'html
+                                    structure
+                                    fs-file
+                                    where
+                                    doc-bits
+                                    documentation-title)
+              ;; (<:frame (:src (base-name fs-footer)))
+              )
+              
+              (<:noframes
+               (<:h2 "Frame Alert")
+               (<:p
+                "This document is designed to be viewed using the frames feature."
+                "If you see this message, you are using a non-frame-capable web client."
+                <:br
+                "Link to "
+                ((<:a :href "overview-summary.html") "Non-frame version.")))
+              )
+            (<:comment 
+             (format nil "end of file : ~A.htm" fs-name))
+            )
+           :syntax :compact))
+      )))
+
 
 
 (defmethod produce-frame ((format (eql 'html))
                           (element file-set)
                           (where stream)
                           )
-  (declare (ignorable documentation-title))
-  (format where "~&~%<!-- FILE-SET ~S -->~2%" (element-name element))
-  (with-html-output (out where :indent t)
-    (htm (:frame :src (element-name element)))))
+  (<:frame (:src (element-name element))
+           (format nil "~&<!-- FRAME ~A -->" (element-name element))))
+      
+
 
 
 (defmethod produce-frame ((format (eql 'html))
                           (element doc-file)
                           (where stream)
                           )
-  (declare (ignorable documentation-title))
-  (format where "~&~%<!-- FRAME ~S -->~2%" (element-name element))
-  (with-html-output (out where :indent t)
-    (htm (:frame :src (file-pathname element)))))
+  (<:frame (:src (namestring (file-pathname element)))
+           (<:comment () "FRAME " (element-name element))))
 
 
 (defmethod produce-header-frame ((format (eql 'html))
@@ -274,41 +310,65 @@
                                  doc-bits
                                  documentation-title
                                  )
-  (declare (ignorable documentation-title))
   (let ((header (frameset-header fs)))
     (unless (or (null header) (string= header ""))
       (let ((header-pathname
-             (merge-pathnames header
-                               (make-pathname :type "html"))
-             #|(merge-pathnames
-              (merge-pathnames header
-                               (make-pathname :type "html"))
-              where)
-|#
-             )
+             (merge-pathnames
+              (merge-pathnames (frameset-header-name fs)
+                               (make-pathname :type *default-html-extension*))
+              where))
             )
              
-        (unless (probe-file header-pathname)
+        (unless (and (probe-file header-pathname)
+                     (not *supersede-documentation*))
           (produce-header-file fs header-pathname documentation-title))
-        #+nodebug (format fs-file "~&~%<!-- FRAME HEADER ~S (~D) -->~%"
-                         header-pathname
-                         *xhtml-indent*)
-        (with-html-output (out fs-file)
-          (htm (:frame :src header-pathname)))
+
+        (<:frame (:src (base-name header-pathname)))
         ))))
 
 
 (defmethod produce-navigation-frame ((format (eql 'html))
-                                     nav
-                                     element
-                                     (where stream)
+                                     (element frameset)
+                                     (out stream)
+                                     (where pathname)
                                      doc-bits
+                                     documentation-title
                                      )
-  (declare (ignorable documentation-title))
-  (format where "~&~%<!-- FRAME NAVIGATION ~S -->~2%" (element-name element))
-  (with-html-output (out where :indent t)
-    (htm (:frame :src nav)))
-  )
+  (let ((nav (frameset-navigation element)))
+    (unless (or (null nav) (string= nav ""))
+      (let ((nav-pathname
+             (merge-pathnames
+              (merge-pathnames (frameset-navigation-name element)
+                               (make-pathname :type *default-html-extension*))
+              where))
+            )
+        (unless (and (probe-file nav-pathname)
+                     (not *supersede-documentation*))
+          (produce-navigation-file element nav-pathname documentation-title))
+        (<:frame (:src (base-name nav-pathname)))
+        ))))
+
+
+(defmethod produce-footer-frame ((format (eql 'html))
+                                 (fs frameset)
+                                 (fs-file stream)
+                                 (where pathname)
+                                 doc-bits
+                                 documentation-title
+                                 )
+  (let ((footer (frameset-footer fs)))
+    (unless (or (null footer) (string= footer ""))
+      (let ((footer-pathname
+             (merge-pathnames
+              (merge-pathnames (frameset-footer-name fs)
+                               (make-pathname :type *default-html-extension*))
+              where))
+            )
+        (unless (and (probe-file footer-pathname)
+                     (not *supersede-documentation*))
+          (produce-footer-file fs footer-pathname documentation-title))
+        (<:frame (:src (base-name footer-pathname)))
+        ))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -319,10 +379,7 @@
                                   documentation-title
                                   &allow-other-keys)
   (declare (ignorable documentation-title))
-  (with-html-output (out where :indent t)
-    (htm (:frame :src (element-name structure)))
-    )
-  )
+  (<:frame (:src (element-name structure))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -334,23 +391,26 @@
                                   &allow-other-keys
                                   )
   (declare (ignorable documentation-title))
-  (format where "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
-  (with-html-output (out where :indent t)
-    (htm (:frame :src (element-name structure)))
-    )
-  )
+
+  (<:frame (:src (element-name structure))
+           (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
+           ))
 
 
 (defun dump-doc-bit-html (name str-tag doc-string out)
-  (with-html-output (out out :indent t)
-      (htm (:head
-            (:title (fmt "~A ~A" str-tag (string-downcase name)))
-            (:link :rel "stylesheet" :href "../clstyle.css")
-           (:body
-            (:h1 (:i (fmt "~A " str-tag)) (:strong (str name)))
-            (:h2 "Package: ") (:p (str (package-name (symbol-package name))))
-            (:h2 "Description:") (:p (str doc-string)))
-            ))))
+  (<:with-html-syntax (out :print-pretty t)
+      (<:htmlize
+       (<:document
+        (<:head
+         (<:title (format nil "~A ~A" str-tag (string-downcase name)))
+         (<:link :rel "stylesheet" :href "../clstyle.css"))
+        (<:body
+         (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
+         (<:h2 "Package: ")
+         (<:p (package-name (symbol-package name)))
+         (<:h2 "Description:") (<:p doc-string))
+        )
+       :syntax :compact)))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -533,16 +593,21 @@
         (doc-string (doc-bit-doc-string doc-bit))
         )
 
-    (with-html-output (out out :indent t)
-      (htm (:head
-            (:title (fmt "DOC FOR ~A" (string-downcase name)))
-            (:link :rel "stylesheet" :href "../clstyle.css")
-           (:body
-            (:h1 (:i "Function") (:strong (str name)))
-            (:h2 "Package:")
-            (:h2 "Description:" (terpri out) (str doc-string))
-            )))))
-    t)
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+
+          (<:head
+           (<:title (format nil "DOC FOR ~A" (string-downcase name)))
+           (<:link :rel "stylesheet" :href "../clstyle.css"))
+
+          (<:body
+           (<:h1 (<:i "Function") (<:strong name))
+           (<:h2 "Package:")
+           (<:h2 "Description:" (<:br) doc-string)
+           ))
+         :syntax :compact))
+    t))
 
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
@@ -567,28 +632,101 @@
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
-      (with-html-output (hs hs)
-        (fmt "<!-- ~A.html -->" (cl-fad:pathname-as-file header-pathname))
-        (fmt +doctype-frameset-control-string+)
-        (:html
-         (:head
-          (:title (str fs-head-title))
-          (:link :rel "stylesheet" :href "clstyle.css"))
-         (:body :style "margin: 0pt 0pt 0pt 0pt;"
-          (:div
-           :class "header"
-           :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"
-           (:strong (str fs-body-title))
-           (:div
-            :class "navigation"
-            :style "right: 2m"
-            (:a
-             :href "index.html"
-             :class "navigation-link-selected"
-             :target "_parent"
-             (str "Home"))
-            )))))
-      )))
+      (<:with-html-syntax (hs :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name header-pathname))
+            +doctype-xhtml1-string-control-string+
+            (<:html
+             (<:head
+              (<:title fs-head-title)
+              (<:link :rel "stylesheet" :href "clstyle.css"))
+
+             ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
+              ((<:div :class "header"
+                      :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
+               (<:strong (or documentation-title fs-body-title))
+               ((<:div :class "navigation"
+                       :style "right: 2m")
+                ((<:a :href "index.htm"
+                      :class "navigation-link-selected"
+                      :target "_parent")
+                 "Home"))
+               )
+              )))
+           :syntax :compact))
+      ))
+  )
+
+
+(defun produce-navigation-file (fs nav-pathname documentation-title)
+  (declare (type frameset fs)
+           (type pathname nav-pathname))
+  (declare (ignorable documentation-title))
+  (let ((fs-order (frameset-order fs))
+        (fs-head-title (frameset-head-title fs))
+        (fs-body-title (frameset-body-title fs))
+        )
+    (with-open-file (ns nav-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (<:with-html-syntax (ns :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name nav-pathname))
+            +doctype-xhtml1-string-control-string+
+            (<:html
+             (<:head
+              (<:title fs-head-title)
+              (<:link :rel "stylesheet" :href "clstyle.css"))
+
+             (<:body
+              (<:ul))
+             ))
+           :syntax :compact))
+      ))
+  )
+
+
+(defun produce-footer-file (fs footer-pathname documentation-title)
+  (declare (type frameset fs)
+           (type pathname footer-pathname))
+  (declare (ignorable documentation-title))
+  (let ((fs-order (frameset-order fs))
+        (fs-head-title (frameset-head-title fs))
+        (fs-body-title (frameset-body-title fs))
+        )
+    (with-open-file (hs footer-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (<:with-html-syntax (hs :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name footer-pathname))
+            +doctype-xhtml1-string-control-string+
+            (<:html
+             (<:head
+              (<:title fs-head-title)
+              (<:link :rel "stylesheet" :href "clstyle.css"))
+
+             ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
+              ((<:div :class "copyright"
+                      #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
+               (<:strong (or documentation-title fs-body-title))
+               "documentation produced with"
+               "HE&Lambda;P"
+               (<:br)
+               (<:comment "hhmts start")
+               "Last modified: Thu Aug 25 17:03:36 EEST 2011"
+               (<:comment "hhmts end")
+               (<:br)
+
+               "&copy; 2011, Marco Antoniotti, all rights reserved.")
+              )))
+           :syntax :compact)))
+      ))
 
 
 #|

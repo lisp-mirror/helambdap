@@ -1,6 +1,8 @@
 ;;;; -*- Mode: Lisp -*-
 
 ;;;; naming.lisp --
+;;;;
+;;;; See file COPYING for copyright and licensing information.
 
 (in-package "HELAMBDAP")
 

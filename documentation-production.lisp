@@ -8,6 +8,8 @@
 ;;;;===========================================================================
 ;;;; Protocol.
 
+(defparameter *supersede-documentation* t)
+
 (defgeneric produce-documentation (format element out doc-bits
                                           &key documentation-title
                                           &allow-other-keys)
@@ -54,14 +56,16 @@ can be used as building blocks for the final documentation."))
                  (source #P"")
                  (destination 
                   (make-pathname :directory '(:relative "doc" "html")))
+                 (supersede *supersede-documentation*)
                  &allow-other-keys
                  )
-  (build-documentation for-what
-                       format
-                       :layout layout
-                       :source source
-                       :destination destination
-                       :documentation-title documentation-title))
+  (let ((*supersede-documentation* supersede))
+    (build-documentation for-what
+                         format
+                         :layout layout
+                         :source source
+                         :destination destination
+                         :documentation-title documentation-title)))
 
 
 ;;;;---------------------------------------------------------------------------
@@ -78,6 +82,10 @@ can be used as building blocks for the final documentation."))
                                 &allow-other-keys
                                 )
   (declare (ignore source))
+
+  (when documentation-title
+    (setf (property layout :documentation-title) documentation-title))
+
   (let ((doc-bits (collect-documentation p)))
     (produce-documentation format
                            layout

@@ -12,11 +12,34 @@
    "Extracts the documentation from a form tagged with a specific kind."))
 
 
+;;; read-form --
+
+(defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
+  (handler-case
+      (read forms-stream nil eof)
+    (simple-error (e)
+      (format *error-output*
+              "~%HELambdaP form reader: trying to read a form caused errors.~@
+               ~?~@
+               The result will be NIL, hence the form will be ignored.~2%"
+              (simple-condition-format-control e)
+              (simple-condition-format-arguments e)
+              )
+      nil)
+    (error (e)
+      (format *error-output*
+              "~%HELambdaP form reader: trying to read a form caused errors; most likely a missing package.~@
+               The error is ~S.~@
+               The result will be NIL, hence the form will be ignored.~2%"
+              e)
+      nil)))
+
+
 ;;; extract-documentation --
 
 (defmethod extract-documentation ((forms-stream stream))
   (loop with eof = (gensym "FORMS-STREAM-EOF-")
-        for form = (read forms-stream nil eof)
+        for form = (read-form forms-stream eof)
         for form-doc = (form-documentation form)
         while (not (eq form eof))
         when form-doc
