@@ -24,6 +24,13 @@
   )
 
 
+(defgeneric produce-navigation-file (frameset
+                                     nav-element
+                                     nav-pathname
+                                     doc-bits
+                                     documentation-title))
+
+
 (defgeneric produce-header-frame (format
                                   frameset
                                   frameset-stream
@@ -31,6 +38,11 @@
                                   doc-bits
                                   doc-title)
   )
+
+
+(defgeneric produce-header-file (frameset
+                                 header-pathname
+                                 documentatio-title))
 
 
 (defgeneric produce-footer-frame (format
@@ -41,6 +53,10 @@
                                   doc-title)
   )
 
+(defgeneric produce-footer-file (frameset
+                                 footer-pathname
+                                 documentatio-title))
+
 
 (defparameter *xhtml-indent* 4) ; 4 is the actual initial value.
 
@@ -48,7 +64,7 @@
 ;;;;===========================================================================
 ;;;; Implementation.
 
-(defmethod produce-documentation ((format (eql 'html)) ;
+(defmethod produce-documentation ((format (eql 'html))
                                   (structure documentation-structure)
                                   (where pathname)
                                   doc-bits
@@ -202,6 +218,7 @@
          (fs-navigation (frameset-navigation structure))
          (fs-footer (frameset-footer structure))
          )
+    (declare (ignore fs-footer fs-navigation fs-header))
 
     (ensure-directories-exist where)
 
@@ -219,9 +236,9 @@
 
              (<:head
               (<:title fs-name)
-              (<:link :rel "stylesheet" :href "clstyle.css"))
+              (<:link :rel "stylesheet" :href (frameset-style structure)))
              
-             ((<:frameset :rows "65px,*" :border 0 :noresize "noresize")
+             ((<:frameset :rows "65px,*,65px" :border 0 :noresize "noresize")
               ;; HEADER ROW.
               (<:comment "HEADER ROW")
               (produce-header-frame 'html
@@ -246,15 +263,19 @@
                (if fs-content
                    (progn
                      (produce-documentation format
-                                            (first fs-content)
+                                            fs-content
                                             fs-file
                                             doc-bits)
-                     (produce-frame format (first fs-content) fs-file)
+                     (produce-frame format fs-content fs-file)
                      )
+                   #|
                    (<:frame (:src (base-name
                                    (make-pathname
                                     :type *default-html-extension*
-                                    :name (element-name structure))))))
+                                    :name (element-name structure)))))
+                   |#
+                   (<:frame (:name (element-name structure)))
+                   )
                )
 
               ;; FOOTER ROW.
@@ -284,6 +305,17 @@
       )))
 
 
+(defmethod produce-documentation ((format (eql 'html))
+                                  (element frame)
+                                  (where stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (declare (ignorable documentation-title))
+  (<:frame (:src (frame-source element) :name (frame-name element))))
+                                  
+
 
 (defmethod produce-frame ((format (eql 'html))
                           (element file-set)
@@ -291,8 +323,6 @@
                           )
   (<:frame (:src (element-name element))
            (format nil "~&<!-- FRAME ~A -->" (element-name element))))
-      
-
 
 
 (defmethod produce-frame ((format (eql 'html))
@@ -342,9 +372,14 @@
                                (make-pathname :type *default-html-extension*))
               where))
             )
+        (declare (type pathname nav-pathname))
         (unless (and (probe-file nav-pathname)
                      (not *supersede-documentation*))
-          (produce-navigation-file element nav-pathname documentation-title))
+          (produce-navigation-file element
+                                   (frameset-content element)
+                                   nav-pathname
+                                   doc-bits
+                                   documentation-title))
         (<:frame (:src (base-name nav-pathname)))
         ))))
 
@@ -392,7 +427,26 @@
                                   )
   (declare (ignorable documentation-title))
 
-  (<:frame (:src (element-name structure))
+  ;; Produce the documentation for the doc-bits.
+  (dolist (doc-bit doc-bits)
+    (let ((doc-bit-pathname
+           (make-pathname :name (doc-bit-pathname-name doc-bit)
+                          :type *default-html-extension*
+                          :defaults (pathname where)))
+          )
+      (with-open-file (doc-bit-stream doc-bit-pathname
+                                      :direction :output
+                                      :if-does-not-exist :create
+                                      :if-exists :supersede)
+        (produce-documentation 'html
+                               doc-bit
+                               doc-bit-stream
+                               doc-bits))))
+                           
+
+  (<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
+            :name (concatenate 'string (file-set-name structure) "_frame")
+            )
            (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
 
@@ -414,170 +468,65 @@
 
 
 (defmethod produce-documentation ((format (eql 'html))
-                                  structure
+                                  (doc-bit doc-bit)
                                   (out file-stream)
-                                  (doc-bit function-doc-bit)
+                                  doc-bits
                                   &key
                                   (documentation-title)
                                   &allow-other-keys
                                   )
   (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Function" doc-string out)))
-
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit macro-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Macro" doc-string out)))
+  (dump-doc-bit-html (doc-bit-name doc-bit)
+                     (doc-bit-kind-tag doc-bit)
+                     (doc-bit-doc-string doc-bit)
+                     out))
 
 
 (defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit compiler-macro-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Compiler Macro" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit setf-expander-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Setf Expander" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit modify-macro-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Modify Macro" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit generic-function-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Generic Function" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit type-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Type" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit class-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Class" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit condition-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Condition" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
-                                  (doc-bit method-combination-doc-bit)
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
-  (let ((name (doc-bit-name doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
-    (dump-doc-bit-html name "Method Combination" doc-string out)))
-
-
-(defmethod produce-documentation ((format (eql 'html))
-                                  structure
-                                  (out file-stream)
                                   (doc-bit package-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
                                   &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable documentation-title))
+                                  documentation-title
+                                  &allow-other-keys)
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
-    (dump-doc-bit-html name "Package" doc-string out)))
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+          (<:head
+           (<:title "Package " name)
+           (<:link :rel "stylesheet" :href "../clstyle.css"))
+          (<:body
+           (<:h1 (<:i "Package " (<:strong name)))
+           (<:h2 "Description:") (<:p doc-string))
+          )
+         :syntax :compact))))
 
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit system-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let ((name (doc-bit-name doc-bit))
+        (doc-string (doc-bit-doc-string doc-bit))
+        )
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+          (<:head
+           (<:title "System " name)
+           (<:link :rel "stylesheet" :href "../clstyle.css"))
+          (<:body
+           (<:h1 (<:i "System " (<:strong name)))
+           (<:h2 "Description:") (<:p doc-string))
+          )
+         :syntax :compact))))
+       
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -620,53 +569,73 @@
   "FFFFOOOOO")
 
 
-(defun produce-header-file (fs header-pathname documentation-title)
-  (declare (type frameset fs)
-           (type pathname header-pathname))
+(defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
+  (declare (type pathname header-pathname))
   (declare (ignorable documentation-title))
   (let ((fs-order (frameset-order fs))
         (fs-head-title (frameset-head-title fs))
         (fs-body-title (frameset-body-title fs))
         )
-    (with-open-file (hs header-pathname
-                        :direction :output
-                        :if-exists :supersede
-                        :if-does-not-exist :create)
-      (<:with-html-syntax (hs :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name header-pathname))
-            +doctype-xhtml1-string-control-string+
-            (<:html
-             (<:head
-              (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href "clstyle.css"))
+    (flet ((select-link-style (i)
+             (if (= i fs-order)
+                 "navigation-link-selected"
+                 "navigation-link"))
+           )
+      (with-open-file (hs header-pathname
+                          :direction :output
+                          :if-exists :supersede
+                          :if-does-not-exist :create)
+        (<:with-html-syntax (hs :print-pretty t)
+            (<:htmlize
+             (<:document
+              (<:comment (base-name header-pathname))
+              +doctype-xhtml1-string-control-string+
+              (<:html
+               (<:head
+                (<:title fs-head-title)
+                (<:link :rel "stylesheet" :href (frameset-style fs)))
 
-             ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
-              ((<:div :class "header"
-                      :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
-               (<:strong (or documentation-title fs-body-title))
-               ((<:div :class "navigation"
-                       :style "right: 2m")
-                ((<:a :href "index.htm"
-                      :class "navigation-link-selected"
-                      :target "_parent")
-                 "Home"))
-               )
-              )))
-           :syntax :compact))
-      ))
-  )
+               ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
+                ((<:div :class "header"
+                        :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
+                 (<:strong (or documentation-title fs-body-title))
+                 ((<:div :class "navigation"
+                         :style "right: 2m")
+                  ((<:a :href "index.htm"
+                        :class (select-link-style 0)
+                        :target "_parent")
+                   "Home")
+                  "|"
+                  ((<:a :href "dictionary/dictionary.htm"
+                        :class (select-link-style 1)
+                        :target "_parent")
+                   "Dictionary")
+                  "|"
+                  ((<:a :href "mailing-lists.htm"
+                        :class (select-link-style 2)
+                        :target "_parent")
+                   "Mailing Lists")
+                  )
+                 )
+                )))
+             :syntax :compact))
+        ))))
 
 
-(defun produce-navigation-file (fs nav-pathname documentation-title)
-  (declare (type frameset fs)
-           (type pathname nav-pathname))
-  (declare (ignorable documentation-title))
+(defmethod produce-navigation-file ((fs frameset)
+                                    (nav-element doc-file)
+                                    nav-pathname
+                                    doc-bits
+                                    documentation-title)
+  (declare (type pathname nav-pathname))
+  (declare (ignorable doc-bits documentation-title))
+
   (let ((fs-order (frameset-order fs))
         (fs-head-title (frameset-head-title fs))
         (fs-body-title (frameset-body-title fs))
         )
+    (declare (ignore fs-order fs-body-title))
+
     (with-open-file (ns nav-pathname
                         :direction :output
                         :if-exists :supersede
@@ -679,7 +648,7 @@
             (<:html
              (<:head
               (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href "clstyle.css"))
+              (<:link :rel "stylesheet" :href (frameset-style fs)))
 
              (<:body
               (<:ul))
@@ -689,14 +658,51 @@
   )
 
 
-(defun produce-footer-file (fs footer-pathname documentation-title)
-  (declare (type frameset fs)
-           (type pathname footer-pathname))
+(defmethod produce-navigation-file ((fs frameset)
+                                    (nav-element file-set)
+                                    nav-pathname
+                                    doc-bits
+                                    documentation-title)
+  (declare (type pathname nav-pathname))
+  (declare (ignorable documentation-title))
+
+  (let ((fs-order (frameset-order fs))
+        (fs-head-title (frameset-head-title fs))
+        (fs-body-title (frameset-body-title fs))
+        )
+    (declare (ignore fs-order fs-body-title))
+
+    (with-open-file (ns nav-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (<:with-html-syntax (ns :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name nav-pathname))
+            +doctype-xhtml1-string-control-string+
+            (<:html
+             (<:head
+              (<:title fs-head-title)
+              (<:link :rel "stylesheet" :href (frameset-style fs)))
+
+             (<:body
+              (<:ul))
+             ))
+           :syntax :compact))
+      ))
+  )
+
+
+(defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
+  (declare (type pathname footer-pathname))
   (declare (ignorable documentation-title))
   (let ((fs-order (frameset-order fs))
         (fs-head-title (frameset-head-title fs))
         (fs-body-title (frameset-body-title fs))
         )
+    (declare (ignore fs-order))
+
     (with-open-file (hs footer-pathname
                         :direction :output
                         :if-exists :supersede
@@ -709,7 +715,7 @@
             (<:html
              (<:head
               (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href "clstyle.css"))
+              (<:link :rel "stylesheet" :href (frameset-style fs)))
 
              ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
               ((<:div :class "copyright"

@@ -75,6 +75,7 @@
                  :type (or null documentation-structure))
   (parent nil
           :type (or null element))
+  (style nil :type (or null string))
   )
 
 
@@ -117,15 +118,26 @@ that include ELEMENT."))
 ;;;---------------------------------------------------------------------------
 ;;; XHTML documentation structure.
 
+;;; frame --
+
+(defstruct (frame (:include element (name "" :type string))
+                  (:constructor %make-frame (name)))
+  (source "" :read-only t :type (or string pathname)))
+
+
+(defun frame (name)
+  (initialize-element (%make-frame name)))
+
+
 ;;; framesets --  
 
 (defstruct (framesets (:include element)
-                      (:constructor %make-framesets (name list)))
+                      (:constructor %make-framesets (name style list)))
   (list ()))
 
 
-(defun framesets (name &rest framesets)
-  (let ((fss (%make-framesets name framesets)))
+(defun framesets (name style &rest framesets)
+  (let ((fss (%make-framesets name style framesets)))
     (initialize-element fss)
     (dolist (fs framesets fss)
       (setf (element-parent fs) fss))))
@@ -146,7 +158,7 @@ that include ELEMENT."))
   (footer nil :read-only t :type t) ; :type (or null string)y
   (navigation nil :read-only t :type t) ; :type (or string frameset)
   (sidebar nil :read-only t :type t) ; :type (or string frameset)
-  (content () :read-only t :type list)
+  (content nil)
   (location #P"./" :read-only t :type (or null pathname))
   (order 0 :type (integer 0 #.most-positive-fixnum))
   )
@@ -154,20 +166,28 @@ that include ELEMENT."))
 
 (defun frameset (name
                  &key
+                 style
                  (header t)
-                 footer
+                 (footer t)
                  (navigation t)
                  sidebar
-                 (content ())
+                 content
                  (location #P"./"))
-  (initialize-element
-   (%make-frameset :name name
-                   :header header
-                   :footer footer
-                   :navigation navigation
-                   :sidebar sidebar
-                   :content content
-                   :location location)))
+  (let ((fs (%make-frameset :name name
+                            :style style
+                            :header header
+                            :footer footer
+                            :navigation navigation
+                            :sidebar sidebar
+                            :content content
+                            :location location))
+        )
+    (initialize-element fs)
+    (unless content
+      (setf (frameset-content fs)
+            (doc-file (concatenate 'string name "-frame"))))
+    fs
+    ))
 
 
 (defun frameset-header-name (fs)
@@ -212,10 +232,13 @@ that include ELEMENT."))
         (format o "~:@_Footer     ~S~:@_" (frameset-footer fs)))))
 
 
+
+
+
 ;;; file --
 
-(defstruct (file (:constructor %make-file (name))
-                 (:include element (name "" :type (or string pathname)))))
+(defstruct (file (:include element (name "" :type (or string pathname)))
+                 (:constructor %make-file (name))))
 
 (defmethod file-pathname ((f file)) (pathname (file-name f)))
 
@@ -267,8 +290,9 @@ that include ELEMENT."))
 ;;; file-set --
 
 (defstruct (file-set (:include element)
-                     (:constructor %make-file-set (name files)))
-  (files ()))
+                     (:constructor %make-file-set (name files index)))
+  (files ())
+  (index ()))
 
 
 (defmethod print-element ((o stream) (f file-set))
@@ -278,7 +302,7 @@ that include ELEMENT."))
 
 
 (defun file-set (name &rest list)
-  (initialize-element (%make-file-set name list)))
+  (initialize-element (%make-file-set name list nil)))
 
 
 
@@ -340,6 +364,9 @@ that include ELEMENT."))
   (setf (element-doc-structure e) doc-structure
         (element-parent e) parent
         (gethash (element-name e) (structure-table doc-structure)) e)
+  (unless (element-style e)
+    (let ((p (element-parent e)))
+      (when p (setf (element-style e) (element-style p)))))
   e)
 
 
@@ -366,11 +393,13 @@ that include ELEMENT."))
    "index"
    (style-file)
    (framesets "doc-framesets"
+              "clstyle.css"
               (frameset "index"
-                        :content (list (doc-file "introduction")))
+                        :content (doc-file "introduction"))
               (frameset "dictionary"
                         :location #P"dictionary/"
-                        :content (list (file-set "dictionary")))
+                        :style "../clstyle.css"
+                        :content (file-set "dictionary"))
               (frameset "downloads")
               (frameset "mailing-lists")
               (frameset "links")

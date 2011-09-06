@@ -42,11 +42,11 @@
         for form = (read-form forms-stream eof)
         for form-doc = (form-documentation form)
         while (not (eq form eof))
-        when form-doc
-        if (consp form-doc)
-        nconc (delete nil form-doc) into doc-bits
-        else
-        collect form-doc into doc-bits
+          when form-doc
+            if (consp form-doc)
+              nconc (delete nil form-doc) into doc-bits
+            else
+              collect form-doc into doc-bits
         end
 
         finally (return

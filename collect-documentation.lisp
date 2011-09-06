@@ -74,6 +74,80 @@
       doc-bits)))
 
 
+;;;----------------------------------------------------------------------------
+;;; Standard dictionary sorting...
+
+(defun sift-standard-doc-bits (doc-bits)
+  (declare (type list doc-bits)) ; (type (list doc-bits) doc-bits)
+
+  (flet ((sort-doc-bits (doc-bits)
+           (sort doc-bits #'string<= doc-bits :key 'doc-bit-name))
+         )
+
+    ;; This is when you want ITERATE...
+    (let (systems
+          packages
+          constants
+          parameters
+          variables
+          types
+          classes
+          structs
+          conditions
+          generic-functions
+          methods
+          functions
+          macros
+          method-combinations
+          setf-expanders
+          modify-macros
+          others
+          )
+      (macrolet ((put-in (list)
+                   `(push doc-bit ,list)))
+        (dolist (doc-bit doc-bits)
+          (typecase doc-bit
+            (system-doc-bit (put-in systems))
+            (package-doc-bit (put-in packages))
+            (constant-doc-bit (put-in constants))
+            (parameter-doc-bit (put-in parameters))
+            (variable-doc-bit (put-in variables))
+            (type-doc-bit (put-in types))
+            (class-doc-bit (put-in classes))
+            (struct-doc-bit (put-in structs))
+            (condition-doc-bit (put-in conditions))
+            (generic-function-doc-bit (put-in generic-functions))
+            (methods-doc-bit (put-in methods))
+            (function-doc-bit (put-in functions))
+            (macro-doc-bit (put-in macros))
+            (method-combination-doc-bit (put-in method-combinations))
+            (setf-expander-doc-bit (put-in setf-expanders))
+            (modify-macro-doc-bit (put-in modify-macros))
+            (t (put-in others))
+            ))
+        (mapcar #'sort-doc-bits
+                (list systems
+                      packages
+                      constants
+                      parameters
+                      variables
+                      types
+                      classes
+                      structs
+                      conditions
+                      generic-functions
+                      methods
+                      functions
+                      macros
+                      method-combinations
+                      setf-expanders
+                      modify-macros
+                      others
+                      ))
+        ))))
+
+
+
 ;;;;===========================================================================
 ;;;; Utilities.
 

@@ -12,7 +12,7 @@
 
 The structure of a documentation bit."
 
-  (name nil :type (or symbol naming) :read-only t) ; Either a name a CONS like (SETF s).
+  (name nil :type (or symbol naming string) :read-only t) ; Either a name a CONS like (SETF s).
   (kind t :read-only t) ; As per CL:DOCUMENTATION second argument, with extra "naming"
                         ; accepted, in the fashion of LW DSPEC package
   (kind-tag "" :type string :read-only t)
@@ -24,9 +24,44 @@ The structure of a documentation bit."
   )
 
 
-(defstruct (variable-doc-bit (:include doc-bit (kind-tag "Variable")))
+(eval-when (:load-toplevel :compile-toplevel :execute)
+
+(defmacro def-doc-bit (name include tag &body slots)
+  `(defstruct (,name (:include ,include (kind-tag ,tag))) ,.slots))
+
+)
+
+
+(defun doc-bit-pathname-name (doc-bit)
+  "Ensures that the resulting pathname does not contain 'problematic' characters."
+  (let ((name (string (doc-bit-name doc-bit)))
+        (kind (doc-bit-kind-tag doc-bit))
+        )
+    (with-output-to-string (result)
+      (write-string kind result)
+      (write-string "-" result)
+      (loop for c across name
+            if (char= #\* c)
+            do (write-string "\\*" result)
+            else if (char= #\Space c)
+            do (write-char #\_ result)
+            else
+            do (write-char c result)))))
+      
+
+;;;;===========================================================================
+;;;; Known DOC-BITS.
+
+;;;;---------------------------------------------------------------------------
+;;;; Standard CL doc bits (as per DOCUMENTATION, plus "systems").
+
+(def-doc-bit variable-doc-bit doc-bit "Variable"
   (initial-value nil :read-only t))
 
+#|
+(defstruct (variable-doc-bit (:include doc-bit (kind-tag "Variable")))
+  (initial-value nil :read-only t))
+|#
 
 (defstruct (parameter-doc-bit (:include variable-doc-bit (kind-tag "Parameter"))))
 
@@ -100,5 +135,46 @@ The structure of a documentation bit."
 #+lispworks
 (defstruct (lw-system-doc-bit (:include system-doc-bit)))
 
+
+;;;;---------------------------------------------------------------------------
+;;;; "Document" doc bits; patterned after DocBook.
+
+;;; Note.
+;;; It may be worth to bite the bullet ad start defining a DTD-like or a
+;;; XSD-like set of macros, but WTH!
+;;;
+
+
+;;; WHAT FOLLOWS IS UNUSED.
+
+(def-doc-bit set-doc-bit doc-bit "Set"
+  )
+
+
+(def-doc-bit book-doc-bit doc-bit "Book"
+  ;; dedication
+  navigation
+  divisions
+  )
+
+
+(def-doc-bit part-doc-bit doc-bit "Part"
+  components
+  )
+
+
+(def-doc-bit chapter-doc-bit doc-bit "Chapter"
+  components
+  )
+
+
+(def-doc-bit article-doc-bit doc-bit "Article"
+  components
+  )
+
+
+(def-doc-bit literal-doc-bit doc-bit "Literal"
+  (content nil :read-only t :type (or null string))
+  )
 
 ;;; end of file -- doc-bit.lisp --
