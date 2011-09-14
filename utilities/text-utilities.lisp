@@ -28,4 +28,38 @@
   (and s (not (null (string/= "" s)))))
 
 
+(defun first-line-special (s)
+  (let* ((empty-line-pos (search (format nil "~2%") s))
+         (first-line (subseq s 0 empty-line-pos))
+         )
+    (if (<= (length first-line) 80)
+        (values first-line
+                (and empty-line-pos (subseq s (+ 2 empty-line-pos))))
+        s)))
+
+
+(defun split-lines-for-html (s)
+  (loop with lines = (split-sequence:split-sequence #\Newline s)
+        for l in (rest lines)
+        collect (<:br) into result
+        collect l into result
+        finally (return (cons (first lines) result))))
+
+
+(defun split-at-tex-paragraphs (s)
+  (loop with parbreak = (format nil "~2%")
+        for start = 0 then (+ 2 pbr)
+        for pbr = (search parbreak s :start2 start)
+        collect (subseq s start pbr)
+        while pbr))
+
+
+(defun sanitize-string-for-html (s)
+  (with-output-to-string (r)
+    (loop for c across s
+          do (cond ((char= #\< c) (write-string "&lt;" r))
+                   ((char= #\> c) (write-string "&gt;" r))
+                   (t (write-char c r))))))
+        
+
 ;;;; end of file -- text-utilities.lisp --
