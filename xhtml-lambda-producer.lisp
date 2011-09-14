@@ -1,11 +1,96 @@
 ;;;; -*- Mode: Lisp -*-
 
 ;;;; xhtml-producer.lisp --
-;;;; Make a file out of a doc-bit.
+;;;; Make a file out of a DOCUMENTATION-STRUCTURE and a set (list) of
+;;;; DOC-BITs, using a (X)HTML outout format.
 
 (in-package "HELAMBDAP")
-
 ;(use-package "XHTMLAMBDA")
+
+;;;;===========================================================================
+;;;; Prologue.
+
+;;;; The (X)HTML producer makes essentially two kinds framesets: the "prose"
+;;;; and "help" ones and the "dictionary" one.
+;;;;
+;;;; The "prose" and "help" ones are the "index", "downloads",
+;;;; "mailing-lists"/"contact" and "links" framesets, which have the
+;;;; following layout:
+#|
+
++=MAIN========================================+
+[+-HEADER------------------------------------+]
+[|                                           |]
+[+-------------------------------------------+]
+[+=DOC-AREA==================================+]
+[[+-NAV-++-INFO-AREA------------------------+]]
+[[|     ||                                  |]]
+[[|     ||                                  |]]
+[[|     ||                                  |]]
+[[|	||      			    |]]
+[[|	||      			    |]]
+[[|	||      			    |]]
+[[+-----++----------------------------------+]]
+[+===========================================+]
+[+-FOOTER------------------------------------+]
+[|                                           |]
+[+-------------------------------------------+]
++=============================================+
+
+MAIN and DOC-AREA (with other names in the code, depending on the
+DOCUMENTATION-STRUCTURE) are HTML FRAMESETS, HEADER, NAV, INFO-AREA
+and FOOTER are HTML FRAMES.  There should also be a Sidebar, but you
+get the idea.
+
+Each FRAMESET and FRAME is contained in a separate file.
+|#
+;;;; The "dictionary" frameset is essentially the same, but it
+;;;; requires a more complex navigation scheme, reflected in the shape
+;;;; of the NAV frame.
+;;;;
+;;;; The question is: what should we navigate through?  Well, let's
+;;;; take our inspiration from doxygen (www.doxygen.org) and let's
+;;;; tune it to CL, with the caveat that, for the time being, I will not
+;;;; use "rendered" source files.
+;;;;
+;;;; There are, IMHO, a few "axis" or "indices" we'd like to see at
+;;;; the top level in the navigation area.
+;;;; o	Packages
+;;;; o	Systems
+;;;; o	Files (possibly ordered by directory)
+;;;;
+;;;; Systems could be seen as "more top-level", but, for the time
+;;;; being, I'll just use them to narrow down on the list of files.
+;;;; The structure of the "dictionary" navigation will therefore be
+#|
+
++=NAV=====================+
+[+-MENU------------------+]
+[| Systems Files Packages|]
+[|                       |]
+[|                       |]
+[|                       |]
+[+-----------------------+]
+[+-MENULIST--------------+]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[|                       |]
+[+-----------------------+]
++=========================+
+
+|#
+
+
+
 
 ;;;;===========================================================================
 ;;;; Protocol.
@@ -134,7 +219,7 @@
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
                          :name (pathname-name dfn)
-                         :type (or (pathname-type dfn) "html")))
+                         :type (or (pathname-type dfn) *default-html-extension*)))
          )
     (if (probe-file dfn)
         (cl-fad:copy-file dfn destination-path :overwrite nil)
@@ -229,9 +314,11 @@
       (<:with-html-syntax (fs-file :print-pretty t)
           (<:htmlize
            (<:document 
-            (format nil "<!-- ~A.htm -->~2%" fs-name)
+            (<:comment fs-name)
+            (string #\Newline)
+            
             +doctype-frameset-control-string+
-            (string #\newline)
+            (string #\Newline)
             (<:html
 
              (<:head
@@ -250,7 +337,10 @@
 
               ;; NAVIGATION/CONTENT/SIDEBAR ROW.
               (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
-              ((<:frameset :cols "150px,*" :border 0)
+              (
+               ;; (<:frameset :cols "*,*" :border 0)
+               (<:frameset :cols "25%,75%" :border 0)
+               ;; (<:frameset :cols "150px,*" :border 0)
                (<:comment "NAVIGATION FRAME")
                (produce-navigation-frame 'html
                                          structure
@@ -266,7 +356,7 @@
                                             fs-content
                                             fs-file
                                             doc-bits)
-                     (produce-frame format fs-content fs-file)
+                     ; (produce-frame format fs-content fs-file)
                      )
                    #|
                    (<:frame (:src (base-name
@@ -274,7 +364,7 @@
                                     :type *default-html-extension*
                                     :name (element-name structure)))))
                    |#
-                   (<:frame (:name (element-name structure)))
+                   (<:frame (:name (format nil "~A_frame" (element-name structure))))
                    )
                )
 
@@ -430,9 +520,10 @@
   ;; Produce the documentation for the doc-bits.
   (dolist (doc-bit doc-bits)
     (let ((doc-bit-pathname
-           (make-pathname :name (doc-bit-pathname-name doc-bit)
-                          :type *default-html-extension*
-                          :defaults (pathname where)))
+           (quote-wild-in-pathname-name
+            (make-doc-bit-pathname doc-bit
+                                   *default-html-extension*
+                                   (pathname where))))
           )
       (with-open-file (doc-bit-stream doc-bit-pathname
                                       :direction :output
@@ -447,24 +538,34 @@
   (<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
             :name (concatenate 'string (file-set-name structure) "_frame")
             )
-           (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
+           ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
 
 
-(defun dump-doc-bit-html (name str-tag doc-string out)
-  (<:with-html-syntax (out :print-pretty t)
-      (<:htmlize
-       (<:document
-        (<:head
-         (<:title (format nil "~A ~A" str-tag (string-downcase name)))
-         (<:link :rel "stylesheet" :href "../clstyle.css"))
-        (<:body
-         (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
-         (<:h2 "Package: ")
-         (<:p (package-name (symbol-package name)))
-         (<:h2 "Description:") (<:p doc-string))
-        )
-       :syntax :compact)))
+;;;---------------------------------------------------------------------------
+;;; Doc bits HTML production.
+
+(defun paragraphize-doc-string (s)
+  (loop for par in (split-at-tex-paragraphs s)
+        when (string/= "" par)
+        collect (<:p () par)))
+
+
+(defun dump-doc-bit-html (n str-tag doc-string out)
+  (let ((name (string-downcase n)))
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+          (<:head
+           (<:title (format nil "~A ~A" str-tag name))
+           (<:link :rel "stylesheet" :href "../clstyle.css"))
+          (<:body
+           (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
+           (<:h2 "Package: ")
+           (<:p (package-name (symbol-package n)))
+           (<:h2 "Description:") (paragraphize-doc-string doc-string))
+          )
+         :syntax :compact))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -499,8 +600,10 @@
            (<:title "Package " name)
            (<:link :rel "stylesheet" :href "../clstyle.css"))
           (<:body
-           (<:h1 (<:i "Package " (<:strong name)))
-           (<:h2 "Description:") (<:p doc-string))
+           (<:h1 (<:i "Package ") (<:strong name))
+           (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
+           (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
+           (<:h2 "Description:") (paragraphize-doc-string doc-string))
           )
          :syntax :compact))))
 
@@ -522,8 +625,81 @@
            (<:title "System " name)
            (<:link :rel "stylesheet" :href "../clstyle.css"))
           (<:body
-           (<:h1 (<:i "System " (<:strong name)))
-           (<:h2 "Description:") (<:p doc-string))
+           (<:h1 (<:i "System ") (<:strong name))
+           (<:h2 "Depends on:")
+           (<:p (mapcar (lambda (d) (<:i () d))
+                        (system-doc-bit-depends-on doc-bit)))
+           (<:h2 "Description:") (paragraphize-doc-string doc-string))
+          )
+         :syntax :compact))))
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit parameterized-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let ((name (string-downcase (doc-bit-name doc-bit)))
+        (kind (doc-bit-kind doc-bit))
+        (doc-string (doc-bit-doc-string doc-bit))
+        )
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+          (<:head
+           (<:title kind name)
+           (<:link :rel "stylesheet" :href "../clstyle.css"))
+          (<:body
+           (<:h1 (<:i kind) (<:strong name))
+           (<:h2 "Syntax:")
+           (<:p (<:strong name)
+                (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+           (<:h2 "Description:")
+           (paragraphize-doc-string doc-string))
+          )
+         :syntax :compact))))
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit constant-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let* ((name (string-downcase (doc-bit-name doc-bit)))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         (value (constant-doc-bit-initial-value doc-bit))
+         (value-presented (if (stringp value)
+                              (split-lines-for-html
+                               (format nil "~S"
+                                       (sanitize-string-for-html value)))
+                              ;; Quiz: why do I need the FORMAT ~S?
+                              ;; Because I want to ensure that the
+                              ;; string contains all the necessary
+                              ;; escapes (cfr. *PRINT-ESCAPE*).
+
+                              value))
+         )
+    (<:with-html-syntax (out :print-pretty t)
+        (<:htmlize
+         (<:document
+          (<:html
+           +doctype-xhtml1-string-control-string+
+           (string #\Newline)
+
+           (<:head
+            (<:title kind name)
+            (<:link :rel "stylesheet" :href "../clstyle.css"))
+           (<:body
+            (<:h1 (<:i kind) (<:strong name))
+            (<:h2 "Value:")
+            (<:p (<:code value-presented))
+            (<:h2 "Description:")
+            (paragraphize-doc-string doc-string)))
           )
          :syntax :compact))))
        
@@ -569,18 +745,56 @@
   "FFFFOOOOO")
 
 
+(defmethod framesets-of ((fss framesets))
+  (framesets-list fss))
+
+(defmethod framesets-of ((e element)) ())
+
+(defmethod framesets-of ((e documentation-structure)) ())
+
+
 (defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
   (declare (type pathname header-pathname))
   (declare (ignorable documentation-title))
   (let ((fs-order (frameset-order fs))
         (fs-head-title (frameset-head-title fs))
         (fs-body-title (frameset-body-title fs))
+        (ed-fs (element-location-depth fs))
         )
-    (flet ((select-link-style (i)
-             (if (= i fs-order)
-                 "navigation-link-selected"
-                 "navigation-link"))
-           )
+    (labels ((select-link-style (i)
+               (if (= i fs-order)
+                   "navigation-link-selected"
+                   "navigation-link"))
+
+             (select-link-style-1 (fs-in-p)
+               (if (eq fs fs-in-p)
+                   "navigation-link-selected"
+                   "navigation-link"))
+
+             ;; The next function is hairy because it needs to produce
+             ;; the href based on the position of the frameset in the
+             ;; hierarchy.
+
+             (produce-navigation-link (fs-in-parent)
+               (let* ((fs-path (compute-element-path fs-in-parent))
+                      (href (if (eq fs fs-in-parent)
+                                (namestring
+                                 (make-pathname :name (frameset-name fs-in-parent)
+                                                :type *default-html-extension*
+                                                :directory ()))
+                                (namestring
+                                 (merge-pathnames 
+                                  fs-path
+                                  (make-pathname
+                                   :directory (cons :relative
+                                                    (make-list ed-fs
+                                                               :initial-element :up)))))))
+                      )
+                 (<:a (:href href ; :href (namestring (compute-element-path fs-in-parent)
+                       :target "_parent"
+                       :class (select-link-style-1 fs-in-parent))
+                      (string-capitalize (frameset-name fs-in-parent)))))
+             )
       (with-open-file (hs header-pathname
                           :direction :output
                           :if-exists :supersede
@@ -601,6 +815,16 @@
                  (<:strong (or documentation-title fs-body-title))
                  ((<:div :class "navigation"
                          :style "right: 2m")
+
+                  (when (element-parent fs)
+                    (let ((fss-in-p (framesets-of (element-parent fs))))
+                      (loop for fs-in-p in (rest fss-in-p)
+                            collect " | " into result
+                            collect (produce-navigation-link fs-in-p) into result
+                            finally (return (cons (produce-navigation-link (first fss-in-p))
+                                                  result))
+                            )))
+                  #|
                   ((<:a :href "index.htm"
                         :class (select-link-style 0)
                         :target "_parent")
@@ -615,6 +839,7 @@
                         :class (select-link-style 2)
                         :target "_parent")
                    "Mailing Lists")
+                  |#
                   )
                  )
                 )))
@@ -644,7 +869,12 @@
           (<:htmlize
            (<:document
             (<:comment (base-name nav-pathname))
+            (string #\Newline)
+
             +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+            (string #\Newline)
+
             (<:html
              (<:head
               (<:title fs-head-title)
@@ -657,7 +887,8 @@
       ))
   )
 
-
+#|
+#+original
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element file-set)
                                     nav-pathname
@@ -680,7 +911,7 @@
           (<:htmlize
            (<:document
             (<:comment (base-name nav-pathname))
-            +doctype-xhtml1-string-control-string+
+            +doctype-frameset-control-string+
             (<:html
              (<:head
               (<:title fs-head-title)
@@ -692,6 +923,303 @@
            :syntax :compact))
       ))
   )
+|#
+
+
+(defmethod produce-navigation-file ((fs frameset)
+                                    (nav-element file-set)
+                                    nav-pathname
+                                    doc-bits
+                                    documentation-title)
+  (declare (type pathname nav-pathname))
+  (declare (ignorable documentation-title))
+
+  (let* ((fs-order (frameset-order fs))
+         (fs-head-title (frameset-head-title fs))
+         (fs-body-title (frameset-body-title fs))
+         (fs-name (frameset-name fs))
+
+         (nav-map-pathname
+          (make-pathname :name (format nil
+                                       "~A-navigation-map"
+                                       fs-name)
+                         :type *default-html-extension*
+                         :defaults nav-pathname))
+         (nav-list-pathname
+          (make-pathname :name (format nil
+                                       "~A-navigation-lists"
+                                       fs-name)
+                         :type *default-html-extension*
+                         :defaults nav-pathname))
+         )
+    (declare (ignore fs-order fs-body-title))
+
+    (with-open-file (ns nav-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (<:with-html-syntax (ns :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name nav-pathname))
+            (string #\Newline)
+
+            +doctype-frameset-control-string+
+            (string #\Newline)
+            (string #\Newline)
+            (<:html
+             (<:head
+              (<:title fs-head-title)
+              (<:link :rel "stylesheet" :href (frameset-style fs)))
+            
+             ((<:frameset :rows "20%,80%"
+                          :frameborder 0
+                          :noresize "noresize")
+              ((<:frame :name (format nil
+                                      "~A_navigation_map"
+                                      fs-name)
+                        :src (base-name nav-map-pathname)
+                        ))
+              ((<:frame :name (format nil
+                                      "~A_navigation_lists"
+                                      fs-name)
+                        ;; :src (namestring nav-list-pathname)
+                        ))
+              ))
+            (<:comment (format nil "end of file : ~A"
+                               (base-name nav-pathname))) 
+            (string #\newline))
+           :syntax :compact))) ; WITH-OPEN-FILE...
+
+    (produce-navigation-map fs nav-element nav-map-pathname doc-bits)
+    ))
+
+
+(defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
+  (format t "~&>>> Producing NAV MAP file ~S ~S ~S~2%"
+          fs nav-element nm-pathname doc-bits)
+  (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
+    (with-open-file (nm nm-pathname
+                        :direction :output
+                        :if-exists :supersede
+                        :if-does-not-exist :create)
+      (<:with-html-syntax (nm :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:comment (base-name nm-pathname))
+            (string #\Newline)
+            (string #\Newline)
+
+            +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+
+            (<:html
+             (<:head
+              (<:title "Navigation Map")
+              (<:link :rel "stylesheet"
+                      :href "../clstyle.css") ; TESTING!
+              (<:style (format nil
+                               ".helambdap_navmap li {~
+                                  display: inline;~
+                              }"))
+              )
+
+             (<:body
+              #|
+              ((<:ul :class "helambdap_navmap" :style "padding: 0; margin: 0; list-type-type: none;")
+               (<:li "Systems")
+               (<:li "Packages"))
+              |#
+
+              ((<:div :class "helambdap_navmap_systems_packages")
+               ;; (<:h4 "Systems and Packages")
+
+
+               (<:p (<:strong ((<:script :type "text/javascript")
+                               (format nil
+                                       "document.write('<i>' ~
+                                                      + document.getElementByName('~A').src ~
+                                                      + '</i>' + Date())"
+                                       (format nil "~A_navigation_list" (element-name fs))
+                                       ))))
+
+               (let ((syss (remove-if (complement #'system-doc-bit-p)
+                                      doc-bits))
+                     (pkgs (remove-if (complement #'package-doc-bit-p)
+                                      doc-bits))
+                     )
+                 (list
+                  (<:h4 () "Systems")
+                  (<:ul ()
+                        (loop for s in (remove-duplicates syss
+                                                          :test
+                                                          (lambda (s1 s2)
+                                                            (and (not (eq (type-of s1) (type-of s2)))
+                                                                 (string-equal (doc-bit-name s1) (doc-bit-name s2)))))
+                              ;; The above is kludgy!  It is meant to
+                              ;; remove duplicate systems assuming
+                              ;; that different kinds of systems are
+                              ;; mutually exclusive.
+                              ;; In practice it will not affect most people.
+                              for s-doc-pathname
+                              = (make-doc-bit-pathname s
+                                                       *default-html-extension*
+                                                       nm-pathname)
+
+                              for s-filename = (base-name s-doc-pathname)
+                              collect (<:li ()
+                                            (<:a (:href s-filename
+                                                  :target nav-element-target
+                                                  #|
+                                                  :onclick
+                                                  (format nil
+                                                          "parent.frames[1].location.href = '~A'"
+                                                          s-filename
+                                                          )
+                                                  #|
+                                                  (format nil
+                                                          "document.getElementByName('~A').src = '~A'"
+                                                          (format nil "~A_navigation_list" (element-name fs)) 
+                                                          s-filename
+                                                          )
+                                                  |#
+                                                  |#
+                                                  )
+                                                 (doc-bit-name s))
+                                            ;; (type-of s)
+                                            )))
+
+                  (<:h4 () "Packages")
+                  (<:ul ()
+                        (loop for p in pkgs
+
+                              for p-doc-pathname =
+                              (make-doc-bit-pathname p
+                                                     *default-html-extension*
+                                                     nm-pathname)
+                              for p-filename = (base-name p-doc-pathname)
+
+                              for p-list-pathname =
+                              (make-pathname :name (format nil "~A-list"
+                                                           (pathname-name p-doc-pathname))
+                                             :type *default-html-extension*
+                                             :defaults nm-pathname)
+                              for p-list-filename = (base-name p-list-pathname)
+                                                           
+                              do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
+                              collect (<:li () (<:a (:href p-filename
+                                                     :target nav-element-target
+                                                     :onclick
+                                                     (format nil
+                                                             "parent.frames[1].location.href = '~A'"
+                                                             p-list-filename
+                                                             )
+                                                     #|
+                                                     (format nil
+                                                             "document.getElementByName('~A').src = '~A'"
+                                                             (format nil "~A_navigation_list" (element-name fs))
+                                                             p-list-filename
+                                                             )|#
+                                                     )
+                                                    (doc-bit-name p))))))
+                 ))
+              )
+             )
+            (<:comment (format nil "end of file : ~A"
+                               (base-name nm-pathname)))
+            (string #\newline)
+            )
+           :syntax :compact))))
+  )
+
+
+(defun produce-package-navigation-list (fs nav-element pkg-doc-bit pkg-list-pathname doc-bits
+                                           &aux
+                                           (pkg (find-package (package-doc-bit-name pkg-doc-bit)))
+                                           (target (format nil "~A_frame"
+                                                           (element-name nav-element)))
+                                           )
+  (format t "~&>>>> produce-package-navigation-list ~S ~S ~S~%"
+          fs
+          (package-doc-bit-name pkg-doc-bit)
+          pkg-list-pathname)
+          
+  (destructuring-bind (systems
+                       packages
+                       constants
+                       parameters
+                       variables
+                       types
+                       classes
+                       structs
+                       conditions
+                       generic-functions
+                       methods
+                       functions
+                       macros
+                       method-combinations
+                       setf-expanders
+                       modify-macros
+                       others
+                       )
+      (sift-standard-doc-bits doc-bits)
+    (declare (ignore systems packages others))
+    (flet ((build-list (list-name doc-bits)
+             (when doc-bits
+               (list (<:h4 () list-name)
+                     (<:ul ()
+                           (loop for db in doc-bits
+                                 for db-filename
+                                 = (base-name
+                                    (make-doc-bit-pathname db
+                                                           *default-html-extension*
+                                                           pkg-list-pathname))
+                                 collect (<:li ()
+                                               (<:a (:href db-filename
+                                                     :target target)
+                                                    (string-downcase (doc-bit-name db)))))
+                           ))))
+           )
+      (with-open-file (ps pkg-list-pathname
+                          :if-exists :supersede
+                          :if-does-not-exist :create
+                          :direction :output)
+
+        (<:with-html-syntax (ps :print-pretty t)
+            (<:htmlize
+             (<:document
+              (<:comment (base-name pkg-list-pathname))
+              +doctype-xhtml1-string-control-string+
+
+              (<:html
+               (<:head
+                (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
+                (<:link :rel "stylesheet" :href (frameset-style fs)))
+
+               (<:body
+                ;; systems
+                ;; packages
+                (build-list "Constants" constants)
+                (build-list "Parameters" parameters)
+                (build-list "Variables" variables)
+                (build-list "Types" types)
+                (build-list "Classes" classes)
+                (build-list "Structures" structs)
+                (build-list "Conditions" conditions)
+                (build-list "Generic Functions" generic-functions)
+                (build-list "Methods" methods)
+                (build-list "Functions" functions)
+                (build-list "Macros" macros)
+                (build-list "Method Combinations" method-combinations)
+                (build-list "Setf expanders" setf-expanders)
+                (build-list "Modify Macros" modify-macros)
+                ;; others
+                )))
+             :syntax :compact
+             )
+            )))))
+
+
 
 
 (defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
@@ -725,7 +1253,7 @@
                "HE&Lambda;P"
                (<:br)
                (<:comment "hhmts start")
-               "Last modified: Thu Aug 25 17:03:36 EEST 2011"
+               "Last modified: " (text-timestamp)
                (<:comment "hhmts end")
                (<:br)
 
