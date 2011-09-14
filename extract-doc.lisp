@@ -87,6 +87,15 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
         return doc-or-decl))
 
 
+(defun collect-declarations (forms)
+  "Collects a list of declarations from a form list according to CL rules.
+
+Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations."
+  ;; Not really really really right, but good enough FTTB.
+  (loop for f in forms
+        while (or (stringp f) (is-declaration f))
+        when (is-declaration f) collect f))
+
 
 ;;; Documentation per form.
 
@@ -111,10 +120,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (deftype name ll &rest forms)
       form
     (declare (ignore deftype))
-    (make-type-doc-bit :name name
-                       :kind 'type
-                       :lambda-list ll
-                       :doc-string (extricate-doc-string forms))))
+    (make-deftype-doc-bit :name name
+                          :kind 'type
+                          :lambda-list ll
+                          :doc-string (extricate-doc-string forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defun)) (form cons))
@@ -210,7 +219,7 @@ T). Only top-level occurrences of these forms are considered.")
 
 
 (defmethod extract-form-documentation :before ((fk (eql 'defpackage)) (form cons))
-  (when *try-to-ensure-packages*
+  (when (and *try-to-ensure-packages* (not (find-package (second form))))
     (eval form)))
 
 
@@ -292,6 +301,7 @@ T). Only top-level occurrences of these forms are considered.")
   (let ((doc (extract-symbol-form-documentation form)))
     (when doc
       (make-constant-doc-bit :name (second form)
+                             :initial-value (third form)
                              :kind 'constant
                              :doc-string doc))))
 
@@ -341,6 +351,7 @@ T). Only top-level occurrences of these forms are considered.")
 (define-documentation-extractor (mk:defsystem name &rest rest-system)
   (make-mk-system-doc-bit :name name
                           :kind 'mk::system
+                          :depends-on (getf rest-system :depends-on)
                           :doc-string (second
                                        (member :documentation rest-system
                                                :test #'eq))))
@@ -348,11 +359,12 @@ T). Only top-level occurrences of these forms are considered.")
 
 #+asdf
 (define-documentation-extractor (asdf:defsystem name &rest rest-system)
-  (make-mk-system-doc-bit :name name
-                          :kind 'asdf:system
-                          :doc-string (second
-                                       (member :description rest-system
-                                               :test #'eq))))
+  (make-asdf-system-doc-bit :name name
+                            :kind 'asdf:system
+                            :depends-on (getf rest-system :depends-on)
+                            :doc-string (second
+                                         (member :description rest-system
+                                                 :test #'eq))))
 
 
 #+lispworks
