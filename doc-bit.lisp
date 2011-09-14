@@ -32,6 +32,7 @@ The structure of a documentation bit."
 )
 
 
+#+old-versio
 (defun doc-bit-pathname-name (doc-bit)
   "Ensures that the resulting pathname does not contain 'problematic' characters."
   (let ((name (string (doc-bit-name doc-bit)))
@@ -47,6 +48,22 @@ The structure of a documentation bit."
             do (write-char #\_ result)
             else
             do (write-char c result)))))
+
+
+(defun doc-bit-pathname-name (doc-bit)
+  (concatenate 'string
+               (substitute #\_ #\Space (doc-bit-kind-tag doc-bit))
+               "-"
+               (string (doc-bit-name doc-bit))))
+
+
+(defun make-doc-bit-pathname (doc-bit
+                              &optional
+                              (type "txt")
+                              (where *default-pathname-defaults*))
+  (make-pathname :name (doc-bit-pathname-name doc-bit)
+                 :type type
+                 :defaults where))
       
 
 ;;;;===========================================================================
@@ -88,14 +105,17 @@ The structure of a documentation bit."
 (defstruct (modify-macro-doc-bit (:include macro-doc-bit (kind-tag "Modifier Macro"))))
 
 
-(defstruct (generic-function-doc-bit (:include parameterized-doc-bit (kind-tag "Generic Function"))))
+(defstruct (generic-function-doc-bit (:include function-doc-bit (kind-tag "Generic Function"))))
 
 
-(defstruct (method-doc-bit (:include parameterized-doc-bit (kind-tag "Method")))
+(defstruct (method-doc-bit (:include function-doc-bit (kind-tag "Method")))
   (qualifiers () :type list :read-only t))
 
 
-(defstruct (type-doc-bit (:include parameterized-doc-bit (kind-tag "Type"))))
+(defstruct (type-doc-bit (:include doc-bit (kind-tag "Type"))))
+
+
+(defstruct (deftype-doc-bit (:include parameterized-doc-bit (kind-tag "Type"))))
 
 
 (defstruct (class-doc-bit (:include type-doc-bit (kind-tag "Class")))
