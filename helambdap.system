@@ -12,7 +12,9 @@
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ("text-utilities"
-                             "filename-utilities"))
+                             "filename-utilities"
+                             "time-utilities"
+                             ))
                "naming"
                (:file "doc-bit" :depends-on ("naming"))
                "extract-doc"
@@ -45,6 +47,7 @@
 			     ))
                )
   :depends-on ("CL-FAD"
+               "SPLIT-SEQUENCE"
                #+with-cxml "CXML"
                #+with-ediware "CL-WHO"
                #+with-ediware "HTML-TEMPLATE"
