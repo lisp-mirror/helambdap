@@ -76,6 +76,7 @@
   (parent nil
           :type (or null element))
   (style nil :type (or null string))
+  (source "" :type (or string pathname))
   )
 
 
@@ -121,8 +122,7 @@ that include ELEMENT."))
 ;;; frame --
 
 (defstruct (frame (:include element (name "" :type string))
-                  (:constructor %make-frame (name)))
-  (source "" :read-only t :type (or string pathname)))
+                  (:constructor %make-frame (name))))
 
 
 (defun frame (name)
@@ -180,7 +180,8 @@ that include ELEMENT."))
                             :navigation navigation
                             :sidebar sidebar
                             :content content
-                            :location location))
+                            :location location
+                            :source location))
         )
     (initialize-element fs)
     (unless content
@@ -217,6 +218,13 @@ that include ELEMENT."))
         fsn
         (concatenate 'string (frameset-name fs) "-sidebar"))))
 
+
+(defmethod print-object ((fs frameset) stream)
+  (declare (type stream stream))
+  (print-unreadable-object (fs stream :identity t)
+    (format stream "FRAMESET ~S ~S"
+            (frameset-name fs)
+            (frameset-location fs))))
 
 
 (defmethod pprint-element ((o stream) (fs frameset))
@@ -305,6 +313,43 @@ that include ELEMENT."))
   (initialize-element (%make-file-set name list nil)))
 
 
+;;; elements utilities.
+
+(defun element-location-path (e)
+  (let ((source (element-source e))
+        (p (element-parent e))
+        )
+    (if (and p (string= ""
+                        (typecase source
+                          (string source)
+                          (pathname (namestring source)))))
+        (element-location-path p)
+        source)))
+
+
+(defun element-location-depth (e)
+  (let* ((path (parse-namestring (element-location-path e)))
+         ;; Bad assumption, but WTH. The path could be URL.
+         (d (pathname-directory path))
+         )
+    (assert (or (null d) (eq :relative (first d))))
+    (if (null d)
+        0
+        (list-length (rest d)))
+    ))
+
+
+(defgeneric compute-element-path (e)
+  (:method ((e element))
+   (let ((ep (element-location-path e)))
+     ep))
+
+  (:method ((fs frameset))
+   (let ((fp (element-location-path fs)))
+     (make-pathname :name (frameset-name fs)
+                    :type *default-html-extension*
+                    :defaults fp)))
+  )
 
 ;;;---------------------------------------------------------------------------
 ;;; Texinfo documentation structure.
@@ -399,7 +444,7 @@ that include ELEMENT."))
               (frameset "dictionary"
                         :location #P"dictionary/"
                         :style "../clstyle.css"
-                        :content (file-set "dictionary"))
+                        :content (file-set "dictionary-entries"))
               (frameset "downloads")
               (frameset "mailing-lists")
               (frameset "links")
