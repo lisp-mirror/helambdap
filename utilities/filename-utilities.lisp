@@ -36,4 +36,24 @@
                   :defaults file-pathname)))
 
 
+(defun quote-wild-in-pathname-name (name) ; Can't use SUBSTITUTE.
+  (declare (type (or string pathname) name))
+  (flet ((quote-wild-cs (n)
+           (declare (type string n))
+           (with-output-to-string (r)
+             (loop for c across n
+                   if (char= #\* c)
+                   do (write-string "\\*" r)
+                   else if (char= #\Space c)
+                   do (write-char #\_ r)
+                   else
+                   do (write-char c r)))))
+    (etypecase name
+      (string (quote-wild-cs name))
+      (pathname
+       (make-pathname :name (quote-wild-cs (pathname-name name))
+                      :defaults name)))
+    ))
+
+
 ;;;; end of file -- filename-utilities.lisp --
