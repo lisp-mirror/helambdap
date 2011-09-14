@@ -81,7 +81,7 @@
   (declare (type list doc-bits)) ; (type (list doc-bits) doc-bits)
 
   (flet ((sort-doc-bits (doc-bits)
-           (sort doc-bits #'string<= doc-bits :key 'doc-bit-name))
+           (sort (copy-list doc-bits) #'string<= :key 'doc-bit-name))
          )
 
     ;; This is when you want ITERATE...
