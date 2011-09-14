@@ -14,9 +14,11 @@
   (:shadow "DOCUMENTATION")
   (:shadow "FRAMESET" "FRAME")
   ;; (:shadowing-import-from "XHTMLAMBDA" "MAP" "TIME")
+
+  (:export "DOCUMENT")
   (:documentation "The HELambdaP Package.
 
-The package containing the implemantation of the 'semi-offline'
+The package containing the implementation of the 'semi-offline'
 documentation system for Common Lisp.")
   )
 
