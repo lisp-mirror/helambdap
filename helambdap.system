@@ -14,6 +14,7 @@
                 :components ("text-utilities"
                              "filename-utilities"
                              "time-utilities"
+                             "streams-utilities"
                              ))
                "naming"
                (:file "doc-bit" :depends-on ("naming"))
@@ -48,6 +49,7 @@
                )
   :depends-on ("CL-FAD"
                "SPLIT-SEQUENCE"
+               "CLOSER-MOP"
                #+with-cxml "CXML"
                #+with-ediware "CL-WHO"
                #+with-ediware "HTML-TEMPLATE"
