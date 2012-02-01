@@ -339,7 +339,7 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
               (
                ;; (<:frameset :cols "*,*" :border 0)
-               (<:frameset :cols "25%,75%" :border 0)
+               (<:frameset :cols "20%,80%" :border 0)
                ;; (<:frameset :cols "150px,*" :border 0)
                (<:comment "NAVIGATION FRAME")
                (produce-navigation-frame 'html
@@ -356,7 +356,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                             fs-content
                                             fs-file
                                             doc-bits)
-                     ; (produce-frame format fs-content fs-file)
+                     (produce-frame format fs-content fs-file)
                      )
                    #|
                    (<:frame (:src (base-name
@@ -406,21 +406,24 @@ Each FRAMESET and FRAME is contained in a separate file.
   (<:frame (:src (frame-source element) :name (frame-name element))))
                                   
 
-
-(defmethod produce-frame ((format (eql 'html))
-                          (element file-set)
-                          (where stream)
-                          )
-  (<:frame (:src (element-name element))
-           (format nil "~&<!-- FRAME ~A -->" (element-name element))))
-
-
 (defmethod produce-frame ((format (eql 'html))
                           (element doc-file)
                           (where stream)
                           )
   (<:frame (:src (namestring (file-pathname element)))
            (<:comment () "FRAME " (element-name element))))
+
+
+(defmethod produce-frame ((format (eql 'html))
+                          (element file-set)
+                          (where stream)
+                          )
+  (<:frame (:src (concatenate 'string (file-set-name element) "." *default-html-extension*)
+            :name (concatenate 'string (file-set-name element) "_frame")
+            )
+           ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
+           ))
+
 
 
 (defmethod produce-header-frame ((format (eql 'html))
@@ -535,11 +538,11 @@ Each FRAMESET and FRAME is contained in a separate file.
                                doc-bits))))
                            
 
-  (<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
+  #|(<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
             :name (concatenate 'string (file-set-name structure) "_frame")
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
-           ))
+           )|#)
 
 
 ;;;---------------------------------------------------------------------------
@@ -733,6 +736,63 @@ Each FRAMESET and FRAME is contained in a separate file.
            ))
          :syntax :compact))
     t))
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit generic-function-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (declare (ignorable documentation-title))
+  (labels ((method-signature (m)
+             (declare (type method m))
+             (let ((ms  (closer-mop:method-specializers m))
+                   (mll (closer-mop:method-lambda-list m))
+                   )
+               (nconc
+                (mapcar (lambda (s)
+                          (etypecase s
+                            (closer-mop:eql-specializer
+                             `(eql ,(closer-mop:eql-specializer-object s)))
+                            (class (class-name s))))
+                        (closer-mop:method-specializers m))
+                (subseq mll (list-length ms))))
+             )
+           (method-signatures (gf)
+             (declare (type generic-function gf))
+             (mapcar #'method-signature (closer-mop:generic-function-methods gf))
+             )
+           )
+
+    (let* ((gfname (doc-bit-name doc-bit))
+           (name (string-downcase gfname))
+           (kind (doc-bit-kind doc-bit))
+           (doc-string (doc-bit-doc-string doc-bit))
+           )
+      (declare (ignore kind))
+      (<:with-html-syntax (out :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:head
+             (<:title "Generic Function" name)
+             (<:link :rel "stylesheet" :href "../clstyle.css"))
+            (<:body
+             (<:h1 (<:i "Generic Function") (<:strong name))
+             (<:h2 "Syntax:")
+             (<:p (<:strong name)
+                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+             (<:h2 "Description:")
+             (paragraphize-doc-string doc-string)
+           
+             (<:h3 "Known Methods:")
+             (dolist (ms (method-signatures (symbol-function gfname)))
+               (<:p () name (format nil "~{ <i>~A</i>~}" ms))
+               )
+             ))
+           :syntax :compact)))))
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
