@@ -1,0 +1,63 @@
+<helambdap:docbit name="*source-extensions*" kind="Parameter" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+List of possible 'source extensions' where Lisp code is contained.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="*default-documentation-structure*" kind="Parameter" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+The default documentation structure.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="doc-bit" kind="Structure" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+The DOC-BIT Structure.
+
+The structure of a documentation bit.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="extract-form-documentation" kind="Generic Function" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+Extracts the documentation from a form tagged with a specific kind.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="extricate-doc-string" kind="Function" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+Given a list of FORMS finds a doc-string according to CL rules.
+
+Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="*try-to-ensure-packages*" kind="Variable" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+Controls whether the system should try to create the packages it encouters.
+
+DEFPACKAGE and IN-PACKAGE forms will be evaluated if non-NIL (default
+T). Only top-level occurrences of these forms are considered.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="IT.UNIMIB.DISCO.MA.CL.HELambdaP" kind="Package">
+<helambdap:description>
+The HELambdaP Package.
+
+The package containing the implemantation of the 'semi-offline'
+documentation system for Common Lisp.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="*doc-bits-db*" kind="Variable" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+The Data Base of doc bits.
+
+The doc bits db is indexed on the NAME of a DOC-BIT.
+        </helambdap:description>
+</helambdap:docbit>
+<helambdap:docbit name="documentation" kind="Generic Function" package="IT.UNIMIB.DISCO.MA.CL.HELambdaP">
+<helambdap:description>
+The DOCUMENTATION Generic Function.
+
+The DOCUMENTATION generic function shadows CL:DOCUMENTATION in order
+to provide a few hooks for manipulating the underlying DOC-BITS DB.
+
+If no documentation string is found in the doc bits db, then
+DOCUMENTATION falls back on CL:DOCUMENTATION.
+        </helambdap:description>
+</helambdap:docbit>

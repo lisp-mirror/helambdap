@@ -1,7 +1,12 @@
-# HELamdaP git igtoned files.
+# HELamdaP git ignored files.
 
 # Emacs backups.
 *~
 
 # Various CL FASL files.
 *fasl
+
+# Other generated files.
+
+doc/html*/*
+doc/html*/*/*
