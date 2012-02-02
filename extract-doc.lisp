@@ -4,19 +4,36 @@
 
 (in-package "HELAMBDAP")
 
+;;; extract-documentation --
 
-(defgeneric extract-documentation (where-from))
+(defgeneric extract-documentation (where-from)
+  (:documentation
+   "Extract the documentation from a source (WHERE-FROM)."))
+
+
+;;; extract-form-documentation --
 
 (defgeneric extract-form-documentation (form-kind form)
   (:documentation
    "Extracts the documentation from a form tagged with a specific kind."))
 
 
+;;;; Package handling --
+
+(defparameter *current-package* (find-package "COMMON-LISP-USER")
+  "The variable holding the 'current' package.
+
+Processing an IN-PACKAGE form sets this variable (if the package is
+known) subsequent READs by the documentation extraction machinery
+are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
+
+
 ;;; read-form --
 
 (defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
   (handler-case
-      (read forms-stream nil eof)
+      (let ((*package* *current-package*))
+        (read forms-stream nil eof))
     (simple-error (e)
       (format *error-output*
               "~%HELambdaP form reader: trying to read a form caused errors.~@
@@ -38,19 +55,25 @@
 ;;; extract-documentation --
 
 (defmethod extract-documentation ((forms-stream stream))
-  (loop with eof = (gensym "FORMS-STREAM-EOF-")
-        for form = (read-form forms-stream eof)
-        for form-doc = (form-documentation form)
-        while (not (eq form eof))
-          when form-doc
-            if (consp form-doc)
-              nconc (delete nil form-doc) into doc-bits
-            else
-              collect form-doc into doc-bits
-        end
+  (let ((saved-package *package*)
+        (*current-package* *package*)
+        )
+    (unwind-protect
+        (loop with eof = (gensym "FORMS-STREAM-EOF-")
+              for form = (read-form forms-stream eof)
+              for form-doc = (form-documentation form)
+              while (not (eq form eof))
+                when form-doc
+                  if (consp form-doc)
+                    nconc (delete nil form-doc) into doc-bits
+                  else
+                    collect form-doc into doc-bits
+                  end
 
-        finally (return
-                 (delete-if (complement 'doc-bit-doc-string) doc-bits))))
+              finally (return
+                       (delete-if (complement 'doc-bit-doc-string)
+                                  doc-bits)))
+      (setf *package* saved-package))))
 
 
 (defmethod extract-documentation ((file pathname))
@@ -231,6 +254,13 @@ T). Only top-level occurrences of these forms are considered.")
       (when *try-to-ensure-packages*
         (unless pkg
           (make-package pkg-name))))))
+
+
+(defmethod extract-form-documentation :after ((fk (eql 'in-package)) (form cons))
+  (let ((pkg (find-package (second form))))
+    (when pkg
+      (setf *current-package* pkg))))
+
 
 
 (defmethod extract-form-documentation ((fk (eql 'defmethod)) (form cons))
