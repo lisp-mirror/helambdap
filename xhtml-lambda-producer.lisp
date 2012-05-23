@@ -644,18 +644,21 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  (let ((name (string-downcase (doc-bit-name doc-bit)))
-        (kind (doc-bit-kind doc-bit))
-        (doc-string (doc-bit-doc-string doc-bit))
-        )
+  (let* ((db-name (doc-bit-name doc-bit))
+         (name (string-downcase db-name))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         )
     (<:with-html-syntax (out :print-pretty t)
         (<:htmlize
          (<:document
           (<:head
-           (<:title kind name)
+           (<:title documentation-title ": " kind name)
            (<:link :rel "stylesheet" :href "../clstyle.css"))
           (<:body
            (<:h1 (<:i kind) (<:strong name))
+           (<:h2 "Package: ")
+           (<:p (package-name (symbol-package db-name)))
            (<:h2 "Syntax:")
            (<:p (<:strong name)
                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
@@ -738,6 +741,7 @@ Each FRAMESET and FRAME is contained in a separate file.
     t))
 
 
+#+version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit generic-function-doc-bit)
                                   (out file-stream)
@@ -745,13 +749,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   documentation-title
                                   &allow-other-keys)
+  "This specialized method produces the documentation for a generic function."
   (declare (ignorable documentation-title))
   (labels ((method-signature (m)
              (declare (type method m))
              (let ((ms  (closer-mop:method-specializers m))
                    (mll (closer-mop:method-lambda-list m))
                    )
-               (nconc
+               (list
                 (mapcar (lambda (s)
                           (etypecase s
                             (closer-mop:eql-specializer
@@ -776,10 +781,12 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:htmlize
            (<:document
             (<:head
-             (<:title "Generic Function" name)
+             (<:title documentation-title ": " "Generic Function" name)
              (<:link :rel "stylesheet" :href "../clstyle.css"))
             (<:body
              (<:h1 (<:i "Generic Function") (<:strong name))
+             (<:h2 "Package:")
+             (<:p (package-name (symbol-package gfname)))
              (<:h2 "Syntax:")
              (<:p (<:strong name)
                   (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
@@ -787,9 +794,91 @@ Each FRAMESET and FRAME is contained in a separate file.
              (paragraphize-doc-string doc-string)
            
              (<:h3 "Known Methods:")
-             (dolist (ms (method-signatures (symbol-function gfname)))
-               (<:p () name (format nil "~{ <i>~A</i>~}" ms))
-               )
+             (<:ul
+              (loop for (specializers other) in (method-signatures (symbol-function gfname))
+                    collect (<:htmlize
+                             (<:li
+                              (<:p (<:strong name)
+                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                   (format nil "~{ <i>~A</i>~}" other)
+                                   )
+                              )
+                             :syntax :compact)
+                    ))
+             ))
+           :syntax :compact)))))
+
+#-version-using-MOP
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit generic-function-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  "This specialized method produces the documentation for a generic function."
+  (declare (ignorable documentation-title))
+  (labels ((method-signature (mdb)
+             (declare (type method-doc-bit mdb))
+             (let* ((mll (method-doc-bit-lambda-list mdb))
+                    (regular-arg-pos (position-if #'symbolp mll))
+                    )
+               (list
+                (mapcar (lambda (ll-elem
+                                 &aux
+                                 ;; (ll-elem-var (first ll-elem))
+                                 (ll-elem-class (second ll-elem)))
+                          (etypecase ll-elem-class
+                            (cons ; An EQL specializer (or something else?)
+                             ll-elem-class)
+                            (symbol
+                             ll-elem-class)
+                            (class
+                             (class-name ll-elem-class))
+                            ))
+                        (subseq mll 0 regular-arg-pos))
+                (when regular-arg-pos (subseq mll regular-arg-pos)))
+               ))
+           )
+
+    (let* ((gfname (doc-bit-name doc-bit))
+           (name (string-downcase gfname))
+           (kind (doc-bit-kind doc-bit))
+           (doc-string (doc-bit-doc-string doc-bit))
+           )
+      (declare (ignore kind))
+      (<:with-html-syntax (out :print-pretty t)
+          (<:htmlize
+           (<:document
+            (<:head
+             (<:title documentation-title ": " "Generic Function" name)
+             (<:link :rel "stylesheet" :href "../clstyle.css"))
+            (<:body
+             (<:h1 (<:i "Generic Function") (<:strong name))
+             (<:h2 "Package:")
+             (<:p (package-name (symbol-package gfname)))
+             (<:h2 "Syntax:")
+             (<:p (<:strong name)
+                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+             (<:h2 "Description:")
+             (paragraphize-doc-string doc-string)
+           
+             (<:h3 "Known Methods:")
+             (<:ul
+              (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                    for (specializers other) = (method-signature mdb)
+                    for mdb-doc = (doc-bit-doc-string mdb)
+                    collect (<:htmlize
+                             (<:li
+                              (<:p (<:strong name)
+                                   (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
+                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                   (format nil "~{ <i>~A</i>~}" other))
+                              (when mdb-doc
+                                (<:p ()  mdb-doc)))
+                             :syntax :compact)
+                    )
+              )
              ))
            :syntax :compact)))))
 
