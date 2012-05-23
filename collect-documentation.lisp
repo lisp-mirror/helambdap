@@ -74,6 +74,29 @@
       doc-bits)))
 
 
+(defmethod collect-documentation :around ((where-from t))
+  (let ((doc-bits (call-next-method))
+        (gfs-table (make-hash-table :test #'eq))
+        (gfs ())
+        (methods ())
+        )
+
+    (loop for db in doc-bits
+          when (generic-function-doc-bit-p db)
+          do (pushnew db gfs :key #'doc-bit-name :test #'eq)
+          when (method-doc-bit-p db)
+          do (pushnew db methods :key #'doc-bit-name :test #'eq)
+          )
+    (dolist (gfdb gfs)
+      (setf (gethash (doc-bit-name gfdb) gfs-table) gfdb))
+    (dolist (m methods)
+      (pushnew m (generic-function-doc-bit-methods
+                  (gethash (doc-bit-name m) gfs-table))))
+    (break)
+    doc-bits))
+  
+
+
 ;;;----------------------------------------------------------------------------
 ;;; Standard dictionary sorting...
 
@@ -117,7 +140,7 @@
             (struct-doc-bit (put-in structs))
             (condition-doc-bit (put-in conditions))
             (generic-function-doc-bit (put-in generic-functions))
-            (methods-doc-bit (put-in methods))
+            (method-doc-bit (put-in methods))
             (function-doc-bit (put-in functions))
             (macro-doc-bit (put-in macros))
             (method-combination-doc-bit (put-in method-combinations))

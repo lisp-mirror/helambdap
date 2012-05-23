@@ -8,7 +8,7 @@
 
 (defgeneric extract-documentation (where-from)
   (:documentation
-   "Extract the documentation from a source (WHERE-FROM)."))
+   "Extracts the documentation from a source WHERE-FROM."))
 
 
 ;;; extract-form-documentation --

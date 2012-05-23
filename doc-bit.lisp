@@ -32,7 +32,7 @@ The structure of a documentation bit."
 )
 
 
-#+old-versio
+#+old-version
 (defun doc-bit-pathname-name (doc-bit)
   "Ensures that the resulting pathname does not contain 'problematic' characters."
   (let ((name (string (doc-bit-name doc-bit)))
@@ -105,7 +105,8 @@ The structure of a documentation bit."
 (defstruct (modify-macro-doc-bit (:include macro-doc-bit (kind-tag "Modifier Macro"))))
 
 
-(defstruct (generic-function-doc-bit (:include function-doc-bit (kind-tag "Generic Function"))))
+(defstruct (generic-function-doc-bit (:include function-doc-bit (kind-tag "Generic Function")))
+  (methods () :type list))
 
 
 (defstruct (method-doc-bit (:include function-doc-bit (kind-tag "Method")))
@@ -154,6 +155,13 @@ The structure of a documentation bit."
 
 #+lispworks
 (defstruct (lw-system-doc-bit (:include system-doc-bit)))
+
+
+;;;---------------------------------------------------------------------------
+;;; Using a "factory" generic function.
+
+(defgeneric new-doc-bit (doc-bit-class &rest args))
+
 
 
 ;;;;---------------------------------------------------------------------------
