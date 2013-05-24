@@ -657,11 +657,18 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:link :rel "stylesheet" :href "../clstyle.css"))
           (<:body
            (<:h1 (<:i kind) (<:strong name))
+
            (<:h2 "Package: ")
-           (<:p (package-name (symbol-package db-name)))
+           (<:p (<:code (package-name (symbol-package db-name))))
+
            (<:h2 "Syntax:")
-           (<:p (<:strong name)
-                (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+           (<:p
+            (<:pre
+             (format nil
+                     "~&    ~A ~A~%"
+                 (<:b () (<:span (:style "color: red") (<:strong () name)))
+                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))))
+
            (<:h2 "Description:")
            (paragraphize-doc-string doc-string))
           )
@@ -845,6 +852,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (name (string-downcase gfname))
            (kind (doc-bit-kind doc-bit))
            (doc-string (doc-bit-doc-string doc-bit))
+           (f-values (function-doc-bit-values doc-bit))
            )
       (declare (ignore kind))
       (<:with-html-syntax (out :print-pretty t)
@@ -854,32 +862,63 @@ Each FRAMESET and FRAME is contained in a separate file.
              (<:title documentation-title ": " "Generic Function" name)
              (<:link :rel "stylesheet" :href "../clstyle.css"))
             (<:body
+
              (<:h1 (<:i "Generic Function") (<:strong name))
+
              (<:h2 "Package:")
              (<:p (package-name (symbol-package gfname)))
+
              (<:h2 "Syntax:")
-             (<:p (<:strong name)
-                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+             (<:p
+              (<:pre (format nil "~&    ~A~A~%"
+                             (<:b () (<:span (:style "color: red") (<:strong () name)))
+                             (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))))
+
+             (<:h3 "Arguments and Values:")
+             (loop for arg in (parameterized-doc-bit-lambda-list doc-bit)
+                   unless (member arg '(&optional &rest &key &allow-other-keys &whole &environment &aux))
+                   collect
+                   (<:htmlize
+                    (<:p (<:i (<:code (if (consp arg) (first arg) arg))) "---" (if (consp arg) (second arg) arg))
+                    :syntax :compact))
+
+             (if f-values
+                 (loop for fv in f-values
+                       for i from 1
+                       collect
+                       (<:htmlize
+                        (<:p (<:i (<:code (format nil "result-~D" i))) "---" " a " (<:i fv) ".")
+                        :syntax :compact))
+                 (<:p () (<:i () (<:code () "result")) "--- a T."))
+
              (<:h2 "Description:")
              (paragraphize-doc-string doc-string)
            
-             (<:h3 "Known Methods:")
-             (<:ul
-              (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                    for (specializers other) = (method-signature mdb)
-                    for mdb-doc = (doc-bit-doc-string mdb)
-                    collect (<:htmlize
-                             (<:li
-                              (<:p (<:strong name)
-                                   (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
-                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                   (format nil "~{ <i>~A</i>~}" other))
-                              (when mdb-doc
-                                (<:p ()  mdb-doc)))
-                             :syntax :compact)
-                    )
-              )
-             ))
+
+             (let ((known-methods-els
+                    (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                          for (specializers other) = (method-signature mdb)
+                          for mdb-doc = (doc-bit-doc-string mdb)
+                          collect (<:htmlize
+                                   (<:li
+                                    (<:p
+                                     (<:pre (format nil
+                                                    "    ~A~A~A~A"
+                                                    (<:b () (<:strong () name))
+                                                    (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
+                                                    (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                                    (format nil "~{ <i>~A</i>~}" other))))
+                                    (when mdb-doc
+                                      (<:p ()  mdb-doc)))
+                                   :syntax :compact)
+                          ))
+                   )
+               (when known-methods-els
+                 (<:div ()
+                        (<:h3 () "Known Methods:")
+                        (<:ul () known-methods-els)))
+              
+               )))
            :syntax :compact)))))
 
 

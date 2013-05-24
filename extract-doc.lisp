@@ -153,10 +153,14 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (defun name ll &rest forms)
       form
     (declare (ignore defun))
-    (make-function-doc-bit :name name
-                           :kind 'function
-                           :lambda-list ll
-                           :doc-string (extricate-doc-string forms))))
+    (let* ((decls (collect-declarations forms))
+           (values-decl (find 'values (mapcan #'rest decls) :key #'first))
+           )
+      (make-function-doc-bit :name name
+                             :kind 'function
+                             :lambda-list ll
+                             :values (rest values-decl)
+                             :doc-string (extricate-doc-string forms)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defmacro)) (form cons))
@@ -215,11 +219,15 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (defgeneric name ll &rest options-and-methods)
       form
     (declare (ignore defgeneric))
-    (make-generic-function-doc-bit :name name
-                                   :kind 'function
-                                   :lambda-list ll
-                                   :doc-string (second (find :documentation options-and-methods
-                                                             :key #'first)))))
+    (let* ((decls (collect-declarations options-and-methods)) ; This is essentially wrong.  It should return NIL (almost) always.
+           (values-decl (find 'values (mapcan #'rest decls) :key #'first))
+           )
+      (make-generic-function-doc-bit :name name
+                                     :kind 'function
+                                     :lambda-list ll
+                                     :values (rest values-decl)
+                                     :doc-string (second (find :documentation options-and-methods
+                                                               :key #'first))))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defpackage)) (form cons))

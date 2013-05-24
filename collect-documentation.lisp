@@ -92,7 +92,6 @@
     (dolist (m methods)
       (pushnew m (generic-function-doc-bit-methods
                   (gethash (doc-bit-name m) gfs-table))))
-    (break)
     doc-bits))
   
 

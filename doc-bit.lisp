@@ -90,7 +90,8 @@ The structure of a documentation bit."
   (lambda-list () :read-only t :type list))
 
 
-(defstruct (function-doc-bit (:include parameterized-doc-bit (kind-tag "Function"))))
+(defstruct (function-doc-bit (:include parameterized-doc-bit (kind-tag "Function")))
+  (values () :read-only t :type list))
 
 
 (defstruct (macro-doc-bit (:include parameterized-doc-bit (kind-tag "Macro"))))
