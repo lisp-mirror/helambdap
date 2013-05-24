@@ -325,7 +325,7 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:title fs-name)
               (<:link :rel "stylesheet" :href (frameset-style structure)))
              
-             ((<:frameset :rows "65px,*,65px" :border 0 :noresize "noresize")
+             ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
               ;; HEADER ROW.
               (<:comment "HEADER ROW")
               (produce-header-frame 'html
@@ -339,7 +339,7 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
               (
                ;; (<:frameset :cols "*,*" :border 0)
-               (<:frameset :cols "20%,80%" :border 0)
+               (<:frameset :cols "20%,80%" #| :border 0 |#)
                ;; (<:frameset :cols "150px,*" :border 0)
                (<:comment "NAVIGATION FRAME")
                (produce-navigation-frame 'html
@@ -364,7 +364,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                                     :type *default-html-extension*
                                     :name (element-name structure)))))
                    |#
-                   (<:frame (:name (format nil "~A_frame" (element-name structure))))
+                   (<:frame (:name (format nil "~A_frame" (element-name structure))
+                             :frameborder 0))
                    )
                )
 
@@ -403,14 +404,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys)
   (declare (ignorable documentation-title))
-  (<:frame (:src (frame-source element) :name (frame-name element))))
+  (<:frame (:src (frame-source element) :name (frame-name element) :frameborder 0)))
                                   
 
 (defmethod produce-frame ((format (eql 'html))
                           (element doc-file)
                           (where stream)
                           )
-  (<:frame (:src (namestring (file-pathname element)))
+  (<:frame (:src (namestring (file-pathname element)) :frameborder 0)
            (<:comment () "FRAME " (element-name element))))
 
 
@@ -420,6 +421,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                           )
   (<:frame (:src (concatenate 'string (file-set-name element) "." *default-html-extension*)
             :name (concatenate 'string (file-set-name element) "_frame")
+            :frameborder 0
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
@@ -446,7 +448,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                      (not *supersede-documentation*))
           (produce-header-file fs header-pathname documentation-title))
 
-        (<:frame (:src (base-name header-pathname)))
+        (<:frame (:src (base-name header-pathname)
+                  :frameborder 0
+                  ))
         ))))
 
 
@@ -473,7 +477,10 @@ Each FRAMESET and FRAME is contained in a separate file.
                                    nav-pathname
                                    doc-bits
                                    documentation-title))
-        (<:frame (:src (base-name nav-pathname)))
+        (<:frame (:src (base-name nav-pathname)
+                  ;; :marginheight "5"
+                  :frameborder "0"
+                  ))
         ))))
 
 
@@ -495,7 +502,9 @@ Each FRAMESET and FRAME is contained in a separate file.
         (unless (and (probe-file footer-pathname)
                      (not *supersede-documentation*))
           (produce-footer-file fs footer-pathname documentation-title))
-        (<:frame (:src (base-name footer-pathname)))
+        (<:frame (:src (base-name footer-pathname)
+                  :frameborder 0
+                  ))
         ))))
 
 
@@ -507,7 +516,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys)
   (declare (ignorable documentation-title))
-  (<:frame (:src (element-name structure))))
+  (<:frame (:src (element-name structure)
+            :frameborder 0
+            )))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -591,7 +602,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  ;; documentation-title
                                   &allow-other-keys)
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
@@ -616,7 +627,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  ;; documentation-title
                                   &allow-other-keys)
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
@@ -680,7 +691,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  ;; documentation-title
                                   &allow-other-keys)
   (let* ((name (string-downcase (doc-bit-name doc-bit)))
          (kind (doc-bit-kind doc-bit))
@@ -1140,7 +1151,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                          :type *default-html-extension*
                          :defaults nav-pathname))
          )
-    (declare (ignore fs-order fs-body-title))
+    (declare (ignore fs-order fs-body-title nav-list-pathname))
 
     (with-open-file (ns nav-pathname
                         :direction :output
@@ -1161,17 +1172,19 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:link :rel "stylesheet" :href (frameset-style fs)))
             
              ((<:frameset :rows "20%,80%"
-                          :frameborder 0
+                          #| :frameborder 0 |#
                           :noresize "noresize")
               ((<:frame :name (format nil
                                       "~A_navigation_map"
                                       fs-name)
                         :src (base-name nav-map-pathname)
+                        :frameborder 0
                         ))
               ((<:frame :name (format nil
                                       "~A_navigation_lists"
                                       fs-name)
                         ;; :src (namestring nav-list-pathname)
+                        :frameborder 0
                         ))
               ))
             (<:comment (format nil "end of file : ~A"
@@ -1219,7 +1232,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                (<:li "Packages"))
               |#
 
-              ((<:div :class "helambdap_navmap_systems_packages")
+              ((<:div :class "helambdap_navmap")
                ;; (<:h4 "Systems and Packages")
 
 
@@ -1327,6 +1340,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                            (target (format nil "~A_frame"
                                                            (element-name nav-element)))
                                            )
+  (declare (ignore pkg))
   (format t "~&>>>> produce-package-navigation-list ~S ~S ~S~%"
           fs
           (package-doc-bit-name pkg-doc-bit)
@@ -1351,7 +1365,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                        others
                        )
       (sift-standard-doc-bits doc-bits)
-    (declare (ignore systems packages others))
+    (declare (ignore systems packages methods others))
     (flet ((build-list (list-name doc-bits)
              (when doc-bits
                (list (<:h4 () list-name)
@@ -1382,9 +1396,14 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:html
                (<:head
                 (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
-                (<:link :rel "stylesheet" :href (frameset-style fs)))
+                (<:link :rel "stylesheet" :href (frameset-style fs))
+                (<:style (format nil
+                                 ".helambdap_navmap li {~
+                                      display: inline;~
+                                  }")))
 
                (<:body
+                ((<:div :class "helambdap_navmap")
                 ;; systems
                 ;; packages
                 (build-list "Constants" constants)
@@ -1395,14 +1414,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                 (build-list "Structures" structs)
                 (build-list "Conditions" conditions)
                 (build-list "Generic Functions" generic-functions)
-                (build-list "Methods" methods)
+                ;; (build-list "Methods" methods)
                 (build-list "Functions" functions)
                 (build-list "Macros" macros)
                 (build-list "Method Combinations" method-combinations)
                 (build-list "Setf expanders" setf-expanders)
                 (build-list "Modify Macros" modify-macros)
                 ;; others
-                )))
+                ))))
              :syntax :compact
              )
             )))))
@@ -1445,7 +1464,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                (<:comment "hhmts end")
                (<:br)
 
-               "&copy; 2011, Marco Antoniotti, all rights reserved.")
+               (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
+                       (nth-value 5 (decode-universal-time (get-universal-time)))))
               )))
            :syntax :compact)))
       ))
