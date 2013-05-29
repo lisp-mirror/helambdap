@@ -41,23 +41,6 @@
 
 (defvar *html-type-pathname* (make-pathname :type "html"))
 
-(declaim (type string +doctype-frameset-control-string+))
-
-(defconstant +doctype-frameset-control-string+
-"<!DOCTYPE HTML PUBLIC
-  \"-//W3C//DTD HTML 4.01 Frameset//EN\"
-  \"http://www.w3.org/TR/html4/frameset.dtd\">"
-
-  "The standard 'DOCTYPE' w3c frameset DTD (X)HTML string.")
-
-
-(defconstant +frameset-doctype-public-id+
-  "-//W3C//DTD HTML 4.01 Frameset//EN")
-
-
-(defconstant +frameset-doctype-system-id+
-  "http://www.w3.org/TR/html4/frameset.dtd")
-
 
 ;;;;---------------------------------------------------------------------------
 ;;;; PRODUCE-DOCUMENTATION methods.

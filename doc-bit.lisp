@@ -120,7 +120,11 @@ The structure of a documentation bit."
 (defstruct (deftype-doc-bit (:include parameterized-doc-bit (kind-tag "Type"))))
 
 
-(defstruct (class-doc-bit (:include type-doc-bit (kind-tag "Class")))
+(defstruct (slotted-doc-bit (:include type-doc-bit) (:constructor nil))
+  (slots () :type list :read-only t))
+  
+
+(defstruct (class-doc-bit (:include slotted-doc-bit (kind-tag "Class")))
   (superclasses () :type list :read-only t))
 
 
@@ -128,7 +132,7 @@ The structure of a documentation bit."
   )
 
 
-(defstruct (struct-doc-bit (:include type-doc-bit (kind-tag "Structure")))
+(defstruct (struct-doc-bit (:include slotted-doc-bit (kind-tag "Structure")))
   (include nil :type symbol :read-only t)
   )
 

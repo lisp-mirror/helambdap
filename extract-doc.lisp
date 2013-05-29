@@ -196,10 +196,11 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 (defmethod extract-form-documentation ((fk (eql 'defclass)) (form cons))
   (destructuring-bind (defclass name supers slots &rest options)
       form
-    (declare (ignore defclass slots))
+    (declare (ignore defclass))
     (make-class-doc-bit :name name
                         :kind 'type
                         :superclasses supers
+                        :slots slots
                         :doc-string (second (find :documentation options
                                                   :key #'first)))))
 
@@ -296,8 +297,9 @@ T). Only top-level occurrences of these forms are considered.")
                            :kind 'structure
                            :doc-string (first doc-string-and-slots)
                            :include (when (consp name-and-options)
-                                      (second (find :include (remove #'symbolp name-and-options)
+                                      (second (find :include (remove-if #'symbolp name-and-options)
                                                     :key #'first)))
+                           :slots (rest doc-string-and-slots)
                            ))))
 
 

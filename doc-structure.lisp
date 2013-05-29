@@ -28,6 +28,11 @@
 
 (in-package "HELAMBDAP")
 
+;;;---------------------------------------------------------------------------
+;;; Global definitions.
+
+(defparameter *helambdap-css-filename* "helambdap.css")
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
@@ -265,10 +270,10 @@ that include ELEMENT."))
 
 (defstruct (style-file
             (:include file)
-            (:constructor %make-style-file (&optional (name (pathname "clstyle.css")))))
+            (:constructor %make-style-file (&optional (name (pathname *helambdap-css-filename*)))))
   )
 
-(defun style-file (&optional (name (pathname "clstyle.css")))
+(defun style-file (&optional (name (pathname  *helambdap-css-filename*)))
   (initialize-element (%make-style-file name)))
 
 
@@ -432,18 +437,23 @@ that include ELEMENT."))
 ;;;---------------------------------------------------------------------------
 ;;; Documentation structures.
 
+(defparameter *helambdap-css-filename-up*
+  (make-pathname :directory '(:relative :up)
+                 :defaults (pathname *helambdap-css-filename*)))
+
+
 (defparameter *xhtml-frame-documentation-structure*
   (make-documentation-structure
    "standard"
    "index"
    (style-file)
    (framesets "doc-framesets"
-              "clstyle.css"
+              *helambdap-css-filename*
               (frameset "index"
                         :content (doc-file "introduction"))
               (frameset "dictionary"
                         :location #P"dictionary/"
-                        :style "../clstyle.css"
+                        :style (namestring *helambdap-css-filename-up*)
                         :content (file-set "dictionary-entries"))
               (frameset "downloads")
               (frameset "mailing-lists")

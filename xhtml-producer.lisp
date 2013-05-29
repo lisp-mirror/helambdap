@@ -141,17 +141,6 @@
     (produce-documentation 'html fs where doc-bits)))
 
 
-(declaim (type string +doctype-frameset-control-string+))
-
-
-(defconstant +doctype-frameset-control-string+
-"<!DOCTYPE HTML PUBLIC
-  \"-//W3C//DTD HTML 4.01 Frameset//EN\"
-  \"http://www.w3.org/TR/html4/frameset.dtd\">"
-
-  "The standard 'DOCTYPE' w3c frameset DTD (X)HTML string.")
-
-
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure frameset)
                                   (where pathname)
