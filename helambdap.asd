@@ -24,21 +24,23 @@
                "doc-structure"
                "documentation-production"
 
+               "xhtml-common-definitions"
+
                #+helambdap.with-ediware
                (:file "xml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"))
+                :depends-on ("doc-structure" "utilities" "documentation-production" "xhtml-common-definitions"))
 
                #+helambdap.with-ediware
                (:file "xhtml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"))
+                :depends-on ("doc-structure" "utilities" "documentation-production" "xhtml-common-definitions"))
 
                #+helambdap.with-cxml
                (:file "xhtml-cxml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"))
+                :depends-on ("doc-structure" "utilities" "documentation-production" "xhtml-common-definitions"))
 
                #+helambdap.with-xhtmlambda
                (:file "xhtml-lambda-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"))
+                :depends-on ("doc-structure" "utilities" "documentation-production" "xhtml-common-definitions"))
 
 	       (:module "impl-dependent"
 		:depends-on ("helambdap-pkg")
