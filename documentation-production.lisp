@@ -59,6 +59,10 @@ can be used as building blocks for the final documentation."))
                  (supersede *supersede-documentation*)
                  &allow-other-keys
                  )
+  "Produces the documetation for something.
+
+The function is a wrapper for BUILD-DOCUMENTATION defaulting a few
+parameters, in particular the output FORMAT (which defaults to HTML)."
   (let ((*supersede-documentation* supersede))
     (build-documentation for-what
                          format

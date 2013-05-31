@@ -20,7 +20,7 @@
     (declare (ignore dls))
     (format nil "~A ~A ~D ~D:~D:~D GMT~D ~D"
             (aref +weekdays+ w)
-            (aref +months+ mo)
+            (aref +months+ (1- mo))
             d
             h mi s
             z

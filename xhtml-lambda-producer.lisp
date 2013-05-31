@@ -318,8 +318,10 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
               (
                ;; (<:frameset :cols "*,*" :border 0)
-               (<:frameset :cols "20%,80%" #| :border 0 |#)
                ;; (<:frameset :cols "150px,*" :border 0)
+               ;; (<:frameset :cols "20%,80%" #| :border 0 |#)
+               (<:frameset :cols "25%,75%" #| :border 0 |#)
+
                (<:comment "NAVIGATION FRAME")
                (produce-navigation-frame 'html
                                          structure
@@ -638,6 +640,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (name (string-downcase db-name))
          (kind (doc-bit-kind doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
+         (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
     (<:with-html-syntax (out :print-pretty t)
         (<:htmlize
@@ -657,7 +660,18 @@ Each FRAMESET and FRAME is contained in a separate file.
              (format nil
                      "~&    ~A ~A~%"
                  (<:b () (<:span (:style "color: red") (<:strong () name)))
-                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))))
+                 (format nil "~{ <i>~A</i>~}" ll))))
+
+           (when ll
+             (<:div ()
+                    (<:h3 () "Arguments and Values:")
+                    (<:ul ()
+                          (loop for arg in ll
+                                unless (member arg '(&optional &rest &key &allow-other-keys &whole &environment &aux))
+                                collect
+                                (<:htmlize
+                                 (<:li (<:i (<:code (if (consp arg) (first arg) arg))) "---" (if (consp arg) (second arg) arg))
+                                 :syntax :compact)))))
 
            (<:h2 "Description:")
            (paragraphize-doc-string doc-string))
@@ -672,7 +686,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
-  (let* ((name (string-downcase (doc-bit-name doc-bit)))
+  (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
          (value (constant-doc-bit-initial-value doc-bit))
@@ -695,12 +709,17 @@ Each FRAMESET and FRAME is contained in a separate file.
            (string #\Newline)
 
            (<:head
-            (<:title kind name)
+            (<:title kind (string-downcase name))
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
            (<:body
-            (<:h1 (<:i kind) (<:strong name))
+            (<:h1 (<:i kind) (<:strong (string-downcase name)))
+
+            (<:h2 "Package:")
+            (<:p (package-name (symbol-package name)))
+
             (<:h2 "Value:")
             (<:p (<:code value-presented))
+
             (<:h2 "Description:")
             (paragraphize-doc-string doc-string)))
           )
@@ -714,7 +733,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
-  (let* ((name (string-downcase (doc-bit-name doc-bit)))
+  (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
          (include (struct-doc-bit-include doc-bit))
@@ -728,12 +747,17 @@ Each FRAMESET and FRAME is contained in a separate file.
            (string #\Newline)
 
            (<:head
-            (<:title kind name)
+            (<:title kind (string-downcase name))
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
            (<:body
-            (<:h1 (<:i kind) (<:strong name))
+            (<:h1 (<:i kind) (<:strong (string-downcase name)))
+
+            (<:h2 "Package: ")
+            (<:p (<:code (package-name (symbol-package name))))
+
             (<:h2 "Class Precedence List:")
-            (<:p (format nil "~A,~@[ ~A,~]..., T" name include))
+            (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T" name include))
+
             (<:h2 "Slots:")
             (<:p (<:dl
                   (loop for s in slots
@@ -753,7 +777,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                            (<:dt () sn)
                            (<:dd ()
                                  (format nil "with initial value ~S of type ~A~@[; the slot is read-only~]."
-                                        sv type read-only)))))
+                                         sv type read-only)))))
                   ))
             (<:h2 "Description:")
             (paragraphize-doc-string doc-string)))
@@ -769,7 +793,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   ;; documentation-title
                                   &allow-other-keys
                                   )
-  (let* ((name (string-downcase (doc-bit-name doc-bit)))
+  (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
          (superclasses (class-doc-bit-superclasses doc-bit))
@@ -783,13 +807,16 @@ Each FRAMESET and FRAME is contained in a separate file.
            (string #\Newline)
 
            (<:head
-            (<:title kind name)
+            (<:title kind (string-downcase name))
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
            (<:body
-            (<:h1 (<:i kind) (<:strong name))
+            (<:h1 (<:i kind) (<:strong (string-downcase name)))
             
+            (<:h2 "Package: ")
+            (<:p (<:code (package-name (symbol-package name))))
+
             (<:h2 "Class Precedence List:")
-            (<:p (format nil "~A,~@[~{ ~A~^,~}~]..., T" name superclasses))
+            (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
             
             (when slots
               (<:htmlize
