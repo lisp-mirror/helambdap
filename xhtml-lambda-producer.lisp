@@ -540,6 +540,22 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;---------------------------------------------------------------------------
 ;;; Doc bits HTML production.
 
+
+(defconstant +lambda-list-kwds+
+  '(&optional &rest &key &allow-other-keys &whole &environment &aux))
+
+
+(defun arg-name (arg)
+  (if (consp arg)
+      (let ((a1 (first arg)))
+        ;; Is it a KWD spec?
+        (if (consp a1)
+            (first a1) ; The "visible" bit.
+            a1
+            ))
+      arg))
+
+
 (defun paragraphize-doc-string (s)
   (loop for par in (split-at-tex-paragraphs s)
         when (string/= "" par)
@@ -665,13 +681,15 @@ Each FRAMESET and FRAME is contained in a separate file.
            (when ll
              (<:div ()
                     (<:h3 () "Arguments and Values:")
-                    (<:ul ()
-                          (loop for arg in ll
-                                unless (member arg '(&optional &rest &key &allow-other-keys &whole &environment &aux))
-                                collect
-                                (<:htmlize
-                                 (<:li (<:i (<:code (if (consp arg) (first arg) arg))) "---" (if (consp arg) (second arg) arg))
-                                 :syntax :compact)))))
+                    (loop for arg in ll
+                          unless (member arg +lambda-list-kwds+ :test #'eq)
+                          collect
+                          (<:htmlize
+                           (<:p (<:i (<:code (arg-name arg)))
+                                 "---"
+                                 "a T." ; To be FIXED.
+                                 )
+                           :syntax :compact))))
 
            (<:h2 "Description:")
            (paragraphize-doc-string doc-string))
@@ -990,6 +1008,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (kind (doc-bit-kind doc-bit))
            (doc-string (doc-bit-doc-string doc-bit))
            (f-values (function-doc-bit-values doc-bit))
+           (ll (parameterized-doc-bit-lambda-list doc-bit))
            )
       (declare (ignore kind))
       (<:with-html-syntax (out :print-pretty t)
@@ -1009,14 +1028,19 @@ Each FRAMESET and FRAME is contained in a separate file.
              (<:p
               (<:pre (format nil "~&    ~A~A~%"
                              (<:b () (<:span (:style "color: red") (<:strong () name)))
-                             (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))))
+                             (format nil "~{ <i>~A</i>~}" ll))))
 
              (<:h3 "Arguments and Values:")
-             (loop for arg in (parameterized-doc-bit-lambda-list doc-bit)
-                   unless (member arg '(&optional &rest &key &allow-other-keys &whole &environment &aux))
+             (loop for arg in ll
+                   unless (member arg +lambda-list-kwds+ :test #'eq)
                    collect
                    (<:htmlize
-                    (<:p (<:i (<:code (if (consp arg) (first arg) arg))) "---" (if (consp arg) (second arg) arg))
+                    (<:p (<:i (<:code (arg-name arg)))
+                         "---"
+                         (if (consp arg)
+                             (format nil "~A." (second arg))
+                             "T.")
+                         )
                     :syntax :compact))
 
              (if f-values
@@ -1353,7 +1377,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 
              (<:body
               ((<:div :class "helambdap_navmap")
-               ;; (<:h4 "Systems and Packages")
+               ((<:div :style "position: fixed") (<:h3 "Systems and Packages"))
 
 
                (<:p (<:strong ((<:script :type "text/javascript")
@@ -1535,6 +1559,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   }")))
 
                (<:body
+                ((<:div :style "position: fixed") (<:h3 "Dictionary"))
                 ((<:div :class "helambdap_navmap")
                 ;; systems
                 ;; packages
