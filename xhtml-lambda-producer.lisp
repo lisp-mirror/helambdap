@@ -1377,10 +1377,10 @@ Each FRAMESET and FRAME is contained in a separate file.
 
              (<:body
               ((<:div :class "helambdap_navmap")
-               ((<:div :style "position: fixed") (<:h3 "Systems and Packages"))
+               ((<:div :style "position: fixed; float: left;") (<:h3 "Systems and Packages"))
 
 
-               (<:p (<:strong ((<:script :type "text/javascript")
+               ((<:p :style "clear: both;") (<:strong ((<:script :type "text/javascript")
                                (format nil
                                        "document.write('<i>' ~
                                                       + document.getElementByName('~A').src ~
@@ -1559,31 +1559,42 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   }")))
 
                (<:body
-                ((<:div :style "position: fixed") (<:h3 "Dictionary"))
-                ((<:div :class "helambdap_navmap")
-                ;; systems
-                ;; packages
-                (build-list "Constants" constants)
-                (build-list "Parameters" parameters)
-                (build-list "Variables" variables)
-                (build-list "Types" types)
-                (build-list "Classes" classes)
-                (build-list "Structures" structs)
-                (build-list "Conditions" conditions)
-                (build-list "Generic Functions" generic-functions)
-                ;; (build-list "Methods" methods)
-                (build-list "Functions" functions)
-                (build-list "Macros" macros)
-                (build-list "Method Combinations" method-combinations)
-                (build-list "Setf expanders" setf-expanders)
-                (build-list "Modify Macros" modify-macros)
-                ;; others
-                ))))
+                ((<:div :style "position: fixed; float: left; margin: 0pt;")
+                 (<:h3 "Dictionary"))
+                (let ((iframe-srcdoc
+                       (with-output-to-string (iframe-srcdoc)
+                         (<:with-html-syntax (iframe-srcdoc :print-pretty t)
+                             (<:htmlize
+                              ((<:div :class "helambdap_navmap")
+                               ;; systems
+                               ;; packages
+                               (build-list "Constants" constants)
+                               (build-list "Parameters" parameters)
+                               (build-list "Variables" variables)
+                               (build-list "Types" types)
+                               (build-list "Classes" classes)
+                               (build-list "Structures" structs)
+                               (build-list "Conditions" conditions)
+                               (build-list "Generic Functions" generic-functions)
+                               ;; (build-list "Methods" methods)
+                               (build-list "Functions" functions)
+                               (build-list "Macros" macros)
+                               (build-list "Method Combinations" method-combinations)
+                               (build-list "Setf expanders" setf-expanders)
+                               (build-list "Modify Macros" modify-macros)
+                               ;; others
+                               )
+                              ))))
+                      )
+                  (<:htmlize
+                   ((<:iframe :seamless 1
+                              :srcdoc (sanitize-quotes-for-html iframe-srcdoc)
+                              )
+                    (<:comment "iframe placeholder"))))
+                  )))
              :syntax :compact
              )
             )))))
-
-
 
 
 (defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
