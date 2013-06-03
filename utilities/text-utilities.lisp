@@ -60,6 +60,47 @@
           do (cond ((char= #\< c) (write-string "&lt;" r))
                    ((char= #\> c) (write-string "&gt;" r))
                    (t (write-char c r))))))
+
+
+(defun sanitize-quotes-for-html (s &aux (sl (length s)))
+  (declare (type string s)
+           (type fixnum s) ; Yeah!  This is wrong... la la la.
+           )
+  (with-output-to-string (r)
+    (loop with skip = nil
+          for i from 0 below sl
+          for next = (1+ i)
+          for c = (char s i)
+          ;; do (format t "~D ~C ~S~%" i c skip)
+          if skip
+          do (setf skip nil)
+          else
+          do (if (< next sl)
+                 (cond ((and (char= c #\\)
+                             (char= (char s next) #\"))
+                        (setf skip t)
+                        (write-char #\\ r)
+                        (write-char #\" r))
+                       ((and (char= c #\\)
+                             (char= (char s next) #\\))
+                        (setf skip t)
+                        (write-char #\\ r)
+                        (write-char #\\ r))
+                       ((char= c #\")
+                        (write-char #\\ r)
+                        (write-char #\" r))
+                       (t
+                        ; (format t ">> ~C~%" c)
+                        (write-char c r))
+                       )
+                 (cond ((char= c #\")
+                        (write-char #\\ r)
+                        (write-char #\" r))
+                       (t
+                        ;; (format t ">> ~C~%" c)
+                        (write-char c r)))
+                 )
+          )))
         
 
 ;;;; end of file -- text-utilities.lisp --
