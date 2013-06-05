@@ -8,7 +8,7 @@
 (in-package "HELAMBDAP")
 
 
-(defgeneric collect-documentation (where-from))
+(defgeneric collect-documentation (where-from &key &allow-other-keys))
 
 
 (defparameter *source-extensions*
@@ -25,6 +25,10 @@
 ;;; (defparameter *doc-bits-db-file* "doc.hlam") ; defined elsewhere.
 
 
+(defparameter *exclude-directories*
+  (list #P".git/" #P"CVS/" #P"svn/"))
+
+
 ;;;;===========================================================================
 ;;;; Collection.
 ;;;; Essentially a directory traversal.  DFS with 'nodes' being
@@ -33,9 +37,14 @@
 ;;;; CL-FAD:WALK-DIRECTORY does not do a proper DFS with links on some
 ;;;; FS; so I roll my own.
 
-(defmethod collect-documentation ((p pathname))
+(defmethod collect-documentation ((p pathname)
+                                  &key
+                                  (exclude *exclude-directories*)
+                                  &allow-other-keys
+                                  )
   (let ((color-table (make-hash-table :test #'equal))
         (doc-bits ())
+        (exclude-names (mapcar #'directory-name exclude))
         )
     (labels ((is-grey (ntp) (eq :grey (gethash ntp color-table)))
 
@@ -56,11 +65,15 @@
                    (grey ntp)
                    (cond ((cl-fad:directory-pathname-p p)
                           (format t "[D]~%")
-                          (dolist (f (directory-source-files p))
-                            (dfs f))
-                          (dolist (sd (subdirectories p))
-                            (dfs sd))
-                          )
+                          (unless (member (directory-name p)
+                                          exclude-names
+                                          :test #'string-equal)
+
+                            (dolist (f (directory-source-files p))
+                              (dfs f))
+                            (dolist (sd (subdirectories p))
+                              (dfs sd))
+                            ))
                          (t
                           (format t "[F]~%" p)
                           (setf doc-bits
@@ -74,7 +87,8 @@
       doc-bits)))
 
 
-(defmethod collect-documentation :around ((where-from t))
+(defmethod collect-documentation :around ((where-from t)
+                                          &key &allow-other-keys)
   (let ((doc-bits (call-next-method))
         (gfs-table (make-hash-table :test #'eq))
         (gfs ())
@@ -90,8 +104,9 @@
     (dolist (gfdb gfs)
       (setf (gethash (doc-bit-name gfdb) gfs-table) gfdb))
     (dolist (m methods)
-      (pushnew m (generic-function-doc-bit-methods
-                  (gethash (doc-bit-name m) gfs-table))))
+      (when (gethash (doc-bit-name m) gfs-table)
+        (pushnew m (generic-function-doc-bit-methods
+                    (gethash (doc-bit-name m) gfs-table)))))
     doc-bits))
   
 
@@ -172,6 +187,30 @@
 
 ;;;;===========================================================================
 ;;;; Utilities.
+
+(defun directory-name (p)
+  (declare (type (or string pathname) p))
+  (let ((p-dir (pathname-directory (pathname p))))
+    (cond ((null p-dir) ".")
+          ((eq :unspecific p-dir) ".")
+          ((eq :wild p-dir) "*")
+          ((stringp p-dir) p-dir)
+          ((symbolp p-dir) (string p-dir))
+          ((listp p-dir)
+           (let* ((p-dir-l (list-length p-dir)))
+             ;; Note that the result may be :wild, :wild-inferiors,
+             ;; :up, :back, a symbol or a string.
+             ;; It suffices for the purpose.
+             (ecase (first p-dir)
+               (:absolute (if (= p-dir-l 1)
+                              "/"
+                              (first (last p-dir))))
+               (:relative (if (= p-dir-l 1)
+                              "."
+                              (first (last p-dir))))))
+           ))
+    ))
+
 
 (defun subdirectories (p)
   (declare (type (or string pathname) p))
