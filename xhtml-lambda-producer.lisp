@@ -290,90 +290,88 @@ Each FRAMESET and FRAME is contained in a separate file.
                              :direction :output
                              :if-does-not-exist :create
                              :if-exists :supersede)
-      (<:with-html-syntax (fs-file :print-pretty t)
-          (<:htmlize
-           (<:document 
-            (<:comment fs-name)
-            (string #\Newline)
+      (<:with-html-syntax-output (fs-file :print-pretty t :syntax :compact)
+          (<:document 
+           (<:comment fs-name)
+           (string #\Newline)
             
-            +doctype-frameset-control-string+
-            (string #\Newline)
-            (<:html
+           +doctype-frameset-control-string+
+           (string #\Newline)
+           (<:html
 
-             (<:head
-              (<:title fs-name)
-              (<:link :rel "stylesheet" :href (frameset-style structure)))
+            (<:head
+             (<:title fs-name)
+             (<:link :rel "stylesheet" :href (frameset-style structure)))
              
-             ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
-              ;; HEADER ROW.
-              (<:comment "HEADER ROW")
-              (produce-header-frame 'html
-                                    structure
-                                    fs-file
-                                    where
-                                    doc-bits
-                                    documentation-title)
+            ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
+             ;; HEADER ROW.
+             (<:comment "HEADER ROW")
+             (produce-header-frame 'html
+                                   structure
+                                   fs-file
+                                   where
+                                   doc-bits
+                                   documentation-title)
 
-              ;; NAVIGATION/CONTENT/SIDEBAR ROW.
-              (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
-              (
+             ;; NAVIGATION/CONTENT/SIDEBAR ROW.
+             (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
+             (
                ;; (<:frameset :cols "*,*" :border 0)
                ;; (<:frameset :cols "150px,*" :border 0)
                ;; (<:frameset :cols "20%,80%" #| :border 0 |#)
-               (<:frameset :cols "25%,75%" #| :border 0 |#)
+              (<:frameset :cols "25%,75%" #| :border 0 |#)
 
-               (<:comment "NAVIGATION FRAME")
-               (produce-navigation-frame 'html
-                                         structure
-                                         fs-file
-                                         where
-                                         doc-bits
-                                         documentation-title)
+              (<:comment "NAVIGATION FRAME")
+              (produce-navigation-frame 'html
+                                        structure
+                                        fs-file
+                                        where
+                                        doc-bits
+                                        documentation-title)
                          
-               (<:comment "CONTENT " fs-content)
-               (if fs-content
-                   (progn
-                     (produce-documentation format
-                                            fs-content
-                                            fs-file
-                                            doc-bits)
-                     (produce-frame format fs-content fs-file)
-                     )
-                   #|
+              (<:comment "CONTENT " fs-content)
+              (if fs-content
+                  (progn
+                    (produce-documentation format
+                                           fs-content
+                                           fs-file
+                                           doc-bits)
+                    (produce-frame format fs-content fs-file)
+                    )
+                  #|
                    (<:frame (:src (base-name
                                    (make-pathname
                                     :type *default-html-extension*
                                     :name (element-name structure)))))
                    |#
-                   (<:frame (:name (format nil "~A_frame" (element-name structure))
-                             :frameborder 0))
-                   )
-               )
+                  (<:frame (:name (format nil "~A_frame" (element-name structure))
+                            :frameborder 0))
+                  )
+              )
 
-              ;; FOOTER ROW.
-              (<:comment () "FOOTER ROW")
-              (produce-footer-frame 'html
-                                    structure
-                                    fs-file
-                                    where
-                                    doc-bits
-                                    documentation-title)
-              ;; (<:frame (:src (base-name fs-footer)))
-              )
+             ;; FOOTER ROW.
+             (<:comment () "FOOTER ROW")
+             (produce-footer-frame 'html
+                                   structure
+                                   fs-file
+                                   where
+                                   doc-bits
+                                   documentation-title)
+             ;; (<:frame (:src (base-name fs-footer)))
+             )
               
-              (<:noframes
-               (<:h2 "Frame Alert")
-               (<:p
-                "This document is designed to be viewed using the frames feature."
-                "If you see this message, you are using a non-frame-capable web client."
-                <:br
-                "Link to "
-                ((<:a :href "overview-summary.html") "Non-frame version.")))
-              )
-            (<:comment 
-             (format nil "end of file : ~A.htm" fs-name))
+            (<:noframes
+             (<:h2 "Frame Alert")
+             (<:p
+              "This document is designed to be viewed using the frames feature."
+              "If you see this message, you are using a non-frame-capable web client."
+              <:br
+              "Link to "
+              ((<:a :href "overview-summary.html") "Non-frame version.")))
             )
-           :syntax :compact))
+           (<:comment 
+            (format nil "end of file : ~A.htm" fs-name))
+           ))
       )))
 
 
@@ -406,7 +404,6 @@ Each FRAMESET and FRAME is contained in a separate file.
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
-
 
 
 (defmethod produce-header-frame ((format (eql 'html))
@@ -512,6 +509,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable documentation-title))
 
+  (produce-file-set-placeholder structure where)
+
   ;; Produce the documentation for the doc-bits.
   (dolist (doc-bit doc-bits)
     (let ((doc-bit-pathname
@@ -529,13 +528,50 @@ Each FRAMESET and FRAME is contained in a separate file.
                                doc-bit-stream
                                doc-bits))))
                            
-
-  #|(<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
+  #|
+  (<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
             :name (concatenate 'string (file-set-name structure) "_frame")
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
-           )|#)
+           )|#
+  )
 
+
+(defun produce-file-set-placeholder (file-set where)
+  (declare (type file-set file-set)
+           (type stream where)
+           )
+  (let ((fsn (file-set-name file-set))
+        (file-set-pathname
+         (make-pathname :name (file-set-name file-set)
+                        :type *default-html-extension*
+                        :defaults (pathname where)))
+        )
+    (with-open-file (fsfs file-set-pathname
+                          :direction :output
+                          :if-does-not-exist :create
+                          :if-exists :supersede)
+      (<:with-html-syntax-output (fsfs :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (file-set-name file-set))
+           (<:html
+
+            +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+
+            (<:head
+             (<:title fsn)
+             (<:link :rel "stylesheet"
+                     :href (namestring *helambdap-css-filename-up*)))
+            
+            (<:body
+             (<:h1 "Dictionary Entries")
+             (<:p "Click on the menu on the side to choose what information to display.")
+             )
+            )
+           (<:comment "end of file : " (file-set-name file-set)))
+          ))
+    ))
 
 ;;;---------------------------------------------------------------------------
 ;;; Doc bits HTML production.
@@ -564,19 +600,32 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 (defun dump-doc-bit-html (n str-tag doc-string out)
   (let ((name (string-downcase n)))
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:head
-           (<:title (format nil "~A ~A" str-tag name))
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
-           (<:h2 "Package: ")
-           (<:p (package-name (symbol-package n)))
-           (<:h2 "Description:") (paragraphize-doc-string doc-string))
-          )
-         :syntax :compact))))
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title (format nil "~A ~A" str-tag name))
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+         (<:body
+          (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
+          (<:h2 "Package: ")
+          (<:p (package-name (symbol-package n)))
+          (<:h2 "Description:") (paragraphize-doc-string doc-string))
+         ))))
+
+
+
+(defgeneric render-lambda-list (lambda-list-type lambda-list))
+
+(defmethod render-lambda-list ((llt (eql :ordinary)) (ll list))
+  (loop for lle in ll
+        if (member lle +lambda-list-kwds+ :test #'eq)
+        collect (<:span (:style "color: blue") (string lle))
+        else
+        collect (<:i () lle))
+  )
+
+
+(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -604,19 +653,17 @@ Each FRAMESET and FRAME is contained in a separate file.
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:head
-           (<:title "Package " name)
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (<:h1 (<:i "Package ") (<:strong name))
-           (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
-           (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
-           (<:h2 "Description:") (paragraphize-doc-string doc-string))
-          )
-         :syntax :compact))))
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title "Package " name)
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+         (<:body
+          (<:h1 (<:i "Package ") (<:strong name))
+          (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
+          (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
+          (<:h2 "Description:") (paragraphize-doc-string doc-string))
+         ))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -629,20 +676,34 @@ Each FRAMESET and FRAME is contained in a separate file.
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:head
-           (<:title "System " name)
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (<:h1 (<:i "System ") (<:strong name))
-           (<:h2 "Depends on:")
-           (<:p (mapcar (lambda (d) (<:i () d))
-                        (system-doc-bit-depends-on doc-bit)))
-           (<:h2 "Description:") (paragraphize-doc-string doc-string))
-          )
-         :syntax :compact))))
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title "System " name)
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+         (<:body
+          (<:h1 (<:i "System ") (<:strong name))
+          (<:h2 "Depends on:")
+          (<:p (mapcar (lambda (d) (<:i () d))
+                       (system-doc-bit-depends-on doc-bit)))
+          (<:h2 "Description:") (paragraphize-doc-string doc-string))
+         ))))
+
+
+(defmethod render-syntax-section
+           ((format (eql 'html))
+            (doc-bit parameterized-doc-bit)
+            &optional
+            (ll (parameterized-doc-bit-lambda-list doc-bit))
+            (values ()))
+  (let ((db-name (doc-bit-name doc-bit)))
+    (<:htmlise (:syntax :compact)
+        (<:div
+         (<:h2 "Syntax:")
+         ((<:p :class "syntax_section")
+          (<:b ((<:span :style "color: red") (<:strong () (string-downcase db-name))))
+          (render-lambda-list :ordinary ll)))
+        )))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -658,43 +719,50 @@ Each FRAMESET and FRAME is contained in a separate file.
          (doc-string (doc-bit-doc-string doc-bit))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:head
-           (<:title documentation-title ": " kind name)
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (<:h1 (<:i kind) (<:strong name))
+    (flet ((render-lambda-list (ll)
+             (loop for lle in ll
+                   if (member lle +lambda-list-kwds+ :test #'eq)
+                   collect (<:span (:style "color: blue") (string lle))
+                   else
+                   collect (<:i () lle))
+             )
+           )
+      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+          (<:document
+           (<:head
+            (<:title documentation-title ": " kind name)
+            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
-           (<:h2 "Package: ")
-           (<:p (<:code (package-name (symbol-package db-name))))
+           (<:body
+            (<:h1 (<:i kind) (<:strong name))
 
-           (<:h2 "Syntax:")
-           (<:p
-            (<:pre
-             (format nil
-                     "~&    ~A ~A~%"
-                 (<:b () (<:span (:style "color: red") (<:strong () name)))
-                 (format nil "~{ <i>~A</i>~}" ll))))
+            (<:h2 "Package: ")
+            (<:p (<:code (package-name (symbol-package db-name))))
 
-           (when ll
-             (<:div ()
-                    (<:h3 () "Arguments and Values:")
-                    (loop for arg in ll
-                          unless (member arg +lambda-list-kwds+ :test #'eq)
-                          collect
-                          (<:htmlize
-                           (<:p (<:i (<:code (arg-name arg)))
+            (<:h2 "Syntax:")
+            (<:p
+             (<:pre
+              (format nil
+                      "~&    ~A ~A~%"
+                      (<:b () (<:span (:style "color: red") (<:strong () name)))
+                      (format nil "~{ ~A~}" (render-lambda-list ll)))))
+
+            (when ll
+              (<:div ()
+                     (<:h3 () "Arguments and Values:")
+                     (loop for arg in ll
+                           unless (member arg +lambda-list-kwds+ :test #'eq)
+                           collect
+                           (<:htmlize
+                            (<:p (<:i (<:code (arg-name arg)))
                                  "---"
                                  "a T." ; To be FIXED.
                                  )
-                           :syntax :compact))))
+                            :syntax :compact))))
 
-           (<:h2 "Description:")
-           (paragraphize-doc-string doc-string))
-          )
-         :syntax :compact))))
+            (<:h2 "Description:")
+            (paragraphize-doc-string doc-string))
+           )))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -719,29 +787,27 @@ Each FRAMESET and FRAME is contained in a separate file.
 
                               value))
          )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:html
-           +doctype-xhtml1-string-control-string+
-           (string #\Newline)
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:html
+          +doctype-xhtml1-string-control-string+
+          (string #\Newline)
 
-           (<:head
-            (<:title kind (string-downcase name))
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-           (<:body
-            (<:h1 (<:i kind) (<:strong (string-downcase name)))
+          (<:head
+           (<:title kind (string-downcase name))
+           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+          (<:body
+           (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
-            (<:h2 "Package:")
-            (<:p (package-name (symbol-package name)))
+           (<:h2 "Package:")
+           (<:p (package-name (symbol-package name)))
 
-            (<:h2 "Value:")
-            (<:p (<:code value-presented))
+           (<:h2 "Value:")
+           (<:p (<:code value-presented))
 
-            (<:h2 "Description:")
-            (paragraphize-doc-string doc-string)))
-          )
-         :syntax :compact))))
+           (<:h2 "Description:")
+           (paragraphize-doc-string doc-string)))
+         ))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -757,50 +823,48 @@ Each FRAMESET and FRAME is contained in a separate file.
          (include (struct-doc-bit-include doc-bit))
          (slots (struct-doc-bit-slots doc-bit))
          )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:html
-           +doctype-xhtml1-string-control-string+
-           (string #\Newline)
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:html
+          +doctype-xhtml1-string-control-string+
+          (string #\Newline)
 
-           (<:head
-            (<:title kind (string-downcase name))
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-           (<:body
-            (<:h1 (<:i kind) (<:strong (string-downcase name)))
+          (<:head
+           (<:title kind (string-downcase name))
+           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+          (<:body
+           (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
-            (<:h2 "Package: ")
-            (<:p (<:code (package-name (symbol-package name))))
+           (<:h2 "Package: ")
+           (<:p (<:code (package-name (symbol-package name))))
 
-            (<:h2 "Class Precedence List:")
-            (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T" name include))
+           (<:h2 "Class Precedence List:")
+           (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T" name include))
 
-            (<:h2 "Slots:")
-            (<:p (<:dl
-                  (loop for s in slots
-                        if (symbolp s)
-                        collect
-                        (<:dt () s)
-                        and collect
-                        (<:dd ()
-                              (format nil
-                                      "with initial value ~A of type ~A~@[; the slot is read-only~]."
-                                      nil T nil))
-                        else
-                        nconc
-                        (destructuring-bind (sn &optional sv &key read-only (type t))
-                            s
-                          (list
-                           (<:dt () sn)
-                           (<:dd ()
-                                 (format nil "with initial value ~S of type ~A~@[; the slot is read-only~]."
-                                         sv type read-only)))))
-                  ))
-            (<:h2 "Description:")
-            (paragraphize-doc-string doc-string)))
-          )
-         :syntax :compact))))
+           (<:h2 "Slots:")
+           (<:p (<:dl
+                 (loop for s in slots
+                       if (symbolp s)
+                       collect
+                       (<:dt () s)
+                       and collect
+                       (<:dd ()
+                             (format nil
+                                     "with initial value ~A of type ~A~@[; the slot is read-only~]."
+                                     nil T nil))
+                       else
+                       nconc
+                       (destructuring-bind (sn &optional sv &key read-only (type t))
+                           s
+                         (list
+                          (<:dt () sn)
+                          (<:dd ()
+                                (format nil "with initial value ~S of type ~A~@[; the slot is read-only~]."
+                                        sv type read-only)))))
+                 ))
+           (<:h2 "Description:")
+           (paragraphize-doc-string doc-string)))
+         ))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -817,61 +881,58 @@ Each FRAMESET and FRAME is contained in a separate file.
          (superclasses (class-doc-bit-superclasses doc-bit))
          (slots (class-doc-bit-slots doc-bit))
          )
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
-          (<:html
-           +doctype-xhtml1-string-control-string+
-           (string #\Newline)
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:html
+          +doctype-xhtml1-string-control-string+
+          (string #\Newline)
 
-           (<:head
-            (<:title kind (string-downcase name))
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-           (<:body
-            (<:h1 (<:i kind) (<:strong (string-downcase name)))
+          (<:head
+           (<:title kind (string-downcase name))
+           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+          (<:body
+           (<:h1 (<:i kind) (<:strong (string-downcase name)))
             
-            (<:h2 "Package: ")
-            (<:p (<:code (package-name (symbol-package name))))
+           (<:h2 "Package: ")
+           (<:p (<:code (package-name (symbol-package name))))
 
-            (<:h2 "Class Precedence List:")
-            (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
+           (<:h2 "Class Precedence List:")
+           (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
             
-            (when slots
-              (<:htmlize
-               (<:div
-                (<:h2 "Slots:")
-                (<:p (<:dl
-                      (loop for s in slots
-                               if (symbolp s)
-                               collect (<:dt () s)
-                               else
-                               nconc
-                               (destructuring-bind (sn &key
-                                                       type
-                                                       documentation
-                                                       allocation
-                                                       initarg
-                                                       initform
-                                                       &allow-other-keys)
-                                   s
-                                 `(
-                                   ,(<:dt () sn)
-                                   ,@(when type (list (<:dd () "Type: " type)))
-                                   ,@(when allocation (list (<:dd () "Allocation: " allocation)))
-                                   ,@(when initarg (list (<:dd () "Initarg: " initarg)))
-                                   ,@(when initform (list (<:dd () "Initform: " initform)))
-                                   ,@(when documentation (list (<:dd () documentation)))
-                                   )
-                                 ))
-                      )))
-               :syntax :compact))
+           (when slots
+             (<:htmlize
+              (<:div
+               (<:h2 "Slots:")
+               (<:p (<:dl
+                     (loop for s in slots
+                           if (symbolp s)
+                           collect (<:dt () s)
+                           else
+                           nconc
+                           (destructuring-bind (sn &key
+                                                   type
+                                                   documentation
+                                                   allocation
+                                                   initarg
+                                                   initform
+                                                   &allow-other-keys)
+                               s
+                             `(
+                               ,(<:dt () sn)
+                               ,@(when type (list (<:dd () "Type: " type)))
+                               ,@(when allocation (list (<:dd () "Allocation: " allocation)))
+                               ,@(when initarg (list (<:dd () "Initarg: " initarg)))
+                               ,@(when initform (list (<:dd () "Initform: " initform)))
+                               ,@(when documentation (list (<:dd () documentation)))
+                               )
+                             ))
+                     )))
+              :syntax :compact))
             
-            (<:h2 "Description:")
-            (paragraphize-doc-string doc-string)))
-          )
-         :syntax :compact))))
+           (<:h2 "Description:")
+           (paragraphize-doc-string doc-string)))
+         ))))
        
-
 
 (defmethod produce-documentation ((format (eql 'html))
                                   structure
@@ -886,20 +947,18 @@ Each FRAMESET and FRAME is contained in a separate file.
         (doc-string (doc-bit-doc-string doc-bit))
         )
 
-    (<:with-html-syntax (out :print-pretty t)
-        (<:htmlize
-         (<:document
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
 
-          (<:head
-           (<:title (format nil "DOC FOR ~A" (string-downcase name)))
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+         (<:head
+          (<:title (format nil "DOC FOR ~A" (string-downcase name)))
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
-          (<:body
-           (<:h1 (<:i "Function") (<:strong name))
-           (<:h2 "Package:")
-           (<:h2 "Description:" (<:br) doc-string)
-           ))
-         :syntax :compact))
+         (<:body
+          (<:h1 (<:i "Function") (<:strong name))
+          (<:h2 "Package:")
+          (<:h2 "Description:" (<:br) doc-string)
+          )))
     t))
 
 
@@ -939,36 +998,34 @@ Each FRAMESET and FRAME is contained in a separate file.
            (doc-string (doc-bit-doc-string doc-bit))
            )
       (declare (ignore kind))
-      (<:with-html-syntax (out :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:head
-             (<:title documentation-title ": " "Generic Function" name)
-             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-            (<:body
-             (<:h1 (<:i "Generic Function") (<:strong name))
-             (<:h2 "Package:")
-             (<:p (package-name (symbol-package gfname)))
-             (<:h2 "Syntax:")
-             (<:p (<:strong name)
-                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
-             (<:h2 "Description:")
-             (paragraphize-doc-string doc-string)
+      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+          (<:document
+           (<:head
+            (<:title documentation-title ": " "Generic Function" name)
+            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+           (<:body
+            (<:h1 (<:i "Generic Function") (<:strong name))
+            (<:h2 "Package:")
+            (<:p (package-name (symbol-package gfname)))
+            (<:h2 "Syntax:")
+            (<:p (<:strong name)
+                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+            (<:h2 "Description:")
+            (paragraphize-doc-string doc-string)
            
-             (<:h3 "Known Methods:")
-             (<:ul
-              (loop for (specializers other) in (method-signatures (symbol-function gfname))
-                    collect (<:htmlize
-                             (<:li
-                              (<:p (<:strong name)
-                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                   (format nil "~{ <i>~A</i>~}" other)
-                                   )
-                              )
-                             :syntax :compact)
-                    ))
-             ))
-           :syntax :compact)))))
+            (<:h3 "Known Methods:")
+            (<:ul
+             (loop for (specializers other) in (method-signatures (symbol-function gfname))
+                   collect (<:htmlize
+                            (<:li
+                             (<:p (<:strong name)
+                                  (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                  (format nil "~{ <i>~A</i>~}" other)
+                                  )
+                             )
+                            :syntax :compact)
+                   ))
+            ))))))
 
 #-version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
@@ -1001,6 +1058,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                         (subseq mll 0 regular-arg-pos))
                 (when regular-arg-pos (subseq mll regular-arg-pos)))
                ))
+
+           (render-lambda-list (ll)
+             (loop for lle in ll
+                   if (member lle +lambda-list-kwds+ :test #'eq)
+                   collect (<:span (:style "color: blue") (string lle))
+                   else
+                   collect (<:i () lle))
+             )
            )
 
     (let* ((gfname (doc-bit-name doc-bit))
@@ -1011,76 +1076,75 @@ Each FRAMESET and FRAME is contained in a separate file.
            (ll (parameterized-doc-bit-lambda-list doc-bit))
            )
       (declare (ignore kind))
-      (<:with-html-syntax (out :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:head
-             (<:title documentation-title ": " "Generic Function" name)
-             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-            (<:body
+      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+          (<:document
+           (<:head
+            (<:title documentation-title ": " "Generic Function" name)
+            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+           (<:body
 
-             (<:h1 (<:i "Generic Function") (<:strong name))
+            (<:h1 (<:i "Generic Function") (<:strong name))
 
-             (<:h2 "Package:")
-             (<:p (package-name (symbol-package gfname)))
+            (<:h2 "Package:")
+            (<:p (package-name (symbol-package gfname)))
 
-             (<:h2 "Syntax:")
-             (<:p
-              (<:pre (format nil "~&    ~A~A~%"
-                             (<:b () (<:span (:style "color: red") (<:strong () name)))
-                             (format nil "~{ <i>~A</i>~}" ll))))
+            (<:h2 "Syntax:")
+            (<:p
+             (<:pre (format nil "~&    ~A~A~%"
+                            (<:b () (<:span (:style "color: red") (<:strong () name)))
+                            (format nil "~{ ~A~}" (render-lambda-list ll)))))
 
-             (<:h3 "Arguments and Values:")
-             (loop for arg in ll
-                   unless (member arg +lambda-list-kwds+ :test #'eq)
-                   collect
-                   (<:htmlize
-                    (<:p (<:i (<:code (arg-name arg)))
-                         "---"
-                         (if (consp arg)
-                             (format nil "~A." (second arg))
-                             "T.")
-                         )
-                    :syntax :compact))
+            (<:h3 "Arguments and Values:")
+            (loop for arg in ll
+                  unless (member arg +lambda-list-kwds+ :test #'eq)
+                  collect
+                  (<:htmlize
+                   (<:p (<:i (<:code (arg-name arg)))
+                        "---"
+                        (if (consp arg)
+                            (format nil "~A." (second arg))
+                            "T.")
+                        )
+                   :syntax :compact))
 
-             (if f-values
-                 (loop for fv in f-values
-                       for i from 1
-                       collect
-                       (<:htmlize
-                        (<:p (<:i (<:code (format nil "result-~D" i))) "---" " a " (<:i fv) ".")
-                        :syntax :compact))
-                 (<:p () (<:i () (<:code () "result")) "--- a T."))
+            (if f-values
+                (loop for fv in f-values
+                      for i from 1
+                      collect
+                      (<:htmlize
+                       (<:p (<:i (<:code (format nil "result-~D" i))) "---" " a " (<:i fv) ".")
+                       :syntax :compact))
+                (<:p () (<:i () (<:code () "result")) "--- a T."))
 
-             (<:h2 "Description:")
-             (paragraphize-doc-string doc-string)
+            (<:h2 "Description:")
+            (paragraphize-doc-string doc-string)
            
 
-             (let ((known-methods-els
-                    (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                          for (specializers other) = (method-signature mdb)
-                          for mdb-doc = (doc-bit-doc-string mdb)
-                          collect (<:htmlize
-                                   (<:li
-                                    (<:p
-                                     (<:pre (format nil
-                                                    "    ~A~A~A~A"
-                                                    (<:b () (<:strong () name))
-                                                    (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
-                                                    (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                                    (format nil "~{ <i>~A</i>~}" other))))
-                                    (when mdb-doc
-                                      (<:p ()  mdb-doc)))
-                                   :syntax :compact)
-                          ))
-                   )
-               (when known-methods-els
-                 (<:div ()
-                        (<:h3 () "Known Methods:")
-                        (<:ul () known-methods-els)))
+            (let ((known-methods-els
+                   (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                         for (specializers other) = (method-signature mdb)
+                         for mdb-doc = (doc-bit-doc-string mdb)
+                         collect (<:htmlize
+                                  (<:li
+                                   (<:p
+                                    (<:pre (format nil
+                                                   "    ~A~A~A~A"
+                                                   (<:b () (<:strong () name))
+                                                   (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
+                                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                                   (format nil "~{ ~A~}" (render-lambda-list other)))))
+                                   (when mdb-doc
+                                     (<:p ()  mdb-doc)))
+                                  :syntax :compact)
+                         ))
+                  )
+              (when known-methods-els
+                (<:div ()
+                       (<:h3 () "Known Methods:")
+                       (<:ul () known-methods-els)))
               
-               )))
-           :syntax :compact)))))
+              ))
+           )))))
 
 
 ;;;---------------------------------------------------------------------------
@@ -1148,32 +1212,31 @@ Each FRAMESET and FRAME is contained in a separate file.
                           :direction :output
                           :if-exists :supersede
                           :if-does-not-exist :create)
-        (<:with-html-syntax (hs :print-pretty t)
-            (<:htmlize
-             (<:document
-              (<:comment (base-name header-pathname))
-              +doctype-xhtml1-string-control-string+
-              (<:html
-               (<:head
-                (<:title fs-head-title)
-                (<:link :rel "stylesheet" :href (frameset-style fs)))
+        (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
+            (<:document
+             (<:comment (base-name header-pathname))
+             +doctype-xhtml1-string-control-string+
+             (<:html
+              (<:head
+               (<:title fs-head-title)
+               (<:link :rel "stylesheet" :href (frameset-style fs)))
 
-               ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
-                ((<:div :class "header"
-                        :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
-                 (<:strong (or documentation-title fs-body-title))
-                 ((<:div :class "navigation"
-                         :style "right: 2m")
+              ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
+               ((<:div :class "header"
+                       :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
+                (<:strong (or documentation-title fs-body-title))
+                ((<:div :class "navigation"
+                        :style "right: 2m")
 
-                  (when (element-parent fs)
-                    (let ((fss-in-p (framesets-of (element-parent fs))))
-                      (loop for fs-in-p in (rest fss-in-p)
-                            collect " | " into result
-                            collect (produce-navigation-link fs-in-p) into result
-                            finally (return (cons (produce-navigation-link (first fss-in-p))
-                                                  result))
-                            )))
-                  #|
+                 (when (element-parent fs)
+                   (let ((fss-in-p (framesets-of (element-parent fs))))
+                     (loop for fs-in-p in (rest fss-in-p)
+                           collect " | " into result
+                           collect (produce-navigation-link fs-in-p) into result
+                           finally (return (cons (produce-navigation-link (first fss-in-p))
+                                                 result))
+                           )))
+                 #|
                   ((<:a :href "index.htm"
                         :class (select-link-style 0)
                         :target "_parent")
@@ -1189,10 +1252,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                         :target "_parent")
                    "Mailing Lists")
                   |#
-                  )
                  )
-                )))
-             :syntax :compact))
+                )
+               ))))
         ))))
 
 
@@ -1214,25 +1276,23 @@ Each FRAMESET and FRAME is contained in a separate file.
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
-      (<:with-html-syntax (ns :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name nav-pathname))
-            (string #\Newline)
+      (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (base-name nav-pathname))
+           (string #\Newline)
 
-            +doctype-xhtml1-string-control-string+
-            (string #\Newline)
-            (string #\Newline)
+           +doctype-xhtml1-string-control-string+
+           (string #\Newline)
+           (string #\Newline)
 
-            (<:html
-             (<:head
-              (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href (frameset-style fs)))
+           (<:html
+            (<:head
+             (<:title fs-head-title)
+             (<:link :rel "stylesheet" :href (frameset-style fs)))
 
-             (<:body
-              (<:ul))
-             ))
-           :syntax :compact))
+            (<:body
+             (<:ul))
+            )))
       ))
   )
 
@@ -1307,40 +1367,38 @@ Each FRAMESET and FRAME is contained in a separate file.
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
-      (<:with-html-syntax (ns :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name nav-pathname))
-            (string #\Newline)
+      (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (base-name nav-pathname))
+           (string #\Newline)
 
-            +doctype-frameset-control-string+
-            (string #\Newline)
-            (string #\Newline)
-            (<:html
-             (<:head
-              (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href (frameset-style fs)))
+           +doctype-frameset-control-string+
+           (string #\Newline)
+           (string #\Newline)
+           (<:html
+            (<:head
+             (<:title fs-head-title)
+             (<:link :rel "stylesheet" :href (frameset-style fs)))
             
-             ((<:frameset :rows "20%,80%"
-                          #| :frameborder 0 |#
-                          :noresize "noresize")
-              ((<:frame :name (format nil
-                                      "~A_navigation_map"
-                                      fs-name)
-                        :src (base-name nav-map-pathname)
-                        :frameborder 0
-                        ))
-              ((<:frame :name (format nil
-                                      "~A_navigation_lists"
-                                      fs-name)
-                        ;; :src (namestring nav-list-pathname)
-                        :frameborder 0
-                        ))
-              ))
-            (<:comment (format nil "end of file : ~A"
-                               (base-name nav-pathname))) 
-            (string #\newline))
-           :syntax :compact))) ; WITH-OPEN-FILE...
+            ((<:frameset :rows "25%,75%"
+                         #| :frameborder 0 |#
+                         :noresize "noresize")
+             ((<:frame :name (format nil
+                                     "~A_navigation_map"
+                                     fs-name)
+                       :src (base-name nav-map-pathname)
+                       :frameborder 0
+                       ))
+             ((<:frame :name (format nil
+                                     "~A_navigation_lists"
+                                     fs-name)
+                       ;; :src (namestring nav-list-pathname)
+                       :frameborder 0
+                       ))
+             ))
+           (<:comment (format nil "end of file : ~A"
+                              (base-name nav-pathname))) 
+           (string #\newline)))) ; WITH-OPEN-FILE...
 
     (produce-navigation-map fs nav-element nav-map-pathname doc-bits)
     ))
@@ -1354,68 +1412,68 @@ Each FRAMESET and FRAME is contained in a separate file.
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
-      (<:with-html-syntax (nm :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name nm-pathname))
-            (string #\Newline)
-            (string #\Newline)
+      (<:with-html-syntax-output (nm :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (base-name nm-pathname))
+           (string #\Newline)
+           (string #\Newline)
 
-            +doctype-xhtml1-string-control-string+
-            (string #\Newline)
+           +doctype-xhtml1-string-control-string+
+           (string #\Newline)
 
-            (<:html
-             (<:head
-              (<:title "Navigation Map")
-              (<:link :rel "stylesheet"
-                      :href (namestring *helambdap-css-filename-up*)) ; TESTING!
-              (<:style (format nil
-                               ".helambdap_navmap li {~
+           (<:html
+            (<:head
+             (<:title "Navigation Map")
+             (<:link :rel "stylesheet"
+                     :href (namestring *helambdap-css-filename-up*)) ; TESTING!
+             (<:style (format nil
+                              ".helambdap_navmap li {~
                                   display: inline;~
                               }"))
-              )
+             )
 
-             (<:body
-              ((<:div :class "helambdap_navmap")
-               ((<:div :style "position: fixed; float: left;") (<:h3 "Systems and Packages"))
+            (<:body
+             ((<:div :class "helambdap_navmap")
+              (<:h3 "Systems and Packages")
 
 
-               ((<:p :style "clear: both;") (<:strong ((<:script :type "text/javascript")
-                               (format nil
-                                       "document.write('<i>' ~
-                                                      + document.getElementByName('~A').src ~
-                                                      + '</i>' + Date())"
-                                       (format nil "~A_navigation_list" (element-name fs))
-                                       ))))
+              (<:p
+               (<:strong ((<:script :type "text/javascript")
+                          (format nil
+                                  "document.write('<i>' ~
+                                                   + document.getElementByName('~A').src ~
+                                                   + '</i>' + Date())"
+                                  (format nil "~A_navigation_list" (element-name fs))
+                                  ))))
 
-               (let ((syss (remove-if (complement #'system-doc-bit-p)
-                                      doc-bits))
-                     (pkgs (remove-if (complement #'package-doc-bit-p)
-                                      doc-bits))
-                     )
-                 (list
-                  (<:h4 () "Systems")
-                  (<:div ()
-                         (loop for s in (remove-duplicates syss
-                                                           :test
-                                                           (lambda (s1 s2)
-                                                             (and (not (eq (type-of s1) (type-of s2)))
-                                                                  (string-equal (doc-bit-name s1) (doc-bit-name s2)))))
-                               ;; The above is kludgy!  It is meant to
-                               ;; remove duplicate systems assuming
-                               ;; that different kinds of systems are
-                               ;; mutually exclusive.
-                               ;; In practice it will not affect most people.
-                               for s-doc-pathname
-                               = (make-doc-bit-pathname s
-                                                        *default-html-extension*
-                                                        nm-pathname)
+              (let ((syss (remove-if (complement #'system-doc-bit-p)
+                                     doc-bits))
+                    (pkgs (remove-if (complement #'package-doc-bit-p)
+                                     doc-bits))
+                    )
+                (list
+                 (<:h4 () "Systems")
+                 (<:div ()
+                        (loop for s in (remove-duplicates syss
+                                                          :test
+                                                          (lambda (s1 s2)
+                                                            (and (not (eq (type-of s1) (type-of s2)))
+                                                                 (string-equal (doc-bit-name s1) (doc-bit-name s2)))))
+                              ;; The above is kludgy!  It is meant to
+                              ;; remove duplicate systems assuming
+                              ;; that different kinds of systems are
+                              ;; mutually exclusive.
+                              ;; In practice it will not affect most people.
+                              for s-doc-pathname
+                              = (make-doc-bit-pathname s
+                                                       *default-html-extension*
+                                                       nm-pathname)
 
-                               for s-filename = (base-name s-doc-pathname)
-                               collect (<:p ()
-                                            (<:a (:href s-filename
-                                                  :target nav-element-target
-                                                  #|
+                              for s-filename = (base-name s-doc-pathname)
+                              collect (<:p ()
+                                           (<:a (:href s-filename
+                                                 :target nav-element-target
+                                                 #|
                                                   :onclick
                                                   (format nil
                                                           "parent.frames[1].location.href = '~A'"
@@ -1429,172 +1487,172 @@ Each FRAMESET and FRAME is contained in a separate file.
                                                           )
                                                   |#
                                                   |#
-                                                  )
-                                                 (doc-bit-name s))
-                                            ;; (type-of s)
-                                            )))
+                                                 )
+                                                (doc-bit-name s))
+                                           ;; (type-of s)
+                                           )))
 
-                  (<:h4 () "Packages")
-                  (<:div ()
-                         (loop for p in pkgs
+                 (<:h4 () "Packages")
+                 (<:div ()
+                        (loop for p in pkgs
 
-                               for p-doc-pathname =
-                               (make-doc-bit-pathname p
-                                                      *default-html-extension*
-                                                      nm-pathname)
-                               for p-filename = (base-name p-doc-pathname)
+                              for p-doc-pathname =
+                              (make-doc-bit-pathname p
+                                                     *default-html-extension*
+                                                     nm-pathname)
+                              for p-filename = (base-name p-doc-pathname)
 
-                               for p-list-pathname =
-                               (make-pathname :name (format nil "~A-list"
-                                                            (pathname-name p-doc-pathname))
-                                              :type *default-html-extension*
-                                              :defaults nm-pathname)
-                               for p-list-filename = (base-name p-list-pathname)
+                              for p-list-pathname =
+                              (make-pathname :name (format nil "~A-list"
+                                                           (pathname-name p-doc-pathname))
+                                             :type *default-html-extension*
+                                             :defaults nm-pathname)
+                              for p-list-filename = (base-name p-list-pathname)
                                                            
-                               do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
-                               collect (<:p ()
-                                            (<:a (:href p-filename
-                                                  :target nav-element-target
-                                                  :onclick
-                                                  (format nil
-                                                          "parent.frames[1].location.href = '~A'"
-                                                          p-list-filename
-                                                          )
-                                                  #|(format nil
+                              do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
+                              collect (<:p ()
+                                           (<:a (:href p-filename
+                                                 :target nav-element-target
+                                                 :onclick
+                                                 (format nil
+                                                         "parent.frames[1].location.href = '~A'"
+                                                         p-list-filename
+                                                         )
+                                                 #|(format nil
                                                            "document.getElementByName('~A').src = '~A'"
                                                            (format nil "~A_navigation_list" (element-name fs))
                                                            p-list-filename
                                                            )|#
-                                                  )
-                                                 (doc-bit-name p)))))
-                  )))
-              ) ; </body>
-             (<:comment (format nil "end of file : ~A"
-                                (base-name nm-pathname)))
-             (string #\newline)
-             ))
-           :syntax :compact)))))
+                                                 )
+                                                (doc-bit-name p)))))
+                 )))
+             ) ; </body>
+            (<:comment (format nil "end of file : ~A"
+                               (base-name nm-pathname)))
+            (string #\newline)
+            ))))))
 
 
-(defun produce-package-navigation-list (fs nav-element pkg-doc-bit pkg-list-pathname doc-bits
-                                           &aux
-                                           (pkg (find-package (package-doc-bit-name pkg-doc-bit)))
-                                           (target (format nil "~A_frame"
-                                                           (element-name nav-element)))
-                                           )
-  (declare (ignore pkg))
-  (format t "~&>>>> produce-package-navigation-list ~S ~S ~S~%"
-          fs
-          (package-doc-bit-name pkg-doc-bit)
-          pkg-list-pathname)
+(defun produce-package-navigation-list (fs
+                                        nav-element
+                                        pkg-doc-bit
+                                        pkg-list-pathname
+                                        doc-bits)
+
+  (let* ((pkg (find-package (package-doc-bit-name pkg-doc-bit)))
+         (target (format nil "~A_frame"
+                         (element-name nav-element)))
+         (pkg-doc-bits
+          (remove-if #'system-doc-bit-p
+                     (remove-if (lambda (db)
+                                  (not (eq pkg (symbol-package (doc-bit-name db)))))
+                                doc-bits))
+          ;; This is an horrendous kludge. Alas, I FTTB I will not
+          ;; chase down instances of people defining systems with symbols.
+          )
+         )
+    (format t "~&>>>> produce-package-navigation-list ~S ~S ~S ~S~%"
+            fs
+            (package-name pkg)
+            (package-doc-bit-name pkg-doc-bit)
+            pkg-list-pathname)
           
-  (destructuring-bind (systems
-                       packages
-                       constants
-                       parameters
-                       variables
-                       types
-                       classes
-                       structs
-                       conditions
-                       generic-functions
-                       methods
-                       functions
-                       macros
-                       method-combinations
-                       setf-expanders
-                       modify-macros
-                       others
-                       )
-      (sift-standard-doc-bits doc-bits)
-    (declare (ignore systems packages methods others))
-    (flet (#|(build-list (list-name doc-bits)
-             (when doc-bits
-               (list (<:h4 () list-name)
-                     (<:ul ()
-                           (loop for db in doc-bits
-                                 for db-filename
-                                 = (base-name
-                                    (make-doc-bit-pathname db
-                                                           *default-html-extension*
-                                                           pkg-list-pathname))
-                                 collect (<:li ()
-                                               (<:a (:href db-filename
-                                                     :target target)
-                                                    (string-downcase (doc-bit-name db)))))
-                           ))))|#
-           (build-list (list-name doc-bits)
-             (when doc-bits
-               (list* (<:h4 () list-name)
-                      (loop for db in doc-bits
-                            for db-filename
-                            = (base-name
-                               (make-doc-bit-pathname db
-                                                      *default-html-extension*
-                                                      pkg-list-pathname))
-                            collect (<:p (:class "navindex")
-                                         (<:a (:href db-filename
-                                               :target target)
-                                              (string-downcase (doc-bit-name db)))))
-                      )))
-           )
-      (with-open-file (ps pkg-list-pathname
-                          :if-exists :supersede
-                          :if-does-not-exist :create
-                          :direction :output)
+    (destructuring-bind (systems
+                         packages
+                         constants
+                         parameters
+                         variables
+                         types
+                         classes
+                         structs
+                         conditions
+                         generic-functions
+                         methods
+                         functions
+                         macros
+                         method-combinations
+                         setf-expanders
+                         modify-macros
+                         others
+                         )
+        (sift-standard-doc-bits pkg-doc-bits)
 
-        (<:with-html-syntax (ps :print-pretty t)
-            (<:htmlize
-             (<:document
-              (<:comment (base-name pkg-list-pathname))
-              +doctype-xhtml1-string-control-string+
+      (declare (ignore systems packages methods others))
+      (flet ((build-list (list-name doc-bits)
+               (when doc-bits
+                 (list* (<:h4 () list-name)
+                        (loop for db in doc-bits
+                              for db-filename
+                              = (base-name
+                                 (make-doc-bit-pathname db
+                                                        *default-html-extension*
+                                                        pkg-list-pathname))
+                              collect (<:p (:class "navindex")
+                                           (<:a (:href db-filename
+                                                 :target target)
+                                                (string-downcase (doc-bit-name db)))))
+                        )))
+             )
+        (with-open-file (ps pkg-list-pathname
+                            :if-exists :supersede
+                            :if-does-not-exist :create
+                            :direction :output)
 
-              (<:html
-               (<:head
-                (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
-                (<:link :rel "stylesheet" :href (frameset-style fs))
-                (<:style (format nil
-                                 ".helambdap_navmap li {~
+          (<:with-html-syntax-output (ps :print-pretty t :syntax :compact)
+              (<:document
+               (<:comment (base-name pkg-list-pathname))
+
+               +doctype-xhtml1-string-control-string+
+
+               (<:html
+                (<:head
+                 (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
+                 (<:link :rel "stylesheet" :href (frameset-style fs))
+                 (<:style (format nil
+                                  ".helambdap_navmap li {~
                                       display: inline;~
                                   }")))
 
-               (<:body
-                ((<:div :style "position: fixed; float: left; margin: 0pt;")
-                 (<:h3 "Dictionary"))
-                (let ((iframe-srcdoc
-                       (with-output-to-string (iframe-srcdoc)
-                         (<:with-html-syntax (iframe-srcdoc :print-pretty t)
-                             (<:htmlize
-                              ((<:div :class "helambdap_navmap")
-                               ;; systems
-                               ;; packages
-                               (build-list "Constants" constants)
-                               (build-list "Parameters" parameters)
-                               (build-list "Variables" variables)
-                               (build-list "Types" types)
-                               (build-list "Classes" classes)
-                               (build-list "Structures" structs)
-                               (build-list "Conditions" conditions)
-                               (build-list "Generic Functions" generic-functions)
-                               ;; (build-list "Methods" methods)
-                               (build-list "Functions" functions)
-                               (build-list "Macros" macros)
-                               (build-list "Method Combinations" method-combinations)
-                               (build-list "Setf expanders" setf-expanders)
-                               (build-list "Modify Macros" modify-macros)
-                               ;; others
-                               )
-                              ))))
-                      )
-                  (<:htmlize
-                   ((<:iframe :seamless 1
-                              :srcdoc (sanitize-quotes-for-html iframe-srcdoc)
-                              )
-                    (<:comment "iframe placeholder"))))
-                  )))
-             :syntax :compact
-             )
-            )))))
+                (if pkg-doc-bits
+                    (<:htmlise (:syntax :compact)
+                        (<:body
+                         (<:h3 "Package interface" <:br
+                               (package-name pkg))
+
+                         ((<:div :class "helambdap_navmap")
+                          ;; systems
+                          ;; packages
+                          (build-list "Constants" constants)
+                          (build-list "Parameters" parameters)
+                          (build-list "Variables" variables)
+                          (build-list "Types" types)
+                          (build-list "Classes" classes)
+                          (build-list "Structures" structs)
+                          (build-list "Conditions" conditions)
+                          (build-list "Generic Functions" generic-functions)
+                          ;; (build-list "Methods" methods)
+                          (build-list "Functions" functions)
+                          (build-list "Macros" macros)
+                          (build-list "Method Combinations" method-combinations)
+                          (build-list "Setf expanders" setf-expanders)
+                          (build-list "Modify Macros" modify-macros)
+                          ;; others
+                          )) ; body
+                        )
+
+                    (<:htmlise (:syntax :compact)
+                        (<:body
+                         (<:h3 "Package interface" <:br
+                               (package-name pkg))
+
+                         (<:p (<:i "No published interface."))
+                         ) ; body
+                        )
+                    )
+                ) ; html
+               ) ; document
+              )))
+      )))
 
 
 (defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
@@ -1610,33 +1668,31 @@ Each FRAMESET and FRAME is contained in a separate file.
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
-      (<:with-html-syntax (hs :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name footer-pathname))
-            +doctype-xhtml1-string-control-string+
-            (<:html
-             (<:head
-              (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href (frameset-style fs)))
+      (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (base-name footer-pathname))
+           +doctype-xhtml1-string-control-string+
+           (<:html
+            (<:head
+             (<:title fs-head-title)
+             (<:link :rel "stylesheet" :href (frameset-style fs)))
 
-             ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
-              ((<:div :class "copyright"
-                      #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
-               (<:strong (or documentation-title fs-body-title))
-               "documentation produced with"
-               "HE&Lambda;P"
-               (<:br)
-               (<:comment "hhmts start")
-               "Last modified: " (text-timestamp)
-               (<:comment "hhmts end")
-               (<:br)
+            ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
+             ((<:div :class "copyright"
+                     #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
+              (<:strong (or documentation-title fs-body-title))
+              "documentation produced with"
+              "HE&Lambda;P"
+              (<:br)
+              (<:comment "hhmts start")
+              "Last modified: " (text-timestamp)
+              (<:comment "hhmts end")
+              (<:br)
 
-               (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
-                       (nth-value 5 (decode-universal-time (get-universal-time)))))
-              )))
-           :syntax :compact)))
-      ))
+              (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
+                      (nth-value 5 (decode-universal-time (get-universal-time)))))
+             )))))
+    ))
 
 
 #|
