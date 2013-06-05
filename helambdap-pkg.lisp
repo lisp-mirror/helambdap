@@ -6,9 +6,9 @@
 ;;;; See file COPYING for copyright and licensing information.
 
 (defpackage "IT.UNIMIB.DISCO.MA.CL.HELambdaP" (:use "CL"
-                                               ;; #+with-ediware "CL-WHO"
-                                               ;; #+with-cxml "CXML"
-                                               ;; #+with-xhtmlambda "XHTMLAMBDA"
+                                               ;; #+helambdap.with-ediware "CL-WHO"
+                                               ;; #+helambdap.with-cxml "CXML"
+                                               ;; #+helambdap.with-xhtmlambda "XHTMLAMBDA"
                                                )
   (:nicknames "HELAMBDAP" "HELambdaP")
   (:shadow "DOCUMENTATION")
