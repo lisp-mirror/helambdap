@@ -33,6 +33,11 @@
 
 (defparameter *helambdap-css-filename* "helambdap.css")
 
+(defparameter *helambdap-css-pathname*
+  (make-pathname :name "helambdap"
+                 :type "css"
+                 :defaults *load-pathname*))
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
@@ -80,7 +85,7 @@
                  :type (or null documentation-structure))
   (parent nil
           :type (or null element))
-  (style nil :type (or null string))
+  (style nil :type (or null string pathname))
   (source "" :type (or string pathname))
   )
 
@@ -245,9 +250,6 @@ that include ELEMENT."))
         (format o "~:@_Footer     ~S~:@_" (frameset-footer fs)))))
 
 
-
-
-
 ;;; file --
 
 (defstruct (file (:include element (name "" :type (or string pathname)))
@@ -270,10 +272,10 @@ that include ELEMENT."))
 
 (defstruct (style-file
             (:include file)
-            (:constructor %make-style-file (&optional (name (pathname *helambdap-css-filename*)))))
+            (:constructor %make-style-file (&optional (name (pathname *helambdap-css-pathname*)))))
   )
 
-(defun style-file (&optional (name (pathname  *helambdap-css-filename*)))
+(defun style-file (&optional (name (pathname  *helambdap-css-pathname*)))
   (initialize-element (%make-style-file name)))
 
 
@@ -463,6 +465,30 @@ that include ELEMENT."))
   "The XHTML frame-based documentation structure.")
 
 
+(defparameter *xhtml-simple-frame-documentation-structure*
+  (make-documentation-structure
+   "standard"
+   "index"
+   (style-file)
+   (framesets "doc-framesets"
+              *helambdap-css-filename*
+              (frameset "index"
+                        :content (doc-file "introduction"))
+              (frameset "dictionary"
+                        :location #P"dictionary/"
+                        :style (namestring *helambdap-css-filename-up*)
+                        :content (file-set "dictionary-entries"))
+              ;; (frameset "downloads")
+              ;; (frameset "mailing-lists")
+              ;; (frameset "links")
+              )
+   )
+  "The XHTML simple frame-based documentation structure.
+
+A minimal documentation structure that contains only the main index
+(and introduction and the dictionary of of the system/package/library.")
+
+
 (defparameter *texinfo-documentation-structure*
   (make-documentation-structure
    "texinfo"
@@ -471,7 +497,7 @@ that include ELEMENT."))
 
 
 (defparameter *default-documentation-structure* 
-  *xhtml-frame-documentation-structure*
+  *xhtml-simple-frame-documentation-structure*
   "The variable containing the default documentation structure.")
 
 
