@@ -33,4 +33,11 @@
 (defconstant +frameset-doctype-system-id+
   "http://www.w3.org/TR/html4/frameset.dtd")
 
+
+(defconstant +doctype-html5-control-string+
+  "<!DOCTYPE html>"
+
+"The standard HTML5 doctype declaration.")
+
+
 ;;;; end of file -- xhtml-common-definitions.lisp --
