@@ -15,6 +15,7 @@
                              "filename-utilities"
                              "time-utilities"
                              "streams-utilities"
+                             "symbols-utilities"
                              ))
                "naming"
                (:file "doc-bit" :depends-on ("naming"))
