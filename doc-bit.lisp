@@ -12,16 +12,36 @@
 
 The structure of a documentation bit."
 
-  (name nil :type (or symbol naming string) :read-only t) ; Either a name a CONS like (SETF s).
+  (name nil :type (or symbol naming string list) :read-only t) ; Either a name a CONS like (SETF s).
   (kind t :read-only t) ; As per CL:DOCUMENTATION second argument, with extra "naming"
                         ; accepted, in the fashion of LW DSPEC package
   (kind-tag "" :type string :read-only t)
-  (doc-string "" :type string)
+  (doc-string "" :type (or null string))
   (timestamp (get-universal-time) :type integer)
   location ; We assume that NAME is unique, hence LOCATION must be as
            ; well.  doc-bit => location is 1-1.
 
   )
+
+(defun doc-bit-identifier (db &aux (dbn (doc-bit-name db)))
+  (declare (type doc-bit))
+  (etypecase dbn
+    ((or symbol string) dbn)
+    (naming (let ((n (naming-id dbn)))
+              (if (listp n) ; (SETF X) et al.
+                  (second n)
+                  n)))
+    (list ; (SETF X) et al.
+     (second dbn))
+    ))
+
+
+(defun doc-bit-package (db &aux (dbi (doc-bit-identifier db)))
+  (declare (type doc-bit))
+  (typecase dbi
+    (symbol (symbol-package dbi))
+    (string (if (package-doc-bit-p db) dbi "CL-USER"))
+    ))
 
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
@@ -49,12 +69,18 @@ The structure of a documentation bit."
             else
             do (write-char c result)))))
 
-
+#+old-version
 (defun doc-bit-pathname-name (doc-bit)
   (concatenate 'string
                (substitute #\_ #\Space (doc-bit-kind-tag doc-bit))
                "-"
                (string (doc-bit-name doc-bit))))
+
+
+(defun doc-bit-pathname-name (doc-bit)
+  (format nil "~A-~A"
+          (substitute #\_ #\Space (doc-bit-kind-tag doc-bit))
+          (doc-bit-name doc-bit)))
 
 
 (defun make-doc-bit-pathname (doc-bit
