@@ -145,6 +145,8 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 (defparameter *xhtml-indent* 4) ; 4 is the actual initial value.
 
+(defparameter *formatted-section-right-margin* 80)
+
 
 ;;;;===========================================================================
 ;;;; Implementation.
@@ -650,6 +652,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
+  "This specialized method produces the documentation for a package."
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -714,7 +717,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys)
   (let* ((db-name (doc-bit-name doc-bit))
-         (name (string-downcase db-name))
+         (name (format nil "~(~A~)" db-name))
          (kind (doc-bit-kind doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
@@ -737,7 +740,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:h1 (<:i kind) (<:strong name))
 
             (<:h2 "Package: ")
-            (<:p (<:code (package-name (symbol-package db-name))))
+            (<:p (<:code (package-name (doc-bit-package doc-bit))))
 
             (<:h2 "Syntax:")
             (<:p
@@ -1027,6 +1030,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                    ))
             ))))))
 
+
 #-version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit generic-function-doc-bit)
@@ -1066,6 +1070,156 @@ Each FRAMESET and FRAME is contained in a separate file.
                    else
                    collect (<:i () lle))
              )
+
+#|
+           (pre-format-syntax-entry (name ll)
+             (let ((*print-right-margin* 80))
+               (format nil
+                       (concatenate 'string
+                                    "~A~<"
+                                    (format nil "~A"
+                                            (make-string (length name)
+                                                         :initial-element #\Space))
+                                    "~;~@{ ~W~_~}~:>")
+                       (<:span (:style "color: red") (<:strong () name))
+                       (render-lambda-list ll))
+               ))|#
+
+
+           (pre-format-syntax-entry (name ll)
+             (let ((*print-right-margin* 75))
+               (format nil
+                       "  ~A ~@<~@/pprint-linear/~:>~%    &rarr; <i>result</i>"
+                       (<:span (:style "color: red") (<:strong () name))
+                       (render-lambda-list ll))
+               ))
+
+           #|
+           (render-known-methods (name doc-bit)
+             (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                   for (specializers other) = (method-signature mdb)
+                   for mdb-doc = (doc-bit-doc-string mdb)
+                   collect (<:htmlise (:syntax :compact)
+                            (<:li
+                             (<:p
+                              (<:pre
+                               (format nil
+                                       "  ~A~A~A~A"
+                                       (<:strong () name)
+                                       (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
+                                       (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+                                       (format nil "~{ ~A~}" (render-lambda-list other)))))
+                             (when mdb-doc
+                               (<:p ()  mdb-doc))))
+                   ))|#
+           #|
+           (render-known-methods (name doc-bit)
+             (let ((*print-right-margin* 80))
+               (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                     for (specializers other) = (method-signature mdb)
+                     for mdb-doc = (doc-bit-doc-string mdb)
+                     for qualfs = (method-doc-bit-qualifiers mdb)
+                     collect (<:htmlise (:syntax :compact)
+                                 (<:li
+                                  (<:p
+                                   (<:pre
+                                    (let ((*print-right-margin* 70)
+                                          (*print-pretty* t)
+                                          )
+                                      (format nil
+                                              "  ~@<~A~@/pprint-linear/~-8I~@/pprint-linear/~:>"
+                                              (<:strong () name)
+                                              qualfs
+                                              (nconc
+                                               (loop for s in specializers
+                                                     collect (<:i () s))
+                                               (render-lambda-list other))
+                                              ))))
+                                  (when mdb-doc
+                                    (<:p ()  mdb-doc)))
+                                 ) ; <:li
+                     )))|#
+
+           (bypass-pprint (s e &optional (colon-p t) at-sign-p)
+             (declare (ignore colon-p at-sign-p))
+             (let ((*print-pretty* nil))
+               (format s "~A" e)))
+
+           (quoted-exp-p (exp) (and (listp exp) (eq 'quote (first exp))))
+
+           (eql-spec-p (sp) (and (listp sp) (eq 'eql (first sp))))
+
+           (render-method-specializers (specializers)
+             (loop for sp in specializers
+                   for s = (if (eql-spec-p sp)
+                               (if (quoted-exp-p (second sp))
+                                   (<:i () (format nil "(EQL '~A)" (second (second sp))))
+                                   (<:i () sp))
+                               (<:i () (format nil "&lt;~A&gt;" sp)))
+                   collect s))
+
+           (render-known-methods (name doc-bit)
+             (let ((*print-right-margin* *formatted-section-right-margin*))
+               (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                     for (specializers other) = (method-signature mdb)
+                     for mdb-doc = (doc-bit-doc-string mdb)
+                     for qualfs = (method-doc-bit-qualifiers mdb)
+                     collect (<:htmlise (:syntax :compact)
+                                 (<:li
+                                  (<:p
+                                   (<:pre
+                                    (let ((*print-pretty* t))
+                                      (with-output-to-string (pre-string)
+                                        (pprint-logical-block (pre-string
+                                                               (list (<:strong () name)
+                                                                     qualfs
+                                                                     ;; (list :around)
+                                                                     (nconc
+                                                                      (render-method-specializers specializers)
+                                                                      (render-lambda-list other))
+                                                                     ))
+                                          (write-string "  " pre-string)
+                                          (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          ;; (write (pprint-pop) :stream pre-string)
+                                          (write-char #\Space pre-string)
+
+                                          (let ((qualfs (pprint-pop)))
+                                            (when qualfs
+                                              (pprint-linear pre-string qualfs nil)))
+                                          
+                                          (write-char #\Space pre-string)
+                                          (pprint-indent :block 8 pre-string)
+                                          (pprint-newline :linear pre-string)
+                                          (pprint-logical-block (pre-string (pprint-pop))
+                                            (loop (pprint-exit-if-list-exhausted)
+                                                  (bypass-pprint pre-string (pprint-pop) nil nil)
+                                                  (write-char #\Space pre-string)
+                                                  (pprint-newline :linear pre-string)
+                                                  ))
+                                          (pprint-indent :block 4 pre-string)
+                                          (pprint-newline :linear pre-string)
+                                          (write-string "&rarr; " pre-string)
+                                          (write-string "<i>result</i>" pre-string)
+                                          )))
+                                      #|
+                                      (format nil
+                                              "  [1~@<[2~@<~/helambdap::bypass-pprint/~
+                                                      ~@[*[3~@<~@{ ~/helambdap::bypass-pprint/~^~_~}~:>3]~]2]~:>~
+                                                      ~@[~_~-10I~@{ ~/helambdap::bypass-pprint/~^~_~}~]~:>1]"
+                                              (<:strong () name)
+                                              ;qualfs
+                                              (list :around :before)
+                                              (nconc
+                                               (loop for s in specializers
+                                                     collect (<:i () s))
+                                               (render-lambda-list other))
+                                              )
+                                      |#
+                                    )) ; <:/pre <:/p
+                                  (when mdb-doc
+                                    (<:p ()  mdb-doc))
+                                  ) ; <:li
+                                 ))))
            )
 
     (let* ((gfname (doc-bit-name doc-bit))
@@ -1090,9 +1244,13 @@ Each FRAMESET and FRAME is contained in a separate file.
 
             (<:h2 "Syntax:")
             (<:p
+             #|
              (<:pre (format nil "~&    ~A~A~%"
                             (<:b () (<:span (:style "color: red") (<:strong () name)))
-                            (format nil "~{ ~A~}" (render-lambda-list ll)))))
+                            (format nil "~{ ~A~}" (render-lambda-list ll))))
+             |#
+             (<:pre (pre-format-syntax-entry name ll)
+                    ))
 
             (<:h3 "Arguments and Values:")
             (loop for arg in ll
@@ -1120,28 +1278,12 @@ Each FRAMESET and FRAME is contained in a separate file.
             (paragraphize-doc-string doc-string)
            
 
-            (let ((known-methods-els
-                   (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                         for (specializers other) = (method-signature mdb)
-                         for mdb-doc = (doc-bit-doc-string mdb)
-                         collect (<:htmlize
-                                  (<:li
-                                   (<:p
-                                    (<:pre (format nil
-                                                   "    ~A~A~A~A"
-                                                   (<:b () (<:strong () name))
-                                                   (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
-                                                   (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                                   (format nil "~{ ~A~}" (render-lambda-list other)))))
-                                   (when mdb-doc
-                                     (<:p ()  mdb-doc)))
-                                  :syntax :compact)
-                         ))
+            (let ((known-methods-els (render-known-methods name doc-bit))
                   )
               (when known-methods-els
                 (<:div ()
-                       (<:h3 () "Known Methods:")
-                       (<:ul () known-methods-els)))
+                       (<:h3 () "Known Documented Methods:")
+                       (<:ol () known-methods-els)))
               
               ))
            )))))
@@ -1544,8 +1686,15 @@ Each FRAMESET and FRAME is contained in a separate file.
                          (element-name nav-element)))
          (pkg-doc-bits
           (remove-if #'system-doc-bit-p
-                     (remove-if (lambda (db)
-                                  (not (eq pkg (symbol-package (doc-bit-name db)))))
+                     (remove-if (lambda (db &aux (dbn (doc-bit-name db)))
+                                  (and (not (system-doc-bit-p db))
+                                       (not (package-doc-bit-p db))
+                                       (typecase dbn
+                                         (symbol
+                                          (not (eq pkg (symbol-package dbn))))
+                                         (cons ; Mostly (SETF NAME)
+                                          (not (eq pkg (symbol-package (second dbn)))))
+                                         )))
                                 doc-bits))
           ;; This is an horrendous kludge. Alas, I FTTB I will not
           ;; chase down instances of people defining systems with symbols.
@@ -1590,7 +1739,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                               collect (<:p (:class "navindex")
                                            (<:a (:href db-filename
                                                  :target target)
-                                                (string-downcase (doc-bit-name db)))))
+                                                (format nil
+                                                        "~(~A~)"
+                                                        (doc-bit-name db)))))
                         )))
              )
         (with-open-file (ps pkg-list-pathname
