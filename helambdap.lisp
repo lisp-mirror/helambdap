@@ -40,6 +40,14 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
   dbdb)
 
 
+;;; insert-doc-bit --
+
+(defun insert-doc-bit (doc-bit &optional (dbdb *doc-bits-db*))
+  (setf (gethash (doc-bit-name doc-bit) dbdb)
+        (nconc (gethash (doc-bit-name doc-bit) dbdb) (list doc-bit)))
+  doc-bit)
+
+
 ;;; save-doc-bits-db --
 
 (defgeneric save-doc-bits-db (where &optional doc-bits-db))
@@ -48,8 +56,13 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 (defmethod save-doc-bits-db ((out stream)
                              &optional (db *doc-bits-db*))
     (format out ";;;; -*- Mode: Lisp -*-~2%;;;; DOC-BITS DB File.~2%")
-    (loop for doc-bits being the hash-value of db
-          do (map nil (lambda (doc-bit) (prin1 doc-bit out)) doc-bits))
+    (loop ;; initially (format t "~2%======~%)")
+          ;; finally (format t "~2%======~%)")
+          for doc-bits being the hash-value of db
+          do (map nil (lambda (doc-bit)
+                        ;; (format t ">>> ~<~S~:>~2%" doc-bit)
+                        (pprint doc-bit out))
+                  doc-bits))
     (format out "~2%;;;; end of file -- DOC BITS DB File. --~%"))
 
 
