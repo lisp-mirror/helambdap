@@ -22,7 +22,7 @@
 (defun make-naming* (kind name &rest nesting-path)
   "Constructs a NAMING.
 
-RESTING-PATH is passed as a &rest parameter."
+NESTING-PATH is passed as a &rest parameter."
   (%make-naming :kind kind :id name :nesting-path nesting-path))
 
 
