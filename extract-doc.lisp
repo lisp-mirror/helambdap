@@ -62,6 +62,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
         (loop with eof = (gensym "FORMS-STREAM-EOF-")
               for form = (read-form forms-stream eof)
               for form-doc = (form-documentation form)
+
               while (not (eq form eof))
                 when form-doc
                   if (consp form-doc)
@@ -70,9 +71,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
                     collect form-doc into doc-bits
                   end
 
-              finally (return
-                       (delete-if (complement 'doc-bit-doc-string)
-                                  doc-bits)))
+              finally (return doc-bits))
       (setf *package* saved-package))))
 
 
@@ -87,6 +86,23 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
 (defmethod extract-documentation ((filename string))
   (extract-documentation (pathname filename)))
+
+
+(defmethod extract-documentation :around ((forms-stream stream))
+  (let ((doc-bits (call-next-method)))
+    (unless *everything*
+      (when *only-documented*
+        (setf doc-bits
+              (delete-if (complement #'doc-bit-doc-string) doc-bits)))
+
+      (when *only-exported*
+        (setf doc-bits
+              (delete-if (lambda (db &aux (dbn (doc-bit-name db)))
+                           (and (symbolp dbn)
+                                (not (external-symbol-p dbn))))
+                         doc-bits)))
+      )
+    doc-bits))
 
 
 ;;; Form handling.
@@ -323,44 +339,39 @@ T). Only top-level occurrences of these forms are considered.")
 
 (defmethod extract-form-documentation ((fk (eql 'defparameter)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
-    (when doc
-      (make-parameter-doc-bit :name (second form)
-                              :kind 'variable
-                              :doc-string doc))))
+    (make-parameter-doc-bit :name (second form)
+                            :kind 'variable
+                            :doc-string doc)))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defvar)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
-    (when doc
-      (make-variable-doc-bit :name (second form)
-                             :kind 'variable
-                             :doc-string doc))))
+    (make-variable-doc-bit :name (second form)
+                           :kind 'variable
+                           :doc-string doc)))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defconstant)) (form cons))
   (let ((doc (extract-symbol-form-documentation form)))
-    (when doc
-      (make-constant-doc-bit :name (second form)
-                             :initial-value (third form)
-                             :kind 'constant
-                             :doc-string doc))))
+    (make-constant-doc-bit :name (second form)
+                           :initial-value (third form)
+                           :kind 'constant
+                           :doc-string doc)))
 
 
 (define-documentation-extractor (defsetf access-fn &rest form)
   (if (symbolp (first form))
       (let ((doc (second form)))
-        (when doc
-          (make-doc-bit :name access-fn
-                        :kind 'setf
-                        :doc-string doc)))
+        (make-doc-bit :name access-fn
+                      :kind 'setf
+                      :doc-string doc))
       (let ((doc (extricate-doc-string (nthcdr 2 form)))
             (ll (first form))
             )
-        (when doc
-          (make-doc-bit :name access-fn
-                        :kind 'setf
-                        :lambda-list ll
-                        :doc-string doc)))))
+        (make-doc-bit :name access-fn
+                      :kind 'setf
+                      :lambda-list ll
+                      :doc-string doc))))
 
 
 (define-documentation-extractor (define-modify-macro name ll function
@@ -381,10 +392,9 @@ T). Only top-level occurrences of these forms are considered.")
                      (pop options-and-forms))
                    (extricate-doc-string options-and-forms))))
         )
-    (when doc
-      (make-doc-bit :name name
-                    :kind 'method-combination
-                    :doc-string doc))))
+    (make-doc-bit :name name
+                  :kind 'method-combination
+                  :doc-string doc)))
 
 
 #+mk-defsystem
