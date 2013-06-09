@@ -8,7 +8,11 @@
 (in-package "HELAMBDAP")
 
 
-(defgeneric collect-documentation (where-from &key &allow-other-keys))
+(defgeneric collect-documentation (where-from
+                                   &key
+                                   exclude-directories
+                                   exclude-files
+                                   &allow-other-keys))
 
 
 (defparameter *source-extensions*
@@ -28,6 +32,8 @@
 (defparameter *exclude-directories*
   (list #P".git/" #P"CVS/" #P"svn/"))
 
+(defparameter *exclude-files*
+  ())
 
 ;;;;===========================================================================
 ;;;; Collection.
@@ -39,12 +45,17 @@
 
 (defmethod collect-documentation ((p pathname)
                                   &key
-                                  (exclude *exclude-directories*)
+                                  ((:exclude-directories *exclude-directories*)
+                                   *exclude-directories*)
+                                  ((:exclude-files *exclude-files*)
+                                   *exclude-files*)
                                   &allow-other-keys
                                   )
+  (declare (ignore exclude-files))
+
   (let ((color-table (make-hash-table :test #'equal))
         (doc-bits ())
-        (exclude-names (mapcar #'directory-name exclude))
+        (exclude-dir-names (mapcar #'directory-last-name *exclude-directories*))
         )
     (labels ((is-grey (ntp) (eq :grey (gethash ntp color-table)))
 
@@ -57,16 +68,16 @@
              (blacken (ntp) (setf (gethash ntp color-table) :black))
 
              (whiten (ntp) (setf (gethash ntp color-table) :white))
-                                                  
+
              (dfs (p)
                (let ((ntp (namestring (truename p))))
                  (when (is-white ntp)
-                   (format t "~&Considering ~S " p)
+                   (format t "~&HELAMBDAP: Considering ~S " p)
                    (grey ntp)
                    (cond ((cl-fad:directory-pathname-p p)
-                          (format t "[D]~%")
-                          (unless (member (directory-name p)
-                                          exclude-names
+                          (format t "HELAMBDA: [D]~%")
+                          (unless (member (directory-last-name p)
+                                          exclude-dir-names
                                           :test #'string-equal)
 
                             (dolist (f (directory-source-files p))
@@ -74,11 +85,12 @@
                             (dolist (sd (subdirectories p))
                               (dfs sd))
                             ))
-                         (t
-                          (format t "[F]~%" p)
-                          (setf doc-bits
-                                (nconc (extract-documentation p)
-                                       doc-bits)))
+                         (t ; A file.
+                          (format t "HELAMBDAP: [F]~%" p)
+                          (unless (member p *exclude-files* :test #'equal)
+                            (setf doc-bits
+                                  (nconc (extract-documentation p)
+                                         doc-bits))))
                          )
                    (blacken ntp))
                  ))
@@ -90,16 +102,17 @@
 (defmethod collect-documentation :around ((where-from t)
                                           &key &allow-other-keys)
   (let ((doc-bits (call-next-method))
-        (gfs-table (make-hash-table :test #'eq))
+        (gfs-table (make-hash-table :test #'equal))
         (gfs ())
         (methods ())
         )
 
     (loop for db in doc-bits
           when (generic-function-doc-bit-p db)
-          do (pushnew db gfs :key #'doc-bit-name :test #'eq)
+          do (pushnew db gfs :key #'doc-bit-name :test #'equal)
           when (method-doc-bit-p db)
-          do (pushnew db methods :key #'doc-bit-name :test #'eq)
+          ;; do (pushnew db methods :key #'doc-bit-name :test #'eq)
+          do (push db methods) ; Need all the methods.
           )
     (dolist (gfdb gfs)
       (setf (gethash (doc-bit-name gfdb) gfs-table) gfdb))
@@ -107,8 +120,10 @@
       (when (gethash (doc-bit-name m) gfs-table)
         (pushnew m (generic-function-doc-bit-methods
                     (gethash (doc-bit-name m) gfs-table)))))
+
+    (dolist (db doc-bits) (insert-doc-bit db))
+    (save-doc-bits-db "tmp/dbdb.lisp")
     doc-bits))
-  
 
 
 ;;;----------------------------------------------------------------------------
@@ -118,7 +133,7 @@
   (declare (type list doc-bits)) ; (type (list doc-bits) doc-bits)
 
   (flet ((sort-doc-bits (doc-bits)
-           (sort (copy-list doc-bits) #'string<= :key 'doc-bit-name))
+           (sort (copy-list doc-bits) #'string<= :key 'doc-bit-identifier))
          )
 
     ;; This is when you want ITERATE...
@@ -184,11 +199,10 @@
         ))))
 
 
-
 ;;;;===========================================================================
 ;;;; Utilities.
 
-(defun directory-name (p)
+(defun directory-last-name (p)
   (declare (type (or string pathname) p))
   (let ((p-dir (pathname-directory (pathname p))))
     (cond ((null p-dir) ".")
