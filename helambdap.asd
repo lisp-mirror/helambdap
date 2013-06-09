@@ -9,22 +9,24 @@
 
 (asdf:defsystem "HELAMBDAP"
   :description "The HELambdaP System."
-  :components ("helambdap-pkg"
+  :components ((:file "helambdap-pkg")
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
-                :components ("text-utilities"
-                             "filename-utilities"
-                             "time-utilities"
+                :components ((:file "text-utilities")
+                             (:file "filename-utilities")
+                             (:file "time-utilities")
+                             (:file "streams-utilities")
+                             (:file "symbols-utilities")
                              ))
-               "naming"
+               (:file "naming")
                (:file "doc-bit" :depends-on ("naming"))
-               "extract-doc"
-               "helambdap"
-               "collect-documentation"
-               "doc-structure"
-               "documentation-production"
+               (:file "extract-doc")
+               (:file "helambdap")
+               (:file "collect-documentation")
+               (:file "doc-structure")
+               (:file "documentation-production")
 
-               "xhtml-common-definitions"
+               (:file "xhtml-common-definitions")
 
                #+helambdap.with-ediware
                (:file "xml-producer"
@@ -50,10 +52,10 @@
 		:depends-on ("helambdap-pkg")
 		:components (
 			     #+lispworks
-			     "lispworks"
+			     (:file "lispworks")
 			     ))
                )
-  :depends-on ("CL-FAD"
+  :depends-on ("cl-fad"
                "SPLIT-SEQUENCE"
                #+helambdap.with-cxml "CXML"
                #+helambdap.with-ediware "CL-WHO"
