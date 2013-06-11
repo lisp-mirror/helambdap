@@ -45,7 +45,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
       nil)
     (error (e)
       (format *error-output*
-              "~%HELambdaP form reader: trying to read a form caused errors; most likely a missing package.~@
+              "~&HELambdaP form reader: trying to read a form caused errors; most likely a missing package.~@
                The error is ~S.~@
                The result will be NIL, hence the form will be ignored.~2%"
               e)
@@ -302,21 +302,182 @@ T). Only top-level occurrences of these forms are considered.")
     ))
 
 
+#| Old simple one...
 (defmethod extract-form-documentation ((fk (eql 'defstruct)) (form cons))
   (destructuring-bind (defstruct name-and-options &rest doc-string-and-slots)
       form
     (declare (ignore defstruct))
-    (when (stringp (first doc-string-and-slots))
-      (make-struct-doc-bit :name (if (symbolp name-and-options)
-                                     name-and-options
-                                     (first name-and-options))
-                           :kind 'structure
-                           :doc-string (first doc-string-and-slots)
-                           :include (when (consp name-and-options)
-                                      (second (find :include (remove-if #'symbolp name-and-options)
-                                                    :key #'first)))
-                           :slots (rest doc-string-and-slots)
-                           ))))
+    (make-struct-doc-bit :name (if (symbolp name-and-options)
+                                   name-and-options
+                                   (first name-and-options))
+                         :kind 'structure
+                         :doc-string (when (stringp (first doc-string-and-slots))
+                                       (first doc-string-and-slots))
+                         :include (when (consp name-and-options)
+                                    (second (find :include (remove-if #'symbolp name-and-options)
+                                                  :key #'first)))
+                         :slots (if (stringp (first doc-string-and-slots))
+                                    (rest doc-string-and-slots)
+                                    doc-string-and-slots)
+                         )
+    ))
+|#
+
+
+(defmethod extract-form-documentation ((fk (eql 'defstruct)) (form cons))
+  (destructuring-bind (defstruct name-and-options &rest doc-string-and-slots)
+      form
+    (declare (ignore defstruct))
+    (let* ((name-is-symbol (symbolp name-and-options))
+           (name (if name-is-symbol
+                     name-and-options
+                     (first name-and-options)))
+           (options (unless name-is-symbol
+                      (rest name-and-options)))
+           (doc-string-present (stringp (first doc-string-and-slots)))
+           (doc-string (when doc-string-present (first doc-string-and-slots)))
+           (slots (if doc-string-present
+                      (rest doc-string-and-slots)
+                      doc-string-and-slots))
+
+           ;; Options unpacking.
+           (default-conc-name (format nil "~A-" name))
+           (conc-name (if name-is-symbol
+                          (intern default-conc-name (symbol-package name))
+                          (loop for opt in options
+                                if (eq opt :conc-name)
+                                return nil
+                                else if (and (consp opt)
+                                             (eq (first opt) :conc-name))
+                                return (second opt)
+                                finally
+                                (return (intern default-conc-name (symbol-package name)))
+                                )))
+           (default-constructor-name (format nil "~A-~A" 'make name))
+           )
+      (labels ((extract-slot-names (slots)
+                 (mapcar (lambda (slot-spec)
+                           (typecase slot-spec
+                             (symbol slot-spec)
+                             (list (first slot-spec))))
+                         slots)
+                 )
+
+               (build-doc-for-slots-fns (slots)
+                 (loop for s in slots
+                       if (symbolp s)
+                       nconc (build-doc-for-single-slot-fns s nil t)
+                       else
+                       nconc
+                       (destructuring-bind (sn vf &key read-only type &allow-other-keys)
+                           s
+                         (declare (ignore vf))
+                         (build-doc-for-single-slot-fns sn read-only type))))
+
+               (build-doc-for-single-slot-fns (sn read-only type
+                                                  &aux
+                                                  (fns ())
+                                                  (accessor-fn-name
+                                                   (if conc-name
+                                                       (intern (format nil "~A~A"
+                                                                       conc-name
+                                                                       sn)
+                                                               (symbol-package sn))
+                                                       sn))
+                                                  )
+                 (push (make-function-doc-bit
+                        :name accessor-fn-name
+                        :kind 'function
+                        :lambda-list (list 'object)
+                        :values (list type)
+                        :doc-string
+                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A."
+                                read-only
+                                sn
+                                name)
+                        )
+                       fns)
+                 (unless read-only
+                   (push (make-function-doc-bit
+                          :name `(setf ,accessor-fn-name)
+                          :kind 'function
+                          :lambda-list (list 'v 'object)
+                          :values (list type)
+                          :doc-string
+                          (format nil "Setter for the slot ~A of an object of type ~A."
+                                  sn
+                                  name)
+                          )
+                         fns)
+                   )
+                 fns
+                 )
+
+               (build-default-constructor-doc-bit ()
+                 (make-function-doc-bit
+                  :name (intern default-constructor-name
+                                (symbol-package name))
+                  :kind 'function
+                  :lambda-list (cons '&key
+                                     (extract-slot-names slots))
+                  :values (list name)
+                  :doc-string
+                  (format nil "A constructor for the structure ~A." name)
+                  ))
+
+               (build-doc-for-constructors (opts)
+                 (let ((constructor-opts
+                        (loop for opt in opts
+                              when (typecase opt
+                                     (symbol (eq :constructor opt))
+                                     (list (eq :constructor (first opt))))
+                              collect (if (symbolp opt) (list opt) opt)))
+                       )
+                   (cond ((null constructor-opts)
+                          (list (build-default-constructor-doc-bit)))
+                         ((not (find '(:constructor nil) constructor-opts :test #'equal))
+                          (loop for cons-opt in constructor-opts
+                                collect
+                                (destructuring-bind (cons-kwd
+                                                     &optional
+                                                     cons-name
+                                                     boa-ll)
+                                    cons-opt
+                                  (declare (ignore cons-kwd))
+                                  (if (null cons-name) ; constructor
+                                                       ; opt is (:constructor)
+                                      (build-default-constructor-doc-bit)
+                                      (make-function-doc-bit
+                                       :name cons-name
+                                       :kind 'function
+                                       :lambda-list (if boa-ll
+                                                        boa-ll
+                                                        (cons '&key
+                                                              (extract-slot-names slots)))
+                                       :values (list name)
+                                       :doc-string
+                                       (format nil
+                                               "A constructor for the ~
+                                                structure ~A." name)
+                                       ))
+                                  )))
+                         (t ())
+                         )))
+               )
+
+        (append
+         (list
+          (make-struct-doc-bit :name name
+                               :kind 'structure
+                               :doc-string doc-string
+                               :include (when (consp name-and-options)
+                                          (second (find :include (remove-if #'symbolp name-and-options)
+                                                        :key #'first)))
+                               :slots slots
+                               ))
+         (build-doc-for-slots-fns slots)
+         (build-doc-for-constructors options)
+         )))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'eval-when)) (form cons))
@@ -362,16 +523,16 @@ T). Only top-level occurrences of these forms are considered.")
 (define-documentation-extractor (defsetf access-fn &rest form)
   (if (symbolp (first form))
       (let ((doc (second form)))
-        (make-doc-bit :name access-fn
-                      :kind 'setf
-                      :doc-string doc))
+        (make-setf-expander-doc-bit :name access-fn
+				    :kind 'setf
+				    :doc-string doc))
       (let ((doc (extricate-doc-string (nthcdr 2 form)))
             (ll (first form))
             )
-        (make-doc-bit :name access-fn
-                      :kind 'setf
-                      :lambda-list ll
-                      :doc-string doc))))
+        (make-setf-expander-doc-bit :name access-fn
+				    :kind 'setf
+				    :lambda-list ll
+				    :doc-string doc))))
 
 
 (define-documentation-extractor (define-modify-macro name ll function
