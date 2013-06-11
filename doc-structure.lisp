@@ -110,12 +110,12 @@ that include ELEMENT."))
   e)
 
 
-#|
 (defgeneric pprint-element (os e)
   (:documentation "Generic function used in the PPRINT dispatch table.")
   (:argument-precedence-order e os))
 
 
+#|
 (defmethod pprint-element ((os stream) (e element))
    (if *print-readably*
        (print-object e os)
@@ -255,6 +255,8 @@ that include ELEMENT."))
 (defstruct (file (:include element (name "" :type (or string pathname)))
                  (:constructor %make-file (name))))
 
+(defgeneric file-pathname (fd))
+
 (defmethod file-pathname ((f file)) (pathname (file-name f)))
 
 
@@ -310,7 +312,7 @@ that include ELEMENT."))
   (index ()))
 
 
-(defmethod print-element ((o stream) (f file-set))
+(defmethod pprint-element ((o stream) (f file-set))
   (if *print-pretty*
       (print-object f o)
       (format o "File Set ~S." (element-name f))))
