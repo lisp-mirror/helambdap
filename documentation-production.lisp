@@ -55,7 +55,23 @@ The skeleton consists of a number of 'judiciously' editable files that
 can be used as building blocks for the final documentation."))
 
 
-(declaim (ftype (function (T &key &allow-other-keys) T) document))
+#|
+(declaim (ftype (function (T &key
+			     documentation-title
+			     format
+			     layout
+			     source
+			     destination
+			     supersede
+			     only-documented
+			     only-exported
+			     everything
+			     exclude-directories
+			     exclude-files
+			     &allow-other-keys)
+			  T)
+		document))
+|#
 
 
 ;;;;===========================================================================
