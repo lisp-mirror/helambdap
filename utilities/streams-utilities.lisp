@@ -95,7 +95,7 @@
   nil
   )
 
-
+#|
 (defmethod unget-chars ((chars list)
                         &optional
                         (stream *standard-output*)
@@ -112,6 +112,21 @@
   
   (loop for c of-type character across (reverse chars)
         do (unget-char c stream backlog-length)))
+|#
+
+(defun unget-chars (chars
+		    &optional
+		    (stream *standard-output*)
+		    (backlog-length *backlog-length*))
+  (declare (type (or vector list) chars))
+  (etypecase chars
+    (vector
+     (loop for c of-type character across (reverse chars)
+        do (unget-char c stream backlog-length)))
+    (list
+     (dolist (c (reverse chars))
+       (unget-char c stream backlog-length)))
+    ))
 
 
 ;;; end of file -- get-unget-stream.lisp --
