@@ -90,11 +90,8 @@ Each FRAMESET and FRAME is contained in a separate file.
 |#
 
 
-
-
 ;;;;===========================================================================
 ;;;; Protocol.
-
 
 (defgeneric produce-frame (format element out)
   )
@@ -579,7 +576,14 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;; Doc bits HTML production.
 
 
+;;; Usual SBCL appeasement.
+
+#-sbcl
 (defconstant +lambda-list-kwds+
+  '(&optional &rest &key &allow-other-keys &whole &environment &aux))
+
+#+sbcl
+(defparameter +lambda-list-kwds+
   '(&optional &rest &key &allow-other-keys &whole &environment &aux))
 
 
@@ -699,6 +703,9 @@ Each FRAMESET and FRAME is contained in a separate file.
             &optional
             (ll (parameterized-doc-bit-lambda-list doc-bit))
             (values ()))
+
+  (declare (ignore values))
+
   (let ((db-name (doc-bit-name doc-bit)))
     (<:htmlise (:syntax :compact)
         (<:div
@@ -746,7 +753,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:p
              (<:pre
               (format nil
-                      "~&    ~A ~A~%"
+                      "~&    ~A~A~%"
                       (<:b () (<:span (:style "color: red") (<:strong () name)))
                       (format nil "~{ ~A~}" (render-lambda-list ll)))))
 
@@ -965,7 +972,7 @@ Each FRAMESET and FRAME is contained in a separate file.
     t))
 
 
-#+version-using-MOP
+#+helambdap.version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit generic-function-doc-bit)
                                   (out file-stream)
@@ -1031,7 +1038,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             ))))))
 
 
-#-version-using-MOP
+#-helambdap.version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit generic-function-doc-bit)
                                   (out file-stream)
@@ -1292,20 +1299,19 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
 
-(defmethod frameset-head-title ((fs frameset))
-  "FOOO")
+(defgeneric frameset-head-title (fs)
+  (:method ((fs frameset)) "Frameset head placeholder title"))
 
 
-(defmethod frameset-body-title ((fs frameset))
-  "FFFFOOOOO")
+(defgeneric frameset-body-title (fs)
+  (:method ((fs frameset)) "Frameset body placeholder title"))
 
 
-(defmethod framesets-of ((fss framesets))
-  (framesets-list fss))
-
-(defmethod framesets-of ((e element)) ())
-
-(defmethod framesets-of ((e documentation-structure)) ())
+(defgeneric framesets-of (e)
+  (:method ((fss framesets)) (framesets-list fss))
+  (:method ((e element)) ())
+  (:method ((e documentation-structure)) ())
+  )
 
 
 (defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
@@ -1316,10 +1322,14 @@ Each FRAMESET and FRAME is contained in a separate file.
         (fs-body-title (frameset-body-title fs))
         (ed-fs (element-location-depth fs))
         )
-    (labels ((select-link-style (i)
+    (declare (ignorable fs-order))
+    (labels (
+	     #| Commented to placate SBCL.  Note commemts below of actual usage.
+	     (select-link-style (i)
                (if (= i fs-order)
                    "navigation-link-selected"
                    "navigation-link"))
+	     |#
 
              (select-link-style-1 (fs-in-p)
                (if (eq fs fs-in-p)
@@ -1547,8 +1557,8 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 
 (defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
-  (format t "~&>>> Producing NAV MAP file ~S ~S ~S~2%"
-          fs nav-element nm-pathname doc-bits)
+  (format t "~&HELAMBDAP: producing NAV MAP file ~S ~S ~S~2%"
+          fs nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
     (with-open-file (nm nm-pathname
                         :direction :output
@@ -1700,7 +1710,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&>>>> produce-package-navigation-list ~S ~S ~S ~S~%"
+    (format t "~&HELAMBDAP: produce-package-navigation-list ~S ~S ~S ~S~%"
             fs
             (package-name pkg)
             (package-doc-bit-name pkg-doc-bit)
