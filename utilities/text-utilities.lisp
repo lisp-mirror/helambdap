@@ -64,7 +64,7 @@
 
 (defun sanitize-quotes-for-html (s &aux (sl (length s)))
   (declare (type string s)
-           (type fixnum s) ; Yeah!  This is wrong... la la la.
+           (type fixnum sl) ; Yeah!  This is wrong... la la la.
            )
   (with-output-to-string (r)
     (loop with skip = nil
