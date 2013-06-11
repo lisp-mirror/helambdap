@@ -57,6 +57,7 @@
                )
   :depends-on ("cl-fad"
                "SPLIT-SEQUENCE"
+               #+helambdap.version-using-MOP "CLOSER-MOP"
                #+helambdap.with-cxml "CXML"
                #+helambdap.with-ediware "CL-WHO"
                #+helambdap.with-ediware "HTML-TEMPLATE"
