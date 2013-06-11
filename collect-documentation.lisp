@@ -51,15 +51,14 @@
                                    *exclude-files*)
                                   &allow-other-keys
                                   )
-  (declare (ignore exclude-files))
-
   (let ((color-table (make-hash-table :test #'equal))
         (doc-bits ())
         (exclude-dir-names (mapcar #'directory-last-name *exclude-directories*))
         )
-    (labels ((is-grey (ntp) (eq :grey (gethash ntp color-table)))
+    (labels (
+	     ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
 
-             (is-black (ntp) (eq :black (gethash ntp color-table)))
+             ;; (is-black (ntp) (eq :black (gethash ntp color-table)))
 
              (is-white (ntp) (eq :white (gethash ntp color-table :white)))
 
@@ -67,7 +66,7 @@
 
              (blacken (ntp) (setf (gethash ntp color-table) :black))
 
-             (whiten (ntp) (setf (gethash ntp color-table) :white))
+             ;; (whiten (ntp) (setf (gethash ntp color-table) :white))
 
              (dfs (p)
                (let ((ntp (namestring (truename p))))
@@ -86,7 +85,7 @@
                               (dfs sd))
                             ))
                          (t ; A file.
-                          (format t "HELAMBDAP: [F]~%" p)
+                          (format t "HELAMBDAP: [F]~%")
                           (unless (member p *exclude-files* :test #'equal)
                             (setf doc-bits
                                   (nconc (extract-documentation p)
@@ -211,7 +210,7 @@
           ((stringp p-dir) p-dir)
           ((symbolp p-dir) (string p-dir))
           ((listp p-dir)
-           (let* ((p-dir-l (list-length p-dir)))
+           (let ((p-dir-l (list-length p-dir)))
              ;; Note that the result may be :wild, :wild-inferiors,
              ;; :up, :back, a symbol or a string.
              ;; It suffices for the purpose.
