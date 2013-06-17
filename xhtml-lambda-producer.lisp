@@ -575,7 +575,6 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;---------------------------------------------------------------------------
 ;;; Doc bits HTML production.
 
-
 ;;; Usual SBCL appeasement.
 
 #-sbcl
@@ -604,6 +603,145 @@ Each FRAMESET and FRAME is contained in a separate file.
         collect (<:p () par)))
 
 
+(defgeneric process-doc-string (s input-syntax output-format)
+  (:documentation
+   "Processes a 'doc string'.
+
+The processing is done (or rather a best effort is made to parse)
+according to a give 'input-syntax' and the result is built in a
+given 'output-format'."))
+
+
+(defun parse-doc-hyperspec-style (s)
+  (declare (type string s))
+  (let* ((syntax-header "Syntax:")
+         (shl (length syntax-header))
+         (args-n-values "Arguments and Values:")
+         (anvl (length args-n-values))
+         (description "Description:")
+         (dl (length description))
+         (examples "Examples:")
+         (el (length examples))
+         (affected-by "Affected By:")
+         (abl (length affected-by))
+         (see-also "See Also:")
+         (sal (length see-also))
+         (notes "Notes:")
+         (nl (length notes))
+         (pars (split-at-tex-paragraphs s))
+         )
+    ;; Assumes that the doc string follows the Hyperspec sectioning
+    ;; conventions. However, it ignores the 'Syntax:' section and it
+    ;; assumes that - at a minimum - everything is 'Description:'.
+
+    (loop ; with syntax-pars = ()
+;;;;           with args-n-values-pars = ()
+;;;;           with description-pars = ()
+;;;;           with examples-pars = ()
+;;;;           with affected-by-pars = ()
+;;;;           with see-also-pars = ()
+;;;;           with notes-pars = ()
+          with state = 'description
+          
+          for p in pars
+          for pl = (length p)
+          
+          do (format t ">>> ~A ~S~%" state p)
+          
+          if (string= p syntax-header :end1 (min pl shl))
+          do (setf state 'syntax-header)
+          else if (string= p args-n-values :end1 (min pl anvl))
+          do (setf state 'args-n-values)
+          else if (string= p description :end1 (min pl dl))
+          do (setf state 'description)
+          else if (string= p examples :end1 (min pl dl))
+          do (setf state 'examples)
+          else if (string= p affected-by :end1 (min pl abl))
+          do (setf state 'affected-by)
+          else if (string= p see-also :end1 (min pl sal))
+          do (setf state 'see-also)
+          else if (string= p notes :end1 (min pl nl))
+          do (setf state 'notes)
+          
+          else
+          
+          if (eq state 'syntax-header)
+          collect p into syntax-pars
+          
+          else if (eq state 'args-n-values)
+          collect p into args-n-values-pars
+          
+          else if (eq state 'description)
+          collect p into description-pars
+          
+          else if (eq state 'examples)
+          collect p into examples-pars
+          
+          else if (eq state 'affected-by)
+          collect p into affected-by-pars
+          
+          else if (eq state 'see-also)
+          collect p into see-also-pars
+          
+          else if (eq state 'notes)
+          collect p into notes-pars
+
+          ;; else collect p into description-pars ; ? Should I leave this?
+          end
+
+          finally
+          (return (values syntax-pars
+                          args-n-values-pars
+                          description-pars
+                          examples-pars
+                          affected-by-pars
+                          see-also-pars
+                          notes-pars))
+          )))
+
+
+(defmethod process-doc-string
+           ((s string)
+            (input-syntax (eql 'text/hyperspec))
+            (output-format (eql 'html)))
+  ;; Try to process Hyperspec-style.
+
+  (multiple-value-bind (syntax-pars
+                        args-n-values-pars
+                        description-pars
+                        examples-pars
+                        affected-by-pars
+                        see-also-pars
+                        notes-pars)
+      (parse-doc-hyperspec-style s)
+    (declare (ignore syntax-pars args-n-values-pars))
+    
+    (let ((elements ()))
+      (flet ((push-pars (subsection-header pars)
+               (when subsection-header
+                 (push (<:h2 () subsection-header) elements))
+               (dolist (par pars)
+                 (when (string/= "" par)
+                   (push (<:p () par) elements))))
+             )
+        (push-pars nil description-pars)
+
+        (when examples-pars
+          (push (<:h2 () "Examples:") elements)
+          (push (<:pre () (sanitize-string-for-html
+                           (format nil "~{~A~2%~}" examples-pars)))
+                elements))
+
+        (push-pars (and affected-by-pars "Affected By:") affected-by-pars)
+
+        (push-pars (and see-also-pars "See Also:") see-also-pars)
+    
+        (push-pars (and notes-pars "Notes:") notes-pars)
+
+        (nreverse elements)
+        ))))
+
+
 (defun dump-doc-bit-html (n str-tag doc-string out)
   (let ((name (string-downcase n)))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
@@ -615,8 +753,10 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
           (<:h2 "Package: ")
           (<:p (package-name (symbol-package n)))
-          (<:h2 "Description:") (paragraphize-doc-string doc-string))
-         ))))
+          (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html)
+          )))))
 
 
 
@@ -669,8 +809,10 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:h1 (<:i "Package ") (<:strong name))
           (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
           (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
-          (<:h2 "Description:") (paragraphize-doc-string doc-string))
-         ))))
+          (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html)
+         )))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -693,7 +835,10 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:h2 "Depends on:")
           (<:p (mapcar (lambda (d) (<:i () d))
                        (system-doc-bit-depends-on doc-bit)))
-          (<:h2 "Description:") (paragraphize-doc-string doc-string))
+          (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html)
+          )
          ))))
 
 
@@ -771,8 +916,85 @@ Each FRAMESET and FRAME is contained in a separate file.
                             :syntax :compact))))
 
             (<:h2 "Description:")
-            (paragraphize-doc-string doc-string))
-           )))))
+            ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
+           ))))))
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit macro-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let* ((db-name (doc-bit-name doc-bit))
+         (name (format nil "~(~A~)" db-name))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         (ll (parameterized-doc-bit-lambda-list doc-bit))
+         )
+    (labels ((render-lambda-list (ll) ; Rather kludgy. Should dig out
+                                      ; proper lambda list parsing.
+               (loop with state = t
+                     for lle in ll
+                     if (member lle +lambda-list-kwds+ :test #'eq)
+                       collect (<:span (:style "color: blue") (string lle))
+                     else if (symbolp lle)
+                       collect (<:i () lle)
+                     else if (and (eq state t) (consp lle)) ; This is
+                                                            ; not fully correct either.
+                       collect (render-lambda-list lle)
+                     else if (consp lle)
+                       collect (format nil "(~{<i>~A</i>~^ ~})" lle)
+                     else
+                       collect (<:i () lle)
+                     end
+                     do (case lle
+                          (&optional (setf state '&optional))
+                          (&key (setf state '&key))
+                          (&aux (setf state '&aux))
+                          (&rest (setf state '&rest))
+                          ((&whole &environment) (setf state t)) ; Other kludge!
+                          )
+                     ))
+             )
+      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+          (<:document
+           (<:head
+            (<:title documentation-title ": " kind name)
+            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+
+           (<:body
+            (<:h1 (<:i kind) (<:strong name))
+
+            (<:h2 "Package: ")
+            (<:p (<:code (package-name (doc-bit-package doc-bit))))
+
+            (<:h2 "Syntax:")
+            (<:p
+             (<:pre
+              (format nil
+                      "~&    ~A~A~%"
+                      (<:b () (<:span (:style "color: red") (<:strong () name)))
+                      (format nil "~{ ~A~}" (render-lambda-list ll)))))
+
+            (when ll
+              (<:div ()
+                     (<:h3 () "Arguments and Values:")
+                     (loop for arg in ll
+                           unless (member arg +lambda-list-kwds+ :test #'eq)
+                           collect
+                           (<:p () (<:i () (<:code () (arg-name arg)))
+                                "---"
+                                "a T." ; To be FIXED.
+                                )
+                           )))
+
+            (<:h2 "Description:")
+            ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
+           ))))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -816,8 +1038,9 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:p (<:code value-presented))
 
            (<:h2 "Description:")
-           (paragraphize-doc-string doc-string)))
-         ))))
+           ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
+         ))))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -873,8 +1096,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                         sv type read-only)))))
                  ))
            (<:h2 "Description:")
-           (paragraphize-doc-string doc-string)))
-         ))))
+           ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
+         ))))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -940,8 +1164,9 @@ Each FRAMESET and FRAME is contained in a separate file.
               :syntax :compact))
             
            (<:h2 "Description:")
-           (paragraphize-doc-string doc-string)))
-         ))))
+           ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
+         ))))))
        
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1021,7 +1246,8 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:p (<:strong name)
                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
             (<:h2 "Description:")
-            (paragraphize-doc-string doc-string)
+            ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
            
             (<:h3 "Known Methods:")
             (<:ul
@@ -1282,7 +1508,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                 (<:p () (<:i () (<:code () "result")) "--- a T."))
 
             (<:h2 "Description:")
-            (paragraphize-doc-string doc-string)
+            ;; (paragraphize-doc-string doc-string)
+            (process-doc-string doc-string 'text/hyperspec 'html)
            
 
             (let ((known-methods-els (render-known-methods name doc-bit))
