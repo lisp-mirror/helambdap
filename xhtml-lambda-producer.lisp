@@ -2,10 +2,10 @@
 
 ;;;; xhtml-producer.lisp --
 ;;;; Make a file out of a DOCUMENTATION-STRUCTURE and a set (list) of
-;;;; DOC-BITs, using a (X)HTML outout format.
+;;;; DOC-BITs, using a (X)HTML output format.
 
 (in-package "HELAMBDAP")
-;(use-package "XHTMLAMBDA")
+
 
 ;;;;===========================================================================
 ;;;; Prologue.
@@ -177,9 +177,10 @@ Each FRAMESET and FRAME is contained in a separate file.
         (sfn (style-file-name structure))
         )
     (cl-fad:copy-file sfn
-                      (make-pathname :directory (pathname-directory doc-directory)
-                                     :name (pathname-name sfn)
-                                     :type (pathname-type sfn))
+                      (make-pathname
+                       :directory (pathname-directory doc-directory)
+                       :name (pathname-name sfn)
+                       :type (pathname-type sfn))
                       :overwrite t)
     ))
 
@@ -227,21 +228,6 @@ Each FRAMESET and FRAME is contained in a separate file.
               structure
               destination-path)
         )))
-
-
-#|
-(defmethod produce-documentation ((format (eql 'html))
-                                  (fss framesets)
-                                  (where pathname)
-                                  doc-bits)
-  (let ((ds (element-doc-structure fss))
-        (fs-order -1)
-        )
-    (dolist (fs (framesets-list fss))
-      (let ((e (gethash fs (structure-table ds))))
-        (when (frameset-p e)
-          (setf (frameset-order e) (incf fs-order)))))))
-|#
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -337,12 +323,6 @@ Each FRAMESET and FRAME is contained in a separate file.
                                            doc-bits)
                     (produce-frame format fs-content fs-file)
                     )
-                  #|
-                   (<:frame (:src (base-name
-                                   (make-pathname
-                                    :type *default-html-extension*
-                                    :name (element-name structure)))))
-                   |#
                   (<:frame (:name (format nil "~A_frame" (element-name structure))
                             :frameborder 0))
                   )
@@ -382,7 +362,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys)
   (declare (ignorable documentation-title))
-  (<:frame (:src (frame-source element) :name (frame-name element) :frameborder 0)))
+  (<:frame (:src (frame-source element)
+            :name (frame-name element)
+            :frameborder 0))) 
                                   
 
 (defmethod produce-frame ((format (eql 'html))
@@ -397,8 +379,12 @@ Each FRAMESET and FRAME is contained in a separate file.
                           (element file-set)
                           (where stream)
                           )
-  (<:frame (:src (concatenate 'string (file-set-name element) "." *default-html-extension*)
-            :name (concatenate 'string (file-set-name element) "_frame")
+  (<:frame (:src (concatenate 'string
+                              (file-set-name element) "."
+                              *default-html-extension*) 
+            :name (concatenate 'string
+                               (file-set-name element)
+                               "_frame") 
             :frameborder 0
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
@@ -526,13 +512,6 @@ Each FRAMESET and FRAME is contained in a separate file.
                                doc-bit
                                doc-bit-stream
                                doc-bits))))
-                           
-  #|
-  (<:frame (:src (concatenate 'string (file-set-name structure) "." *default-html-extension*)
-            :name (concatenate 'string (file-set-name structure) "_frame")
-            )
-           ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
-           )|#
   )
 
 
@@ -571,6 +550,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:comment "end of file : " (file-set-name file-set)))
           ))
     ))
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Doc bits HTML production.
@@ -634,14 +614,7 @@ given 'output-format'."))
     ;; conventions. However, it ignores the 'Syntax:' section and it
     ;; assumes that - at a minimum - everything is 'Description:'.
 
-    (loop ; with syntax-pars = ()
-;;;;           with args-n-values-pars = ()
-;;;;           with description-pars = ()
-;;;;           with examples-pars = ()
-;;;;           with affected-by-pars = ()
-;;;;           with see-also-pars = ()
-;;;;           with notes-pars = ()
-          with state = 'description
+    (loop with state = 'description
           
           for p in pars
           for pl = (length p)
@@ -1064,7 +1037,8 @@ given 'output-format'."))
 
           (<:head
            (<:title kind (string-downcase name))
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+           (<:link :rel "stylesheet"
+                   :href (namestring *helambdap-css-filename-up*))) 
           (<:body
            (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
@@ -1072,7 +1046,9 @@ given 'output-format'."))
            (<:p (<:code (package-name (symbol-package name))))
 
            (<:h2 "Class Precedence List:")
-           (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T" name include))
+           (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
+                        name
+                        include))
 
            (<:h2 "Slots:")
            (<:p (<:dl
@@ -1304,21 +1280,6 @@ given 'output-format'."))
                    collect (<:i () lle))
              )
 
-#|
-           (pre-format-syntax-entry (name ll)
-             (let ((*print-right-margin* 80))
-               (format nil
-                       (concatenate 'string
-                                    "~A~<"
-                                    (format nil "~A"
-                                            (make-string (length name)
-                                                         :initial-element #\Space))
-                                    "~;~@{ ~W~_~}~:>")
-                       (<:span (:style "color: red") (<:strong () name))
-                       (render-lambda-list ll))
-               ))|#
-
-
            (pre-format-syntax-entry (name ll)
              (let ((*print-right-margin* 75))
                (format nil
@@ -1326,52 +1287,6 @@ given 'output-format'."))
                        (<:span (:style "color: red") (<:strong () name))
                        (render-lambda-list ll))
                ))
-
-           #|
-           (render-known-methods (name doc-bit)
-             (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                   for (specializers other) = (method-signature mdb)
-                   for mdb-doc = (doc-bit-doc-string mdb)
-                   collect (<:htmlise (:syntax :compact)
-                            (<:li
-                             (<:p
-                              (<:pre
-                               (format nil
-                                       "  ~A~A~A~A"
-                                       (<:strong () name)
-                                       (format nil "~@[~{~A~^ ~}]~]" (method-doc-bit-qualifiers mdb))
-                                       (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                       (format nil "~{ ~A~}" (render-lambda-list other)))))
-                             (when mdb-doc
-                               (<:p ()  mdb-doc))))
-                   ))|#
-           #|
-           (render-known-methods (name doc-bit)
-             (let ((*print-right-margin* 80))
-               (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                     for (specializers other) = (method-signature mdb)
-                     for mdb-doc = (doc-bit-doc-string mdb)
-                     for qualfs = (method-doc-bit-qualifiers mdb)
-                     collect (<:htmlise (:syntax :compact)
-                                 (<:li
-                                  (<:p
-                                   (<:pre
-                                    (let ((*print-right-margin* 70)
-                                          (*print-pretty* t)
-                                          )
-                                      (format nil
-                                              "  ~@<~A~@/pprint-linear/~-8I~@/pprint-linear/~:>"
-                                              (<:strong () name)
-                                              qualfs
-                                              (nconc
-                                               (loop for s in specializers
-                                                     collect (<:i () s))
-                                               (render-lambda-list other))
-                                              ))))
-                                  (when mdb-doc
-                                    (<:p ()  mdb-doc)))
-                                 ) ; <:li
-                     )))|#
 
            (bypass-pprint (s e &optional (colon-p t) at-sign-p)
              (declare (ignore colon-p at-sign-p))
@@ -1434,20 +1349,6 @@ given 'output-format'."))
                                           (write-string "&rarr; " pre-string)
                                           (write-string "<i>result</i>" pre-string)
                                           )))
-                                      #|
-                                      (format nil
-                                              "  [1~@<[2~@<~/helambdap::bypass-pprint/~
-                                                      ~@[*[3~@<~@{ ~/helambdap::bypass-pprint/~^~_~}~:>3]~]2]~:>~
-                                                      ~@[~_~-10I~@{ ~/helambdap::bypass-pprint/~^~_~}~]~:>1]"
-                                              (<:strong () name)
-                                              ;qualfs
-                                              (list :around :before)
-                                              (nconc
-                                               (loop for s in specializers
-                                                     collect (<:i () s))
-                                               (render-lambda-list other))
-                                              )
-                                      |#
                                     )) ; <:/pre <:/p
                                   (when mdb-doc
                                     (<:p ()  mdb-doc))
@@ -1477,11 +1378,6 @@ given 'output-format'."))
 
             (<:h2 "Syntax:")
             (<:p
-             #|
-             (<:pre (format nil "~&    ~A~A~%"
-                            (<:b () (<:span (:style "color: red") (<:strong () name)))
-                            (format nil "~{ ~A~}" (render-lambda-list ll))))
-             |#
              (<:pre (pre-format-syntax-entry name ll)
                     ))
 
@@ -1675,44 +1571,6 @@ given 'output-format'."))
       ))
   )
 
-#|
-#+original
-(defmethod produce-navigation-file ((fs frameset)
-                                    (nav-element file-set)
-                                    nav-pathname
-                                    doc-bits
-                                    documentation-title)
-  (declare (type pathname nav-pathname))
-  (declare (ignorable documentation-title))
-
-  (let ((fs-order (frameset-order fs))
-        (fs-head-title (frameset-head-title fs))
-        (fs-body-title (frameset-body-title fs))
-        )
-    (declare (ignore fs-order fs-body-title))
-
-    (with-open-file (ns nav-pathname
-                        :direction :output
-                        :if-exists :supersede
-                        :if-does-not-exist :create)
-      (<:with-html-syntax (ns :print-pretty t)
-          (<:htmlize
-           (<:document
-            (<:comment (base-name nav-pathname))
-            +doctype-frameset-control-string+
-            (<:html
-             (<:head
-              (<:title fs-head-title)
-              (<:link :rel "stylesheet" :href (frameset-style fs)))
-
-             (<:body
-              (<:ul))
-             ))
-           :syntax :compact))
-      ))
-  )
-|#
-
 
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element file-set)
@@ -1833,11 +1691,14 @@ given 'output-format'."))
                 (list
                  (<:h4 () "Systems")
                  (<:div ()
-                        (loop for s in (remove-duplicates syss
-                                                          :test
-                                                          (lambda (s1 s2)
-                                                            (and (not (eq (type-of s1) (type-of s2)))
-                                                                 (string-equal (doc-bit-name s1) (doc-bit-name s2)))))
+                        (loop for s in (remove-duplicates
+                                        syss
+                                        :test
+                                        (lambda (s1 s2)
+                                          (and (not (eq (type-of s1)
+                                                        (type-of s2)))
+                                               (string-equal (doc-bit-name s1)
+                                                             (doc-bit-name s2)))))
                               ;; The above is kludgy!  It is meant to
                               ;; remove duplicate systems assuming
                               ;; that different kinds of systems are
@@ -2083,7 +1944,7 @@ given 'output-format'."))
     ))
 
 
-#|
+#| Exmple...
 <!-- header.html -->
 
 <!DOCTYPE HTML PUBLIC
