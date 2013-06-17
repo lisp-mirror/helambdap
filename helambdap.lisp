@@ -68,6 +68,7 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 
 (defmethod save-doc-bits-db ((f pathname)
                              &optional (db *doc-bits-db*))
+  (ensure-directories-exist f)
   (with-open-file (out f
                        :direction :output
                        :if-exists :supersede

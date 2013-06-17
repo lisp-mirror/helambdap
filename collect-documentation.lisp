@@ -30,7 +30,7 @@
 
 
 (defparameter *exclude-directories*
-  (list #P".git/" #P"CVS/" #P"svn/"))
+  (list #P".git/" #P"CVS/" #P"svn/" #P"tmp/"))
 
 (defparameter *exclude-files*
   ())
@@ -71,25 +71,27 @@
              (dfs (p)
                (let ((ntp (namestring (truename p))))
                  (when (is-white ntp)
-                   (format t "~&HELAMBDAP: Considering ~S " p)
+                   (format t "~&HELAMBDAP: Considering ~10A " p)
                    (grey ntp)
                    (cond ((cl-fad:directory-pathname-p p)
-                          (format t "HELAMBDA: [D]~%")
-                          (unless (member (directory-last-name p)
-                                          exclude-dir-names
-                                          :test #'string-equal)
-
-                            (dolist (f (directory-source-files p))
-                              (dfs f))
-                            (dolist (sd (subdirectories p))
-                              (dfs sd))
+                          (format t "[D]")
+                          (if (member (directory-last-name p)
+                                      exclude-dir-names
+                                      :test #'string-equal)
+                              (format t " excluded.~%")
+                              (progn
+                                (dolist (f (directory-source-files p))
+                                  (dfs f))
+                                (dolist (sd (subdirectories p))
+                                  (dfs sd)))
                             ))
                          (t ; A file.
-                          (format t "HELAMBDAP: [F]~%")
-                          (unless (member p *exclude-files* :test #'equal)
-                            (setf doc-bits
-                                  (nconc (extract-documentation p)
-                                         doc-bits))))
+                          (format t "[F]")
+                          (if (member p *exclude-files* :test #'equal)
+                              (format t " excluded.~%")
+                              (setf doc-bits
+                                    (nconc (extract-documentation p)
+                                           doc-bits))))
                          )
                    (blacken ntp))
                  ))
@@ -165,7 +167,7 @@
             (variable-doc-bit (put-in variables))
             (class-doc-bit (put-in classes))
             (struct-doc-bit (put-in structs))
-            (type-doc-bit (put-in types))
+            ((or type-doc-bit deftype-doc-bit) (put-in types))
             (condition-doc-bit (put-in conditions))
             (generic-function-doc-bit (put-in generic-functions))
             (method-doc-bit (put-in methods))

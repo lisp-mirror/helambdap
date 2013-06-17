@@ -184,7 +184,9 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       form
     (declare (ignore defmacro))
     (make-macro-doc-bit :name name
-                        :kind 'function
+                        :kind 'macro ; This breaks the rule.  There is
+                                     ; no MACRO in the
+                                     ; CL:DOCUMENTATION reference.
                         :lambda-list ll
                         :doc-string (extricate-doc-string forms))))
 
@@ -281,11 +283,14 @@ T). Only top-level occurrences of these forms are considered.")
           (make-package pkg-name))))))
 
 
+(defmethod extract-form-documentation ((fk (eql 'in-package)) (form cons))
+  nil)
+
+
 (defmethod extract-form-documentation :after ((fk (eql 'in-package)) (form cons))
   (let ((pkg (find-package (second form))))
     (when pkg
       (setf *current-package* pkg))))
-
 
 
 (defmethod extract-form-documentation ((fk (eql 'defmethod)) (form cons))

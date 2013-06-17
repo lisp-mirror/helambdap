@@ -144,7 +144,10 @@ The structure of a documentation bit."
 (defstruct (type-doc-bit (:include doc-bit (kind-tag "Type"))))
 
 
-(defstruct (deftype-doc-bit (:include parameterized-doc-bit (kind-tag "Type"))))
+;;; Need multiple inheritance!
+
+(defstruct (deftype-doc-bit
+            (:include parameterized-doc-bit (kind-tag "Type"))))
 
 
 (defstruct (slotted-doc-bit (:include type-doc-bit) (:constructor nil))

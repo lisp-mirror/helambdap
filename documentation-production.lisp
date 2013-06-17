@@ -97,6 +97,8 @@ can be used as building blocks for the final documentation."))
                   *exclude-directories*)
                  ((:exclude-files *exclude-files*)
                   *exclude-files*)
+
+                 (clear-documentation-db :before)
                  
                  &allow-other-keys
                  )
@@ -110,12 +112,19 @@ parameters, in particular the output FORMAT (which defaults to HTML)."
            documentation files regardless of the value of other 'limiting' ~@
            variables."))
 
-  (build-documentation for-what
-                       format
-                       :layout layout
-                       :source source
-                       :destination destination
-                       :documentation-title documentation-title))
+  (when (member clear-documentation-db '(t :before))
+    (clear-doc-bits-db))
+
+  (prog1
+      (build-documentation for-what
+                           format
+                           :layout layout
+                           :source source
+                           :destination destination
+                           :documentation-title documentation-title)
+
+    (when (member clear-documentation-db '(t :after))
+      (clear-doc-bits-db))))
 
 
 ;;;;---------------------------------------------------------------------------
