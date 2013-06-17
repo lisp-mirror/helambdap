@@ -363,6 +363,16 @@ that include ELEMENT."))
 ;;;---------------------------------------------------------------------------
 ;;; Texinfo documentation structure.
 
+(defstruct (texinfo-file (:include element)
+                         (:constructor %make-texinfo-file))
+  (location #P"./" :type (or pathname string))
+  (contents () :type list)
+  )
+
+
+(defun texinfo-file (name &rest contents)
+  (initialize-element (%make-texinfo-file :name name :contents contents)))
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Implementation.
@@ -494,7 +504,10 @@ A minimal documentation structure that contains only the main index
 (defparameter *texinfo-documentation-structure*
   (make-documentation-structure
    "texinfo"
-   "top")
+   "top"
+   (texinfo-file "top"
+                 (doc-file "introduction")
+                 (file-set "dictionary-entries")))
   "The Texinfo documentation structure.")
 
 
