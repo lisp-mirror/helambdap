@@ -17,6 +17,7 @@
                              (:file "time-utilities")
                              (:file "streams-utilities")
                              (:file "symbols-utilities")
+                             (:file "lambda-list-parsing")
                              ))
                (:file "naming")
                (:file "doc-bit" :depends-on ("naming"))
