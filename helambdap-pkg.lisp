@@ -15,7 +15,9 @@
   (:shadow "FRAMESET" "FRAME")
   ;; (:shadowing-import-from "XHTMLAMBDA" "MAP" "TIME")
 
-  (:export "DOCUMENT")
+  (:export
+   "DOCUMENT"
+   "RESULTS")
   (:documentation "The HELambdaP Package.
 
 The package containing the implementation of the 'semi-offline'
