@@ -25,7 +25,8 @@
                (:file "helambdap")
                (:file "collect-documentation")
                (:file "doc-structure")
-               (:file "documentation-production")
+               (:file "documentation-production"
+                :depends-on ("impl-dependent"))
 
                (:file "xhtml-common-definitions")
 
@@ -54,6 +55,12 @@
 		:components (
 			     #+lispworks
 			     (:file "lispworks")
+			     #+sbcl
+                             (:file "sbcl")
+                             #+asdf
+                             (:file "asdf-deps")
+                             #+mk-defsystem
+                             (:file "mk-deps")
 			     ))
                )
   :depends-on ("cl-fad"
