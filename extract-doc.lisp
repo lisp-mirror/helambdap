@@ -4,6 +4,28 @@
 
 (in-package "HELAMBDAP")
 
+
+;;; RETURNS special declaration.
+;;; The RETURNS declaration can be used to declare (and document) the
+;;; values returned by a 'function'.
+;;; The syntax is
+;;;
+;;;    results-decl ::= '('RETURNS rdecls')'
+;;;    rdecls       ::= ()
+;;;                 |   rdecl rdecls
+;;;    rdecl        ::= type
+;;;                 |   '(' doc-string type optname ')'
+;;;    type         ::= a CL type
+;;;    doc-string   ::= a string
+;;;    optname      ::= a symbol
+;;;
+;;; Only the first declaration is considered.  The others are ignored.
+
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  (proclaim '(declaration returns))
+  )
+
+
 ;;; extract-documentation --
 
 (defgeneric extract-documentation (where-from)
@@ -170,7 +192,7 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       form
     (declare (ignore defun))
     (let* ((decls (collect-declarations forms))
-           (values-decl (find 'values (mapcan #'rest decls) :key #'first))
+           (values-decl (find 'returns (mapcan #'rest decls) :key #'first))
            )
       (make-function-doc-bit :name name
                              :kind 'function
@@ -239,7 +261,7 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       form
     (declare (ignore defgeneric))
     (let* ((decls (collect-declarations options-and-methods)) ; This is essentially wrong.  It should return NIL (almost) always.
-           (values-decl (find 'values (mapcan #'rest decls) :key #'first))
+           (values-decl (find 'returns (mapcan #'rest decls) :key #'first))
            )
       (make-generic-function-doc-bit :name name
                                      :kind 'function
@@ -374,7 +396,11 @@ T). Only top-level occurrences of these forms are considered.")
                        nconc (build-doc-for-single-slot-fns s nil t)
                        else
                        nconc
-                       (destructuring-bind (sn vf &key read-only type &allow-other-keys)
+                       (destructuring-bind (sn vf
+                                               &key
+                                               read-only
+                                               (type t)
+                                               &allow-other-keys)
                            s
                          (declare (ignore vf))
                          (build-doc-for-single-slot-fns sn read-only type))))
@@ -419,16 +445,20 @@ T). Only top-level occurrences of these forms are considered.")
                  )
 
                (build-default-constructor-doc-bit ()
-                 (make-function-doc-bit
-                  :name (intern default-constructor-name
-                                (symbol-package name))
-                  :kind 'function
-                  :lambda-list (cons '&key
-                                     (extract-slot-names slots))
-                  :values (list name)
-                  :doc-string
-                  (format nil "A constructor for the structure ~A." name)
-                  ))
+                 (let ((sns (extract-slot-names slots)))
+                   (make-function-doc-bit
+                    :name (intern default-constructor-name
+                                  (symbol-package name))
+                    :kind 'function
+                    :lambda-list (if sns
+                                     (cons '&key
+                                           (extract-slot-names slots))
+                                     ()
+                                     )
+                    :values (list name)
+                    :doc-string
+                    (format nil "A constructor for the structure ~A." name)
+                    )))
 
                (build-doc-for-constructors (opts)
                  (let ((constructor-opts
