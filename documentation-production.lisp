@@ -85,7 +85,7 @@ can be used as building blocks for the final documentation."))
                  (layout *default-documentation-structure*)
                  (source #P"")
                  (destination 
-                  (make-pathname :directory '(:relative "doc" "html")))
+                  (make-pathname :directory '(:relative "docs" "html")))
 
                  ((:supersede *supersede-documentation*)
                   *supersede-documentation*)
@@ -105,7 +105,28 @@ can be used as building blocks for the final documentation."))
   "Produces the documentation for something.
 
 The function is a wrapper for BUILD-DOCUMENTATION defaulting a few
-parameters, in particular the output FORMAT (which defaults to HTML)."
+parameters, in particular the output FORMAT (which defaults to HTML).
+
+Arguments and Values:
+
+FOR-WHAT --- what to document; can be a pathname or a 'system' (*).
+DOCUMENTATION-TITLE --- a STRING which will appear as the documentation title.
+FORMAT --- a SYMBOL designating the desired kind of output.
+DESTINATION --- a (directory) PATHANME where the documentation will be produced.
+ONLY-DOCUMENTED --- a BOOLEAN: whether to produce documentation only for documented items.
+ONLY-EXPORTED --- a BOOLEAN: whether to produce documentation only for 'exported' items.
+EVERYTHING --- a BOOLEAN: whether to produce documentation for everython, no matter what.
+EXCLUDE-DIRECTORIES --- a LIST of directory pathnames not to be considered.
+EXCLUDE-FILES --- a list of FILES not to be considered.
+CLEAR-DOCUMENTATION-DB --- a KEYWORD stating if and when the documentation db should be cleared.
+
+Notes:
+
+(*) At the time of this writing, ASDF and MK-DEFSYSTEM are supported.
+
+The arguments SOURCE and SUPERSEDE are, at the time of this writing,
+effectively ignored.
+"
   
   (when (and *everything* (or *only-documented* *only-exported*))
     (warn "EVERYTHNG is currently true: HELAMBDAP will produce all ~@
@@ -137,15 +158,78 @@ parameters, in particular the output FORMAT (which defaults to HTML)."
                                 (layout *default-documentation-structure*)
                                 (source #P".")
                                 (destination
-                                 (make-pathname :directory '(:relative "doc" "html")))
+                                 (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
+  (declare (ignore source))
+
+  "Builds the documentation given a PATHNAME.
+
+The pathname P can either denote a file or a folder.  If i is a folder
+then it is recursively traversed.
+
+See Also:
+
+collect-documentation.
+"
+  (when documentation-title
+    (setf (property layout :documentation-title) documentation-title))
+
+  (let ((doc-bits (collect-documentation p)))
+    (produce-documentation format
+                           layout
+                           destination
+                           doc-bits
+                           :documentation-title documentation-title))
+  )
+
+
+#+asdf
+(defmethod build-documentation ((s asdf:system)
+                                (format (eql 'html))
+                                &key
+                                (documentation-title)
+                                (layout *default-documentation-structure*)
+                                (source #P".")
+                                (destination
+                                 (make-pathname :directory '(:relative "docs" "html")))
+                                &allow-other-keys
+                                )
+  "Builds the documentation for a ASDF system."
   (declare (ignore source))
 
   (when documentation-title
     (setf (property layout :documentation-title) documentation-title))
 
-  (let ((doc-bits (collect-documentation p)))
+  (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
+    (produce-documentation format
+                           layout
+                           destination
+                           doc-bits
+                           :documentation-title documentation-title))
+  )
+
+
+#+mk-defsystem
+(defmethod build-documentation ((s mk::component)
+                                (format (eql 'html))
+                                &key
+                                (documentation-title)
+                                (layout *default-documentation-structure*)
+                                (source #P".")
+                                (destination
+                                 (make-pathname :directory '(:relative "docs" "html")))
+                                &allow-other-keys
+                                )
+  "Builds the documentation for a MK-DEFSYSTEM system."
+  (declare (ignore source))
+
+  (assert (eq :defsystem (mk::component-type s)))
+
+  (when documentation-title
+    (setf (property layout :documentation-title) documentation-title))
+
+  (let ((doc-bits (collect-documentation (mapcar #'pathname (mk:files-in-system s)))))
     (produce-documentation format
                            layout
                            destination
