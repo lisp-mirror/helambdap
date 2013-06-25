@@ -38,6 +38,12 @@
         s)))
 
 
+(defun split-all-lines (strings)
+  (mapcan (lambda (s)
+            (split-sequence:split-sequence #\Newline s))
+          strings))
+
+
 (defun split-lines-for-html (s)
   (loop with lines = (split-sequence:split-sequence #\Newline s)
         for l in (rest lines)
