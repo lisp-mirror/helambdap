@@ -61,11 +61,16 @@
   )
 
 
-(declaim (inline lli-name))
+(declaim (inline lli-name llv-name))
 
 (defun lli-name (lli)
   (declare (type lambda-list-item lli))
   (lli-item lli))
+
+
+(defun llv-name (lli)
+  (declare (type lambda-list-item lli))
+  (llv-item lli))
 
 
 (defstruct (ordinary-lambda-list
@@ -164,10 +169,10 @@
     (declare (ignore wholevar envvar bodyvar))
     (make-ordinary-lambda-list reqvars
                                optvars
-                               keyvars
                                restvar
-                               auxvars
+                               keyvars
                                (not (null allow-other-keys))
+                               auxvars
                                )))
 
 
@@ -185,10 +190,10 @@
     (declare (ignore wholevar envvar bodyvar))
     (make-specialized-lambda-list reqvars
                                   optvars
-                                  keyvars
                                   restvar
-                                  auxvars
+                                  keyvars
                                   (not (null allow-other-keys))
+                                  auxvars
                                   )))
 
 
@@ -206,10 +211,10 @@
     (declare (ignore wholevar envvar bodyvar))
     (make-specialized-lambda-list reqvars
                                   optvars
-                                  keyvars
                                   restvar
-                                  auxvars
+                                  keyvars
                                   (not (null allow-other-keys))
+                                  auxvars
                                   )))
 
 
@@ -227,10 +232,10 @@
     (declare (ignore wholevar envvar bodyvar))
     (make-destructuring-lambda-list reqvars
                                     optvars
-                                    keyvars
                                     restvar
-                                    auxvars
+                                    keyvars
                                     (not (null allow-other-keys))
+                                    auxvars
                                     )))
 
 
@@ -249,11 +254,11 @@
                             envvar
                             reqvars
                             optvars
-                            keyvars
                             restvar
                             bodyvar
-                            auxvars
+                            keyvars
                             (not (null allow-other-keys))
+                            auxvars
                             )))
 
 
