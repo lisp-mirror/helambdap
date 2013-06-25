@@ -17,7 +17,11 @@
 
   (:export
    "DOCUMENT"
-   "RESULTS")
+   "RESULTS"
+
+   "BUILD-DOCUMENTATION"
+   "PRODUCE-DOCUMENTATION"
+   )
   (:documentation "The HELambdaP Package.
 
 The package containing the implementation of the 'semi-offline'
