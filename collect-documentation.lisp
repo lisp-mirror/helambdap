@@ -37,7 +37,19 @@
 
 ;;;;===========================================================================
 ;;;; Collection.
-;;;; Essentially a directory traversal.  DFS with 'nodes' being
+
+(defmethod collect-documentation ((pathname-list list)
+                                  &key
+                                  ((:exclude-directories *exclude-directories*)
+                                   *exclude-directories*)
+                                  ((:exclude-files *exclude-files*)
+                                   *exclude-files*)
+                                  &allow-other-keys)
+  (declare (special *exclude-directories* *exclude-files*))
+  (mapcan #'collect-documentation pathname-list))
+  
+
+;;;; The next is essentially a directory traversal.  DFS with 'nodes' being
 ;;;; pathanmes indexed on the namestring.
 ;;;;
 ;;;; CL-FAD:WALK-DIRECTORY does not do a proper DFS with links on some
