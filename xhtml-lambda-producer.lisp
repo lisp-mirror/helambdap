@@ -3,6 +3,8 @@
 ;;;; xhtml-producer.lisp --
 ;;;; Make a file out of a DOCUMENTATION-STRUCTURE and a set (list) of
 ;;;; DOC-BITs, using a (X)HTML output format.
+;;;;
+;;;; See file COPYING for copyright and licensing information.
 
 (in-package "HELAMBDAP")
 
@@ -142,7 +144,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 (defparameter *xhtml-indent* 4) ; 4 is the actual initial value.
 
-(defparameter *formatted-section-right-margin* 80)
+(defparameter *formatted-section-right-margin* 256)
 
 
 ;;;;===========================================================================
@@ -371,7 +373,12 @@ Each FRAMESET and FRAME is contained in a separate file.
                           (element doc-file)
                           (where stream)
                           )
-  (<:frame (:src (namestring (file-pathname element)) :frameborder 0)
+  (<:frame (:src (namestring (file-pathname element))
+            :name (concatenate 'string
+                               (pathname-name
+                                (file-pathname element))
+                               "_frame")
+            :frameborder 0)
            (<:comment () "FRAME " (element-name element))))
 
 
@@ -583,7 +590,12 @@ Each FRAMESET and FRAME is contained in a separate file.
         collect (<:p () par)))
 
 
-(defgeneric process-doc-string (s input-syntax output-format)
+(defgeneric process-doc-string (s input-syntax output-format
+                                  &optional
+                                  args-n-values-p
+                                  lambda-list
+                                  result-p
+                                  returns-decl)
   (:documentation
    "Processes a 'doc string'.
 
@@ -619,7 +631,7 @@ given 'output-format'."))
           for p in pars
           for pl = (length p)
           
-          do (format t ">>> ~A ~S~%" state p)
+          ;; do (format t ">>> ~A ~S~%" state p)
           
           if (string= p syntax-header :end1 (min pl shl))
           do (setf state 'syntax-header)
@@ -627,7 +639,7 @@ given 'output-format'."))
           do (setf state 'args-n-values)
           else if (string= p description :end1 (min pl dl))
           do (setf state 'description)
-          else if (string= p examples :end1 (min pl dl))
+          else if (string= p examples :end1 (min pl el))
           do (setf state 'examples)
           else if (string= p affected-by :end1 (min pl abl))
           do (setf state 'affected-by)
@@ -664,7 +676,7 @@ given 'output-format'."))
 
           finally
           (return (values syntax-pars
-                          args-n-values-pars
+                          (split-all-lines args-n-values-pars)
                           description-pars
                           examples-pars
                           affected-by-pars
@@ -673,10 +685,35 @@ given 'output-format'."))
           )))
 
 
+(defun process-arg-n-value-pars (anv-pars)
+  (let ((descrs ()))
+    (dolist (p (split-all-lines anv-pars) (nreverse descrs))
+      (unless (string= "" p)
+        (let ((sep-pos (or (search "---" p :test #'char=)
+                           (search " : " p :test #'char=))))
+          (if sep-pos
+              (let ((arg (string-right-trim '(#\Space #\Tab)
+                                            (subseq p 0 sep-pos)))
+                    (arg-desc (string-left-trim '(#\Space #\Tab)
+                                                (subseq p (+ sep-pos 3))))
+                    )
+                (push (<:li (:style "list-style-type: none")
+                            (<:i () arg) " : " arg-desc)
+                      descrs))
+              (push (<:p () p) descrs))
+          )))))
+
+
 (defmethod process-doc-string
            ((s string)
             (input-syntax (eql 'text/hyperspec))
-            (output-format (eql 'html)))
+            (output-format (eql 'html))
+            &optional
+            args-n-values-p
+            lambda-list
+            result-p
+            returns-decl
+            )
   ;; Try to process Hyperspec-style.
 
   (multiple-value-bind (syntax-pars
@@ -687,17 +724,43 @@ given 'output-format'."))
                         see-also-pars
                         notes-pars)
       (parse-doc-hyperspec-style s)
-    (declare (ignore syntax-pars args-n-values-pars))
+    (declare (ignore syntax-pars))
     
-    (let ((elements ()))
+    (let ((elements ())
+          )
       (flet ((push-pars (subsection-header pars)
-               (when subsection-header
-                 (push (<:h2 () subsection-header) elements))
-               (dolist (par pars)
-                 (when (string/= "" par)
-                   (push (<:p () par) elements))))
+               (when pars
+                 (when subsection-header
+                   (push (<:h2 () subsection-header) elements))
+                 (dolist (par pars)
+                   (when (string/= "" par)
+                     (push (<:p () par) elements)))))
              )
-        (push-pars nil description-pars)
+
+        (when args-n-values-p
+          (cond (args-n-values-pars ; User supplied directly in doc-string.
+                 (push (<:h3 () "Arguments and Values:") elements)
+                 (push (<:ul () (process-arg-n-value-pars args-n-values-pars))
+                       elements))
+                (t
+                 (let ((ll-vars (and lambda-list (ll-vars lambda-list))))
+                   (when (or ll-vars result-p)
+                     (push (<:h3 () "Arguments and Values:") elements)
+                     (push (<:ul (:style "list-style-type: none")
+                                 (append
+                                  (loop for arg in ll-vars
+                                        collect
+                                        (<:li (:style "list-style-type: none")
+                                              (<:i () (<:code () (arg-name arg)))
+                                              " : "
+                                              "a T." ; To be FIXED.
+                                              ))
+                                  (and result-p
+                                       (process-returns-declaration returns-decl))))
+                           elements))))
+                ))
+        
+        (push-pars "Description:" description-pars)
 
         (when examples-pars
           (push (<:h2 () "Examples:") elements)
@@ -726,7 +789,7 @@ given 'output-format'."))
           (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
           (<:h2 "Package: ")
           (<:p (package-name (symbol-package n)))
-          (<:h2 "Description:")
+          ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
           )))))
@@ -735,16 +798,138 @@ given 'output-format'."))
 
 (defgeneric render-lambda-list (lambda-list-type lambda-list))
 
+
 (defmethod render-lambda-list ((llt (eql :ordinary)) (ll list))
-  (loop for lle in ll
-        if (member lle +lambda-list-kwds+ :test #'eq)
-        collect (<:span (:style "color: blue") (string lle))
-        else
-        collect (<:i () lle))
-  )
+  (render-lambda-list :ordinary (parse-ll :ordinary ll)))
 
 
-(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
+(defmethod render-lambda-list ((llt (eql :ordinary)) (ll t_lambda-list))
+  (let* ((pll ll)
+         (rvs (ll-ordinary-vars pll))
+         (ovs (ll-optional-vars pll))
+         (rv  (ll-rest-var pll))
+         (kvs (ll-keyword-vars pll))
+         ;; (avs (ll-auxiliary-vars pll))
+         (aok (ll-allow-other-keys pll))
+
+         (rendered-ll ())
+         )
+              
+    (dolist (rv rvs)
+      (push (<:i () (llv-name rv)) rendered-ll))
+
+    (when ovs
+      (push (<:span (:style "color: blue") (string '&optional))
+            rendered-ll))
+
+    (dolist (ov ovs)
+      (push (<:i () (llv-name ov)) rendered-ll))
+
+    (when rv
+      (push (<:span (:style "color: blue") (string '&rest))
+            rendered-ll))
+
+    (when rv
+      (push (<:i () (llv-name (first rv))) rendered-ll))
+
+    (when kvs
+      (push (<:span (:style "color: blue") (string '&key))
+            rendered-ll))
+
+    (dolist (kv kvs)
+      (push (<:i () (llv-name kv)) rendered-ll) ; Fix this. No need to expose
+                                                ; internal variables.
+      )
+
+    (when aok
+      (push (<:span (:style "color: blue") (string '&allow-other-keys))
+            rendered-ll))
+
+    (nreverse rendered-ll)
+    ))
+
+
+(defmethod render-lambda-list ((llt (eql :macro)) (ll list))
+  (render-lambda-list :macro (parse-ll :macro ll)))
+
+
+(defmethod render-lambda-list ((llt (eql :macro)) (ll macro-lambda-list))
+  (let* ((pll ll)
+         (wv (macro-lambda-list-whole-var pll))
+         (ev (macro-lambda-list-env-var pll))
+         
+         (rvs (ll-ordinary-vars pll))
+         (ovs (ll-optional-vars pll))
+         (rv  (ll-rest-var pll))
+         (kvs (ll-keyword-vars pll))
+         ;; (avs (ll-auxiliary-vars pll))
+         (aok (ll-allow-other-keys pll))
+
+         (rendered-ll ())
+         )
+    (flet ((render-ll-item (lli)
+             (etypecase lli
+               (lambda-list-item
+                (push (<:i () (llv-name lli)) rendered-ll))
+               (t_lambda-list
+                (push (render-lambda-list :macro lli)
+                      rendered-ll))
+               ))
+           )
+    
+      (when wv
+        (push (<:span (:style "color: blue") (string '&whole))
+              rendered-ll)
+        (render-ll-item (first wv))
+        ;; (push (<:i () (llv-name (first wv))) rendered-ll)
+        )
+
+      (dolist (rv rvs)
+        (render-ll-item rv)
+        ;; (push (<:i () (llv-name rv)) rendered-ll)
+        )
+
+      (when ovs
+        (push (<:span (:style "color: blue") (string '&optional))
+              rendered-ll))
+
+      (dolist (ov ovs)
+        (render-ll-item ov)
+        ;; (push (<:i () (llv-name ov)) rendered-ll)
+        )
+
+      (when rv
+        (push (<:span (:style "color: blue") (string '&rest))
+              rendered-ll))
+
+      (when rv
+        (render-ll-item (first rv))
+        ;; (push (<:i () (llv-name (first rv))) rendered-ll)
+        )
+
+      (when kvs
+        (push (<:span (:style "color: blue") (string '&key))
+              rendered-ll))
+
+      (dolist (kv kvs)
+        (render-ll-item kv)
+        ;; (push (<:i () (llv-name kv)) rendered-ll) ; Fix this. No need to expose
+                                                     ; internal variables.
+        )
+
+      (when aok
+        (push (<:span (:style "color: blue") (string '&allow-other-keys))
+              rendered-ll))
+
+      (when ev
+        (push (<:span (:style "color: blue") (string '&environment))
+              rendered-ll)
+        ;; (push (<:i () (llv-name (first ev))) rendered-ll)
+        (render-ll-item (first ev))
+        )
+
+      (nreverse rendered-ll)
+      )))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -782,7 +967,7 @@ given 'output-format'."))
           (<:h1 (<:i "Package ") (<:strong name))
           (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
           (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
-          (<:h2 "Description:")
+          ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
          )))))
@@ -808,13 +993,17 @@ given 'output-format'."))
           (<:h2 "Depends on:")
           (<:p (mapcar (lambda (d) (<:i () d))
                        (system-doc-bit-depends-on doc-bit)))
-          (<:h2 "Description:")
+          ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
           )
          ))))
 
 
+
+(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
+
+#|
 (defmethod render-syntax-section
            ((format (eql 'html))
             (doc-bit parameterized-doc-bit)
@@ -832,8 +1021,165 @@ given 'output-format'."))
           (<:b ((<:span :style "color: red") (<:strong () (string-downcase db-name))))
           (render-lambda-list :ordinary ll)))
         )))
+|#
+
+(defun bypass-pprint (s e &optional (colon-p t) at-sign-p)
+  (declare (ignore colon-p at-sign-p))
+  (let ((*print-pretty* nil))
+    (format s "~A" e)))
 
 
+(defmethod render-syntax-section
+           ((format (eql 'html))
+            (doc-bit parameterized-doc-bit)
+            &optional
+            (ll (parameterized-doc-bit-lambda-list doc-bit))
+            (values ()))
+
+  (declare (ignore values))
+
+  (let ((db-name (doc-bit-name doc-bit))
+        (*print-pretty* t)
+        (*print-right-margin* *formatted-section-right-margin*)
+        )
+    (<:htmlise (:syntax :compact)
+        (<:div
+         (<:p 
+          (<:pre
+           (with-output-to-string (pre-string)
+             (pprint-logical-block (pre-string
+                                    (list (<:strong (:style "color: red")
+                                                    (format nil "~(~A~)" db-name))
+                                          (render-lambda-list :ordinary ll))
+                                    )
+               (write-string "  " pre-string)
+               (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          
+               (write-char #\Space pre-string)
+               (pprint-indent :block 8 pre-string)
+               (pprint-newline :linear pre-string)
+               (pprint-logical-block (pre-string (pprint-pop))
+                 (loop (pprint-exit-if-list-exhausted)
+                       (bypass-pprint pre-string (pprint-pop) nil nil)
+                       (write-char #\Space pre-string)
+                       (pprint-newline :linear pre-string)
+                       ))
+               (pprint-indent :block 4 pre-string)
+               (pprint-newline :linear pre-string)
+               (write-string "&rarr; " pre-string)
+               (write-string "<i>result</i>" pre-string)
+               ))
+           )) ; <:/pre <:/p
+         ))
+    ))
+
+
+(defmethod render-syntax-section
+           ((format (eql 'html))
+            (doc-bit deftype-doc-bit)
+            &optional
+            (ll (deftype-doc-bit-lambda-list doc-bit))
+            (values ())
+            )
+
+  (declare (ignore values))
+
+  (let ((db-name (doc-bit-name doc-bit))
+        (*print-pretty* t)
+        (*print-right-margin* *formatted-section-right-margin*)
+        )
+    (<:htmlise (:syntax :compact)
+        (<:div
+         (<:p 
+          (<:pre
+           (with-output-to-string (pre-string)
+             (pprint-logical-block (pre-string
+                                    (list (<:strong (:style "color: red")
+                                                    (format nil "~(~A~)" db-name))
+                                          (render-lambda-list :ordinary ll))
+                                    )
+               (write-string "  " pre-string)
+               (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          
+               (write-char #\Space pre-string)
+               (pprint-indent :block 8 pre-string)
+               (pprint-newline :linear pre-string)
+               (pprint-logical-block (pre-string (pprint-pop))
+                 (loop (pprint-exit-if-list-exhausted)
+                       (bypass-pprint pre-string (pprint-pop) nil nil)
+                       (write-char #\Space pre-string)
+                       (pprint-newline :linear pre-string)
+                       ))
+               ))
+           )) ; <:/pre <:/p
+         ))
+    ))
+
+
+(defmethod render-syntax-section
+           ((format (eql 'html))
+            (doc-bit macro-doc-bit)
+            &optional
+            (ll (macro-doc-bit-lambda-list doc-bit))
+            (values ()))
+
+  (declare (ignore values))
+
+  (let ((db-name (doc-bit-name doc-bit))
+        (*print-pretty* t)
+        (*print-right-margin* *formatted-section-right-margin*)
+        )
+    (<:htmlise (:syntax :compact)
+        (<:div
+         (<:p 
+          (<:pre
+           (with-output-to-string (pre-string)
+             ;; (format t "==> ~A~%" pre-string)
+             (pprint-logical-block (pre-string
+                                    (list (<:strong (:style "color: red")
+                                                    (format nil "~(~A~)" db-name))
+                                          (render-lambda-list :macro ll))
+                                    )
+               ;; (format t "==> ~A~%" pre-string)
+               (write-string "  " pre-string)
+               (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          
+               (write-char #\Space pre-string)
+               (pprint-indent :block 8 pre-string)
+               (pprint-newline :linear pre-string)
+
+               (labels ((pprint-lli (ll nested)
+                          (assert ll) ; Being paranoid.
+                          (let ((prefix (if nested "(" ""))
+                                (suffix (if nested ")" ""))
+                                )
+                            (pprint-logical-block (pre-string ll
+                                                              :prefix prefix
+                                                              :suffix suffix)
+                              (loop (pprint-exit-if-list-exhausted)
+                                    (let ((lli (pprint-pop)))
+                                      (if (listp lli)
+                                          (pprint-lli lli t)
+                                          (bypass-pprint pre-string lli nil nil))
+                                      (pprint-exit-if-list-exhausted)
+                                      (write-char #\Space pre-string)
+                                      (pprint-newline :linear pre-string)
+                                      )))))
+                        )
+                 (pprint-lli (pprint-pop) nil))
+
+               (pprint-indent :block 4 pre-string)
+               (pprint-newline :linear pre-string)
+               (write-string " &rArr; " pre-string)
+               (write-string "<i>form</i>" pre-string)
+               ))
+           )) ; <:/pre <:/p
+         ))
+    ))
+            
+
+
+#|
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit parameterized-doc-bit)
                                   (out file-stream)
@@ -892,8 +1238,156 @@ given 'output-format'."))
             ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
            ))))))
+|#
 
 
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit parameterized-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let* ((db-name (doc-bit-name doc-bit))
+         (name (format nil "~(~A~)" db-name))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         (ll (parameterized-doc-bit-lambda-list doc-bit))
+         )
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title documentation-title ": " kind name)
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+
+         (<:body
+          (<:h1 (<:i kind) (<:strong name))
+
+          (<:h2 "Package: ")
+          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+
+          #|
+          (<:h2 "Syntax:")
+          (<:p
+           (<:pre
+            (format nil
+                    "~&    ~A~A~%"
+                    (<:b () (<:span (:style "color: red") (<:strong () name)))
+                    (format nil "~{ ~A~}" (render-lambda-list :ordinary ll)))))
+          |#
+          (<:h2 "Syntax:")
+          (render-syntax-section format doc-bit)
+
+          #|
+          (when ll
+            (<:div ()
+                   (<:h3 () "Arguments and Values:")
+                   (loop for arg in ll
+                         unless (member arg +lambda-list-kwds+ :test #'eq)
+                         collect
+                         (<:htmlise (:syntax :compact)
+                             (<:p (<:i (<:code (arg-name arg)))
+                                  "---"
+                                  "a T." ; To be FIXED.
+                                  )))))
+          |#
+
+          ;; (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html
+                              t (parse-ll :ordinary ll))
+          )))))
+
+
+(defun process-returns-declaration (returns)
+  "Munging of RETURNS declaration."
+  (declare (type list returns)
+           (returns ("A list of (X)HTMLambda 'li' elements." list))
+           ;; Money where mouth is!!!
+           )
+  
+  (loop with rl = (< 1 (list-length returns))
+        for r in returns
+        for r-i from 0
+        for is-full-syntax = (and (listp r) (stringp (first r)))
+        
+        for doc-string = (when is-full-syntax (first r))
+        
+        for type = (if is-full-syntax (second r) r)
+
+        for name = (if (and is-full-syntax (third r))
+                       (third r)
+                       (format nil "result~:[~;-~D~]" rl r-i))
+        collect (<:li (:style "list-style-type: none")
+                      (<:i () (<:code () (string name)))
+                      " : "
+                      (if doc-string
+                          doc-string
+                          (format nil "a ~A." type)))
+        into r-elements
+        finally (if r-elements
+                    (return r-elements)
+                    (return (list (<:li (:style "list-style-type: none")
+                                        (<:i () (<:code () "result"))
+                                        " : a T."))))
+        ))
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit function-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let* ((db-name (doc-bit-name doc-bit))
+         (name (format nil "~(~A~)" db-name))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         (ll (parameterized-doc-bit-lambda-list doc-bit))
+         (returns (function-doc-bit-values doc-bit))
+         )
+
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title documentation-title ": " kind name)
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+
+         (<:body
+          (<:h1 (<:i kind) (<:strong name))
+
+          (<:h2 "Package: ")
+          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+
+          (<:h2 "Syntax:")
+          (render-syntax-section format doc-bit)
+
+          #|
+          (when ll
+            (<:div ()
+                   (<:h2 () "Arguments and Values:")
+                   (loop for arg in ll
+                         unless (member arg +lambda-list-kwds+ :test #'eq)
+                         collect
+                         (<:htmlise (:syntax :compact)
+                             (<:p (<:i (<:code (arg-name arg)))
+                                  "---"
+                                  "a T." ; To be FIXED.
+                                  )))))
+          |#
+
+          ;; (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html
+                              t
+                              (parse-ll :ordinary ll)
+                              t
+                              returns)
+          )))))
+
+
+#| Without RENDER-LAMBDA-LIST
 (defmethod produce-documentation ((format (eql 'html))
                                   (doc-bit macro-doc-bit)
                                   (out file-stream)
@@ -968,6 +1462,69 @@ given 'output-format'."))
             ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
            ))))))
+|#
+
+
+(defmethod produce-documentation ((format (eql 'html))
+                                  (doc-bit macro-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  (let* ((db-name (doc-bit-name doc-bit))
+         (name (format nil "~(~A~)" db-name))
+         (kind (doc-bit-kind doc-bit))
+         (doc-string (doc-bit-doc-string doc-bit))
+         (ll (parameterized-doc-bit-lambda-list doc-bit))
+         )
+    (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+        (<:document
+         (<:head
+          (<:title documentation-title ": " kind name)
+          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+
+         (<:body
+          (<:h1 (<:i kind) (<:strong name))
+
+          (<:h2 "Package: ")
+          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+
+          #|
+          (<:h2 "Syntax:")
+          (<:p
+           (<:pre
+            (format nil
+                    "~&    ~A~A~%"
+                    (<:b () (<:span (:style "color: red") (<:strong () name)))
+                    (format nil "~{ ~A~}" (render-lambda-list ll)))))
+          |#
+          (<:h2 "Syntax:")
+          (render-syntax-section 'html doc-bit (macro-doc-bit-lambda-list doc-bit))
+
+          #|
+          (when ll
+            (<:div ()
+                   (<:h3 () "Arguments and Values:")
+                   (loop for arg in ll
+                         unless (member arg +lambda-list-kwds+ :test #'eq)
+                         collect
+                         (<:p () (<:i () (<:code () (arg-name arg)))
+                              "---"
+                              "a T." ; To be FIXED.
+                              )
+                         )))
+          |#
+
+          ;; (<:h2 "Description:")
+          ;; (paragraphize-doc-string doc-string)
+          (process-doc-string doc-string 'text/hyperspec 'html
+                              t
+                              (parse-ll :macro ll)
+                              t
+                              '(form)
+                              )
+          )))))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1010,7 +1567,7 @@ given 'output-format'."))
            (<:h2 "Value:")
            (<:p (<:code value-presented))
 
-           (<:h2 "Description:")
+           ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
          ))))))
@@ -1071,7 +1628,7 @@ given 'output-format'."))
                                 (format nil "with initial value ~S of type ~A~@[; the slot is read-only~]."
                                         sv type read-only)))))
                  ))
-           (<:h2 "Description:")
+           ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
          ))))))
@@ -1139,7 +1696,7 @@ given 'output-format'."))
                      )))
               :syntax :compact))
             
-           (<:h2 "Description:")
+           ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
          ))))))
@@ -1221,9 +1778,12 @@ given 'output-format'."))
             (<:h2 "Syntax:")
             (<:p (<:strong name)
                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
-            (<:h2 "Description:")
+            ;; (<:h2 "Description:")
             ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
+            (process-doc-string doc-string 'text/hyperspec 'html
+                                t
+                                ;; (parse-ll :generic-function ll)
+                                )
            
             (<:h3 "Known Methods:")
             (<:ul
@@ -1239,6 +1799,10 @@ given 'output-format'."))
                    ))
             ))))))
 
+
+;;; The next method should eb reworked in order to take advantage of
+;;; RENDER-SYNTAX-SECTION.  However, it works and I need to do other
+;;; things now (20130618).
 
 #-helambdap.version-using-MOP
 (defmethod produce-documentation ((format (eql 'html))
@@ -1288,10 +1852,12 @@ given 'output-format'."))
                        (render-lambda-list ll))
                ))
 
+           #|
            (bypass-pprint (s e &optional (colon-p t) at-sign-p)
              (declare (ignore colon-p at-sign-p))
              (let ((*print-pretty* nil))
                (format s "~A" e)))
+           |#
 
            (quoted-exp-p (exp) (and (listp exp) (eq 'quote (first exp))))
 
@@ -1381,6 +1947,7 @@ given 'output-format'."))
              (<:pre (pre-format-syntax-entry name ll)
                     ))
 
+            #|
             (<:h3 "Arguments and Values:")
             (loop for arg in ll
                   unless (member arg +lambda-list-kwds+ :test #'eq)
@@ -1402,10 +1969,14 @@ given 'output-format'."))
                        (<:p (<:i (<:code (format nil "result-~D" i))) "---" " a " (<:i fv) ".")
                        :syntax :compact))
                 (<:p () (<:i () (<:code () "result")) "--- a T."))
+            |#
 
-            (<:h2 "Description:")
+            ;; (<:h2 "Description:")
             ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
+            (process-doc-string doc-string 'text/hyperspec 'html
+                                t (parse-ll :generic-function ll)
+                                t f-values
+                                )
            
 
             (let ((known-methods-els (render-known-methods name doc-bit))
@@ -1541,35 +2112,49 @@ given 'output-format'."))
   (declare (type pathname nav-pathname))
   (declare (ignorable doc-bits documentation-title))
 
-  (let ((fs-order (frameset-order fs))
-        (fs-head-title (frameset-head-title fs))
-        (fs-body-title (frameset-body-title fs))
+  (let* ((fs-order (frameset-order fs))
+         (fs-head-title (frameset-head-title fs))
+         (fs-body-title (frameset-body-title fs))
+         (doc-file-pathname (file-pathname nav-element nav-pathname))
+         (sections (extract-sections doc-file-pathname 'html))
+         (section-names (extract-section-names sections))
         )
     (declare (ignore fs-order fs-body-title))
 
-    (with-open-file (ns nav-pathname
-                        :direction :output
-                        :if-exists :supersede
-                        :if-does-not-exist :create)
-      (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
-          (<:document
-           (<:comment (base-name nav-pathname))
-           (string #\Newline)
+    (flet ((make-nav-links ()
+             (loop for sn in section-names
+                   collect (<:li (:style "list-style-type: none")
+                                 (<:a (:href (format nil "~A#~A"
+                                                     (base-name doc-file-pathname)
+                                                     sn)
+                                       :target (format nil "~A_frame"
+                                                       (element-name nav-element)))
+                                       sn))))
+           )
+      (with-open-file (ns nav-pathname
+                          :direction :output
+                          :if-exists :supersede
+                          :if-does-not-exist :create)
+        (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
+            (<:document
+             (<:comment (base-name nav-pathname))
+             (string #\Newline)
 
-           +doctype-xhtml1-string-control-string+
-           (string #\Newline)
-           (string #\Newline)
+             +doctype-xhtml1-string-control-string+
+             (string #\Newline)
+             (string #\Newline)
 
-           (<:html
-            (<:head
-             (<:title fs-head-title)
-             (<:link :rel "stylesheet" :href (frameset-style fs)))
+             (<:html
+              (<:head
+               (<:title fs-head-title)
+               (<:link :rel "stylesheet" :href (frameset-style fs)))
 
-            (<:body
-             (<:ul))
-            )))
-      ))
-  )
+              (<:body
+               (<:ul (make-nav-links))))
+             (string #\Newline)
+             (<:comment "end of file :" (base-name nav-pathname))
+             ))))
+    ))
 
 
 (defmethod produce-navigation-file ((fs frameset)
@@ -1944,7 +2529,137 @@ given 'output-format'."))
     ))
 
 
-#| Exmple...
+;;;;===========================================================================
+;;;; Utilities.
+
+(defgeneric extract-sections (source format))
+
+
+(defmethod extract-sections ((p pathname) format)
+  (with-open-file (in p :direction :input)
+    (extract-sections in format)))
+
+
+(defmethod extract-sections ((s string) format)
+  (with-input-from-string (in s)
+    (extract-sections in format)))
+
+
+(defmethod extract-sections ((in stream) (format (eql 'html)))
+  ;; Poor man's parsing of HTML's files.
+  ;; I just look for <H1>...</H1> sections.
+  ;;
+  ;; Each H1 section is supposed to look like:
+  ;;
+  ;;   <H1><A name=....>....</A></H1>
+  ;;
+  ;; The name and the actual section title are what is saved.
+
+  (let ((section (make-array 256 ; This should be made easier!
+                             :element-type 'character
+                             :fill-pointer 0
+                             :adjustable t
+                             :initial-element (code-char 0)))
+        (sections ())
+        (collecting nil)
+        )
+    (declare (type (vector character) section)
+             (type list sections)
+             (type boolean collecting))
+
+    (labels ((start ()
+               (handler-case
+                   (process-char (read-char in))
+                 (end-of-file (eof)
+                   (declare (ignore eof))
+                   (finish))))
+
+             (maybe-collect (c)
+               (when collecting
+                 (vector-push-extend c section)))
+
+             (process-char (c)
+               (maybe-collect c)
+               (if (char= c #\<)
+                   (process-< (read-char in))
+                   (process-char (read-char in))
+                   ))
+        
+             (process-< (c)
+               (cond ((char-equal c #\H)
+                      (process-h (read-char in)))
+                     ((char= c #\/)
+                      (maybe-collect #\/)
+                      (process-/ (read-char in)))
+                     (t
+                      (process-char c))
+                     ))
+
+             (process-h (c)
+               (if (char= c #\1)
+                   (process-h1 (read-char in))
+                   (process-char (read-char in))))
+
+             (process-h1 (c)
+               (setf (fill-pointer section) 0
+                     collecting t)
+               (vector-push-extend #\< section)
+               (vector-push-extend #\H section)
+               (process-char c))
+
+             (process-/ (c)
+               (if (char-equal #\h c)
+                   (process-/h (read-char in))
+                   (process-char c)))
+              
+             (process-/h (c)
+               (when (char= #\1 c)
+                 (vector-push-extend #\H section)
+                 (vector-push-extend #\1 section)
+                 (assert (char= (read-char in) #\>))
+                 (vector-push-extend #\> section)
+                 (push (copy-seq section) sections)
+                 (setf collecting nil))
+                 (process-char (read-char in))
+               )
+
+             (finish ()
+               (nreverse sections))
+             )
+      (start)
+      )))
+
+
+(defun extract-section-name (sect)
+  (declare (type string sect))
+  (let ((name-search (or (search "<a name=" sect)
+                         (search "<A name=" sect)
+                         ))
+        (end-char #\')
+        )
+    (if name-search
+        (let* ((n-start (+ name-search (length "<a name=")))
+               (n-start-plus (1+ n-start))
+               )
+          (declare (type fixnum n-start n-start-plus))
+          (cond ((char= #\' (aref sect n-start))
+                 (setf end-char #\'))
+                ((char= #\" (aref sect n-start))
+                 (setf end-char #\"))
+                )
+          (subseq sect
+                  n-start-plus
+                  (position end-char sect :start n-start-plus)))
+        "")))
+
+
+(defun extract-section-names (sects)
+  (delete "" (mapcar #'extract-section-name sects) :test #'equal))
+        
+
+;;;;===========================================================================
+
+#| Example...
 <!-- header.html -->
 
 <!DOCTYPE HTML PUBLIC
