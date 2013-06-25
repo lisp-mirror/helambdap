@@ -9,6 +9,7 @@
 (mk:defsystem "HELAMBDAP"
   :documentation "The HELambdaP System."
   :components ("helambdap-pkg"
+                :depends-on
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ("text-utilities"
@@ -24,7 +25,8 @@
                "helambdap"
                "collect-documentation"
                "doc-structure"
-               "documentation-production"
+               ("documentation-production"
+                :depends-on ("impl-dependent"))
                
                "xhtml-common-definitions"
 
@@ -57,6 +59,12 @@
 		:components (
 			     #+lispworks
 			     "lispworks"
+                             #+sbcl
+                             (:file "sbcl")
+                             #+asdf
+                             (:file "asdf-deps")
+                             #+mk-defsystem
+                             (:file "mk-deps")
 			     ))
                )
   :depends-on ("CL-FAD"
