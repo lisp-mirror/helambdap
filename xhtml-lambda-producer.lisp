@@ -254,13 +254,13 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
   (let* ((fs-location (frameset-location structure))
          (where (if fs-location
                     (merge-pathnames fs-location where)
                     where))
 
          (fs-name (frameset-name structure))
+         (fs-title (or documentation-title fs-name))
          (fs-pathname (make-pathname :name fs-name
                                      :type *default-html-extension*
                                      :defaults where))
@@ -287,7 +287,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:html
 
             (<:head
-             (<:title fs-name)
+             (<:title fs-title)
              (<:link :rel "stylesheet" :href (frameset-style structure)))
              
             ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
