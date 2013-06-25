@@ -255,9 +255,12 @@ that include ELEMENT."))
 (defstruct (file (:include element (name "" :type (or string pathname)))
                  (:constructor %make-file (name))))
 
-(defgeneric file-pathname (fd))
+(defgeneric file-pathname (fd &optional defaults))
 
-(defmethod file-pathname ((f file)) (pathname (file-name f)))
+
+(defmethod file-pathname ((f file)
+                          &optional (defaults *default-pathname-defaults*))
+  (merge-pathnames (pathname (file-name f))) defaults)
 
 
 (defmethod pprint-element ((os stream) (f file))
@@ -299,9 +302,13 @@ that include ELEMENT."))
   (make-pathname :type *default-html-extension* :directory ()))
 
 
-(defmethod file-pathname ((df doc-file))
-  (merge-pathnames (file-name df)
-                   (doc-file-pathname-type)))
+(defmethod file-pathname ((df doc-file)
+                          &optional
+                          (defaults *default-pathname-defaults*))
+  (merge-pathnames
+   (merge-pathnames (file-name df)
+                    (doc-file-pathname-type))
+   defaults))
 
 
 ;;; file-set --
