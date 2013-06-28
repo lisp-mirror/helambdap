@@ -7,11 +7,23 @@
 
 (in-package "HELAMBDAP")
 
+#-sbcl
 (defconstant +months+
   #("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"))
 
+#+sbcl
+(defparameter +months+
+  #("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"))
+
+
+#-sbcl
 (defconstant +weekdays+
   #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))
+
+#+sbcl
+(defparameter +weekdays+
+  #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))
+
 
 (defun text-timestamp ()
   "Produces a string of th form \"Day Mon Dat HH:MM:SS TZ YEAR\"."
