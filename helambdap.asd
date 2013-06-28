@@ -10,6 +10,7 @@
 (asdf:defsystem "HELAMBDAP"
   :description "The HELambdaP System."
   :components ((:file "helambdap-pkg")
+               (:file "helambdap-globals")
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ((:file "text-utilities")
