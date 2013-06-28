@@ -10,6 +10,24 @@
 ;;;;---------------------------------------------------------------------------
 ;;;; Doc bits data base.
 
+(defstruct (doc-bits-data-base
+            (:constructor make-doc-bits-data-base ()))
+  "The Doc-bits Data Base structure.
+
+An 'opaque' wrapper around the actual doc-bits data base."
+  (dbdb (make-hash-table :test #'equal) :type hash-table :read-only t))
+
+
+(defun dbdb (dbdb)
+  (declare (type doc-bits-data-base dbdb))
+  (doc-bits-data-base-dbdb dbdb))
+
+
+(defmethod print-object ((dbdb doc-bits-data-base) stream)
+  (print-unreadable-object (dbdb stream :identity t :type t)
+    (format stream "with ~D doc-bits; id" (hash-table-count (dbdb dbdb)))))
+
+
 ;;; *doc-bits-db* --
 
 (defvar *doc-bits-db* (make-hash-table :test #'equal)
@@ -30,6 +48,7 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 ;;; init-doc-bits-db --
 
 (defun init-doc-bits-db ()
+  "Initializes the doc-bits data base."
   (if *doc-bits-db*
       (clear-doc-bits-db *doc-bits-db*)
       (setf *doc-bits-db* (make-hash-table :test #'equal))))
@@ -38,6 +57,7 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 ;;; clear-doc-bits-db --
 
 (defun clear-doc-bits-db (&optional (dbdb *doc-bits-db*))
+  "Clears the doc-bits data base."
   (clrhash dbdb)
   dbdb)
 
@@ -45,6 +65,8 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 ;;; insert-doc-bit --
 
 (defun insert-doc-bit (doc-bit &optional (dbdb *doc-bits-db*))
+  "Inserts a doc-bit in the doc-bits data base."
+  (declare (type doc-bit doc-bit))
   (setf (gethash (doc-bit-name doc-bit) dbdb)
         (nconc (gethash (doc-bit-name doc-bit) dbdb) (list doc-bit)))
   doc-bit)
@@ -52,20 +74,24 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 
 ;;; save-doc-bits-db --
 
-(defgeneric save-doc-bits-db (where &optional doc-bits-db))
+(defgeneric save-doc-bits-db (where &optional doc-bits-db)
+  (:documentation "Saves the doc-bits data bases to a file.
+
+The optional argument DOC-BITS-DB defaults to the 'current' doc bits
+data base.")
+  )
 
 
 (defmethod save-doc-bits-db ((out stream)
                              &optional (db *doc-bits-db*))
-    (format out ";;;; -*- Mode: Lisp -*-~2%;;;; DOC-BITS DB File.~2%")
-    (loop ;; initially (format t "~2%======~%)")
-          ;; finally (format t "~2%======~%)")
-          for doc-bits being the hash-value of db
-          do (map nil (lambda (doc-bit)
-                        ;; (format t ">>> ~<~S~:>~2%" doc-bit)
-                        (pprint doc-bit out))
-                  doc-bits))
-    (format out "~2%;;;; end of file -- DOC BITS DB File. --~%"))
+  
+  (format out ";;;; -*- Mode: Lisp -*-~2%;;;; DOC-BITS DB File.~2%")
+  (format out ";;;; The actual documentation strings can be modifed.~2%")
+
+  (loop for doc-bits being the hash-value of db
+        do (map nil (lambda (doc-bit) (pprint doc-bit out)) doc-bits))
+
+  (format out "~2%;;;; end of file -- DOC BITS DB File. --~%"))
 
 
 (defmethod save-doc-bits-db ((f pathname)
@@ -85,7 +111,12 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
 
 ;;; load-doc-bits-db --
 
-(defgeneric load-doc-bits-db (where &optional doc-bits-db))
+(defgeneric load-doc-bits-db (where &optional doc-bits-db)
+  (:documentation "Loads a doc-bits data base from a source.
+
+The SOURCE can be either a STREAM or a File Designator.  The optional
+DOC-BITS-DB parameter defaults to the current doc-bits database."))
+
 
 (defmethod load-doc-bits-db ((f pathname)
                              &optional (db *doc-bits-db*))
