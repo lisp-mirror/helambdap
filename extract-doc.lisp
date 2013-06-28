@@ -1,6 +1,8 @@
 ;;;; -*- Mode: Lisp -*-
 
 ;;;; extract-doc.lisp --
+;;;;
+;;;; See file COPYING for copyright and licensing information.
 
 (in-package "HELAMBDAP")
 
@@ -119,9 +121,8 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
       (when *only-exported*
         (setf doc-bits
-              (delete-if (lambda (db &aux (dbn (doc-bit-name db)))
-                           (and (symbolp dbn)
-                                (not (external-symbol-p dbn))))
+              (delete-if (lambda (db &aux (dbn (doc-bit-identifier db)))
+                           (and (symbolp dbn) (not (external-symbol-p dbn))))
                          doc-bits)))
       )
     doc-bits))
@@ -260,7 +261,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (defgeneric name ll &rest options-and-methods)
       form
     (declare (ignore defgeneric))
-    (let* ((decls (collect-declarations options-and-methods)) ; This is essentially wrong.  It should return NIL (almost) always.
+    (let* ((decls (collect-declarations options-and-methods))
+           ;; This is essentially wrong.  It should return NIL (almost) always.
            (values-decl (find 'returns (mapcan #'rest decls) :key #'first))
            )
       (make-generic-function-doc-bit :name name
@@ -422,10 +424,18 @@ T). Only top-level occurrences of these forms are considered.")
                         :lambda-list (list 'object)
                         :values (list type)
                         :doc-string
-                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A."
+                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A.~@
+                                     ~@
+                                     Arguments and Values:~@
+                                     ~@
+                                     OBJECT : a ~A~@
+                                     result : a ~A"
                                 read-only
                                 sn
-                                name)
+                                name
+                                name
+                                type
+                                )
                         )
                        fns)
                  (unless read-only
@@ -435,9 +445,16 @@ T). Only top-level occurrences of these forms are considered.")
                           :lambda-list (list 'v 'object)
                           :values (list type)
                           :doc-string
-                          (format nil "Setter for the slot ~A of an object of type ~A."
+                          (format nil "Setter for the slot ~A of an object of type ~A.~@
+                                     ~@
+                                     Arguments and Values:~@
+                                     ~@
+                                     OBJECT : a ~A~@
+                                     result : a ~A"
                                   sn
-                                  name)
+                                  name
+                                  name
+                                  type)
                           )
                          fns)
                    )
