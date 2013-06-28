@@ -28,6 +28,7 @@
            &rest
            &body
            &key
+           &allow-other-keys
            &aux
            ))
 
@@ -48,7 +49,7 @@
 (defstruct (lambda-list-item
             (:conc-name lli-)
             (:constructor mkllitem (item kind &optional (form item))))
-  (item nil :type (or symbol t_lambda-list) :read-only t)
+  (item nil :type (or symbol t_lambda-list list) :read-only t)
   (kind '&reqvar :type lambda-list-var-type :read-only t)
   (form () :type (or symbol cons) :read-only t)
   )
@@ -287,7 +288,7 @@
                                :non-destructuring)|#)
         )
     (declare (type lambda-list-var-type state)
-             (type list wholevar reqvars optvars restvar bodyvar keyvars auxvars endvar)
+             (type list wholevar reqvars optvars restvar bodyvar keyvars auxvars envvar)
              (type lambda-list-type destr-p)
              )
     (labels ((start (ll)
@@ -316,7 +317,7 @@
                             )
                    (test-and-change-state '&reqvar)
                    (test-and-change-state '&whole)
-                   (test-and-change-state '&environmnet)
+                   (test-and-change-state '&environment)
                    (test-and-change-state '&optional)
                    (test-and-change-state '&key)
                    (test-and-change-state '&rest)
