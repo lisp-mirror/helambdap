@@ -16,12 +16,36 @@
   ;; (:shadowing-import-from "XHTMLAMBDA" "MAP" "TIME")
 
   (:export
+   "DOCUMENTATION")
+
+  (:export
+   "*EVERYTHING*"
+   "*ONLY-DOCUMENTED*"
+   "*ONLY-EXPORTED*"
+
+   "*EXCLUDE-DIRECTORIES*"
+   "*EXCLUDE-FILES*"
+
    "DOCUMENT"
    "RESULTS"
 
+   "EXTRACT-DOCUMENTATION"
    "BUILD-DOCUMENTATION"
    "PRODUCE-DOCUMENTATION"
    )
+
+  (:export
+   "DOC-BITS-DATA-BASE"
+   "DOC-BITS-DATA-BASE-P"
+
+   "INIT-DOC-BITS-DB"
+   "CLEAR-DOC-BITS-DB"
+   ;; "LOAD-DOC-BITS-DB"
+   "SAVE-DOC-BITS-DB"
+   "GET-DOC-BITS"
+   "INSERT-DOC-BIT"
+   )
+
   (:documentation "The HELambdaP Package.
 
 The package containing the implementation of the 'semi-offline'
