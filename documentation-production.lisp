@@ -1,24 +1,10 @@
 ;;;; -*- Mode: Lisp -*-
 
 ;;;; documentation-production.lisp --
+;;;;
+;;;; See file COPYING for copyright and licensing information.
 
 (in-package "HELAMBDAP")
-
-;;;;===========================================================================
-;;;; Global special parameters controlling the documentation production.
-;;;;
-;;;; The *EVERYTHING*, *ONLY-DOCUMENTED*, *ONLY-EXPORTED* need the
-;;;; following explanation.  When *EVERYTHING* is true, HELAMBDAP produces
-;;;; documentation for every bit in the "search" path requested regardless
-;;;; of the values of *ONLY-DOCUMENTED* and *ONLY-EXPORTED*.
-
-(defparameter *supersede-documentation* t)
-
-(defparameter *everything* nil)
-
-(defparameter *only-documented* t)
-
-(defparameter *only-exported* nil)
 
 
 ;;;;===========================================================================
@@ -127,6 +113,13 @@ Notes:
 The arguments SOURCE and SUPERSEDE are, at the time of this writing,
 effectively ignored.
 "
+
+  (declare (special *supersed-documentation* ; SBCL may be right here.
+                    *only-documented*
+                    *only-exported*
+                    *everything*
+                    *exclude-directories*
+                    *exclude-files*))
   
   (when (and *everything* (or *only-documented* *only-exported*))
     (warn "EVERYTHNG is currently true: HELAMBDAP will produce all ~@

@@ -15,10 +15,6 @@
                                    &allow-other-keys))
 
 
-(defparameter *source-extensions*
-  (list "lisp" "lsp" "asd" "system" "cl")
-  "List of possible 'source extensions' where Lisp code is contained.")
-
 
 (defparameter *info-file-name* "info.hela")
 
@@ -28,12 +24,6 @@
 
 ;;; (defparameter *doc-bits-db-file* "doc.hlam") ; defined elsewhere.
 
-
-(defparameter *exclude-directories*
-  (list #P".git/" #P"CVS/" #P"svn/" #P"tmp/"))
-
-(defparameter *exclude-files*
-  ())
 
 ;;;;===========================================================================
 ;;;; Collection.
@@ -177,17 +167,17 @@
             (constant-doc-bit (put-in constants))
             (parameter-doc-bit (put-in parameters))
             (variable-doc-bit (put-in variables))
+            (condition-doc-bit (put-in conditions))
             (class-doc-bit (put-in classes))
             (struct-doc-bit (put-in structs))
             ((or type-doc-bit deftype-doc-bit) (put-in types))
-            (condition-doc-bit (put-in conditions))
             (generic-function-doc-bit (put-in generic-functions))
             (method-doc-bit (put-in methods))
             (function-doc-bit (put-in functions))
+            (modify-macro-doc-bit (put-in modify-macros))
             (macro-doc-bit (put-in macros))
             (method-combination-doc-bit (put-in method-combinations))
             (setf-expander-doc-bit (put-in setf-expanders))
-            (modify-macro-doc-bit (put-in modify-macros))
             (t (put-in others))
             ))
         (mapcar #'sort-doc-bits
