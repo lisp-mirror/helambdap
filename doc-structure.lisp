@@ -255,6 +255,7 @@ that include ELEMENT."))
 (defstruct (file (:include element (name "" :type (or string pathname)))
                  (:constructor %make-file (name))))
 
+
 (defgeneric file-pathname (fd &optional defaults))
 
 

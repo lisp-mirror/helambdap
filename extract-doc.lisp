@@ -502,10 +502,9 @@ T). Only top-level occurrences of these forms are considered.")
                                       (make-function-doc-bit
                                        :name cons-name
                                        :kind 'function
-                                       :lambda-list (if boa-ll
-                                                        boa-ll
-                                                        (cons '&key
-                                                              (extract-slot-names slots)))
+                                       :lambda-list (cond (boa-ll boa-ll)
+                                                          (slots (cons '&key
+                                                                       (extract-slot-names slots))))
                                        :values (list name)
                                        :doc-string
                                        (format nil

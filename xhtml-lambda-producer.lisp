@@ -192,10 +192,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (where pathname)
                                   doc-bits
                                   &key
-                                  (documentation-title)
+                                  (documentation-title "")
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
   (let* ((doc-directory where)
          (dfn (doc-file-name structure))
          (destination-path
@@ -203,7 +202,11 @@ Each FRAMESET and FRAME is contained in a separate file.
                          :name (pathname-name dfn)
                          :type (pathname-type dfn)))
          )
-    (cl-fad:copy-file dfn destination-path :overwrite nil)
+    (if (probe-file dfn)
+        (cl-fad:copy-file dfn destination-path :overwrite nil)
+        (produce-doc-file-placeholder structure
+                                      destination-path
+                                      documentation-title))
     ))
 
 
@@ -212,10 +215,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (where file-stream)
                                   doc-bits
                                   &key
-                                  (documentation-title)
+                                  (documentation-title "")
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
   (let* ((doc-directory where)
          (dfn (doc-file-name structure))
          (destination-path
@@ -225,11 +227,10 @@ Each FRAMESET and FRAME is contained in a separate file.
          )
     (if (probe-file dfn)
         (cl-fad:copy-file dfn destination-path :overwrite nil)
-        (warn "File ~S from ~S cannot be copied to ~S."
-              dfn
-              structure
-              destination-path)
-        )))
+        (produce-doc-file-placeholder structure
+                                      destination-path
+                                      documentation-title))
+    ))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -277,6 +278,13 @@ Each FRAMESET and FRAME is contained in a separate file.
                              :direction :output
                              :if-does-not-exist :create
                              :if-exists :supersede)
+
+      (when fs-content
+        (produce-documentation format
+                               fs-content
+                               fs-file
+                               doc-bits))
+
       (<:with-html-syntax-output (fs-file :print-pretty t :syntax :compact)
           (<:document 
            (<:comment fs-name)
@@ -319,10 +327,10 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:comment "CONTENT " fs-content)
               (if fs-content
                   (progn
-                    (produce-documentation format
+                    #|(produce-documentation format
                                            fs-content
                                            fs-file
-                                           doc-bits)
+                                           doc-bits)|#
                     (produce-frame format fs-content fs-file)
                     )
                   (<:frame (:name (format nil "~A_frame" (element-name structure))
@@ -522,6 +530,44 @@ Each FRAMESET and FRAME is contained in a separate file.
   )
 
 
+(defun produce-doc-file-placeholder (doc-file
+                                     doc-file-pathname
+                                     &optional (documentation-title ""))
+  (declare (type doc-file doc-file)
+           (type pathname doc-file-pathname)
+           )
+  (let ((dfn (doc-file-name doc-file)))
+    (with-open-file (dffs doc-file-pathname
+                          :direction :output
+                          :if-does-not-exist :create
+                          :if-exists :supersede)
+      (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment dfn)
+           (<:html
+
+            +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+
+            (<:head
+             (<:title dfn)
+             (<:link :rel "stylesheet" :href *helambdap-css-filename*))
+            
+            (<:body
+             (<:h1 documentation-title dfn)
+             (<:p "This is a placeholder for information pertaining "
+                  documentation-title)
+             (<:p (format nil
+                          "Please edit the file '~A', to complete ~
+                           the documentation."
+                          doc-file-pathname))
+             )
+            )
+           (<:comment "end of file : " (string dfn)))
+          ))
+    ))
+
+
 (defun produce-file-set-placeholder (file-set where)
   (declare (type file-set file-set)
            (type stream where)
@@ -596,6 +642,17 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   lambda-list
                                   result-p
                                   returns-decl)
+  (:method ((s null) input-syntax output-format
+            &optional
+            args-n-values-p
+            lambda-list
+            result-p
+            returns-decl)
+   (declare (ignore args-n-values-p
+                    lambda-list
+                    result-p
+                    returns-decl))
+   )
   (:documentation
    "Processes a 'doc string'.
 
