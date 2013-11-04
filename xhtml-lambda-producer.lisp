@@ -202,12 +202,13 @@ Each FRAMESET and FRAME is contained in a separate file.
                          :name (pathname-name dfn)
                          :type (pathname-type dfn)))
          )
-    (if (probe-file dfn)
-        (cl-fad:copy-file dfn destination-path :overwrite nil)
-        (produce-doc-file-placeholder structure
-                                      destination-path
-                                      documentation-title))
-    ))
+    (cond ((probe-file dfn)
+           (cl-fad:copy-file dfn destination-path :overwrite nil))
+          ((not (probe-file destination-path))
+           (produce-doc-file-placeholder structure
+                                         destination-path
+                                         documentation-title))
+          )))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -225,12 +226,13 @@ Each FRAMESET and FRAME is contained in a separate file.
                          :name (pathname-name dfn)
                          :type (or (pathname-type dfn) *default-html-extension*)))
          )
-    (if (probe-file dfn)
-        (cl-fad:copy-file dfn destination-path :overwrite nil)
-        (produce-doc-file-placeholder structure
-                                      destination-path
-                                      documentation-title))
-    ))
+    (cond ((probe-file dfn)
+           (cl-fad:copy-file dfn destination-path :overwrite nil))
+          ((not (probe-file destination-path))
+           (produce-doc-file-placeholder structure
+                                         destination-path
+                                         documentation-title))
+          )))
 
 
 (defmethod produce-documentation ((format (eql 'html))
