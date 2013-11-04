@@ -162,6 +162,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 ;;; Documentation per form.
 
 (defmacro define-documentation-extractor (spec &body forms)
+  "Defines a specialized procedure to extract a doc string from a definition.
+"
   `(defmethod extract-form-documentation ((_%FK%_ (eql ',(first spec)))
                                           (_%FORM%_ cons))
      ;; I know I should gensym these...
