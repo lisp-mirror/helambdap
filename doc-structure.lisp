@@ -297,7 +297,7 @@ that include ELEMENT."))
   (initialize-element (%make-doc-file name)))
 
 
-(defvar *default-html-extension* "htm")
+(defparameter *default-html-extension* "html")
 
 (defun doc-file-pathname-type ()
   (make-pathname :type *default-html-extension* :directory ()))
