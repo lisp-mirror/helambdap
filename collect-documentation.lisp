@@ -56,6 +56,7 @@
   (let ((color-table (make-hash-table :test #'equal))
         (doc-bits ())
         (exclude-dir-names (mapcar #'directory-last-name *exclude-directories*))
+        (exclude-file-names (mapcar #'namestring *exclude-files*))
         )
     (labels (
 	     ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
@@ -89,7 +90,7 @@
                             ))
                          (t ; A file.
                           (format t "[F]")
-                          (if (member p *exclude-files* :test #'equal)
+                          (if (member (namestring p) exclude-file-names :test #'equal)
                               (format t " excluded.~%")
                               (setf doc-bits
                                     (nconc (extract-documentation p)
