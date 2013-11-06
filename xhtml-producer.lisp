@@ -153,7 +153,7 @@
   (flet ((produce-frameset-file ()
            (let* ((fs-name (frameset-name structure))
                   (fs-filename (make-pathname :name fs-name
-                                              :type "htm"
+                                              :type "html"
                                               :defaults where))
                   (fs-header (frameset-header structure))
                   (fs-content (frameset-content structure))
