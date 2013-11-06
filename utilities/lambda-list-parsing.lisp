@@ -384,7 +384,7 @@
                      (destructuring-bind (o . iv-osp)
                          v
                        (typecase o
-                         (symbol (push (mkllvar v '&optional v) optvars))
+                         (symbol (push (mkllvar o '&optional v) optvars))
                          (list (push 
                                 (mkllitem (if recur
                                               (parse-ll destr-p o) 
@@ -398,6 +398,25 @@
                  (&rest
                   (etypecase v
                     (symbol (push (mkllvar v s) restvar))
+                    (list (push (if recur
+                                    (parse-ll destr-p v)
+                                    (mkllvar (first v) s v))
+                                restvar)))
+                  )
+
+                 (&body
+                  (etypecase v
+                    (symbol (push (mkllvar v s) bodyvar))
+                    (list (push (if recur
+                                    (parse-ll destr-p v)
+                                    (mkllvar (first v) s v))
+                                bodyvar)))
+                  )
+
+                 #|
+                 (&rest
+                  (etypecase v
+                    (symbol (push (mkllvar v s) restvar))
                     (list (push (mkllitem (parse-ll destr-p v) s) restvar)))
                   )
 
@@ -406,6 +425,7 @@
                     (symbol (push (mkllvar v s) bodyvar))
                     (list (push (mkllitem (parse-ll destr-p v) s) bodyvar)))
                   )
+                 |#
 
                  (&whole
                   (push (mkllvar v '&whole) wholevar))
