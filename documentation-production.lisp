@@ -84,6 +84,7 @@ can be used as building blocks for the final documentation."))
                  ((:exclude-files *exclude-files*)
                   *exclude-files*)
 
+                 (special-methods-defs-files ())
                  (clear-documentation-db :before)
                  
                  &allow-other-keys
@@ -95,7 +96,7 @@ parameters, in particular the output FORMAT (which defaults to HTML).
 
 Arguments and Values:
 
-FOR-WHAT --- what to document; can be a pathname or a 'system' (*).
+FOR-WHAT --- what to document; can be a pathname or a 'system'.
 DOCUMENTATION-TITLE --- a STRING which will appear as the documentation title.
 FORMAT --- a SYMBOL designating the desired kind of output.
 DESTINATION --- a (directory) PATHANME where the documentation will be produced.
@@ -104,17 +105,26 @@ ONLY-EXPORTED --- a BOOLEAN: whether to produce documentation only for 'exported
 EVERYTHING --- a BOOLEAN: whether to produce documentation for everython, no matter what.
 EXCLUDE-DIRECTORIES --- a LIST of directory pathnames not to be considered.
 EXCLUDE-FILES --- a list of FILES not to be considered.
+SPECIAL-METHODS-DEFS-FILES --- a list of FILES to be LOADed before running the parsers. 
 CLEAR-DOCUMENTATION-DB --- a KEYWORD stating if and when the documentation db should be cleared.
 
 Notes:
 
-(*) At the time of this writing, ASDF and MK-DEFSYSTEM are supported.
+At the time of this writing, ASDF and MK-DEFSYSTEM are supported.
 
-The arguments SOURCE and SUPERSEDE are, at the time of this writing,
+The arguments SOURCE and SUPERSEDE are, at the time of this writing, 
 effectively ignored.
+
+The argument SPECIAL-METHODS-DEFS-FILES is a list of Common Lisp files
+that will be loaded before running the documentation parsers; it is
+assumed that these files will contain mostly
+DEFINE-DOCUMENTATION-EXTRACTOR and EXTRACT-NAMED-FORM-DOCUMENTATION
+definitions.  The loading of these files is wrapped in an
+IGNORE-ERRORS form: failure to load one of them will not completely
+hamper the documentation procedure.
 "
 
-  (declare (special *supersed-documentation* ; SBCL may be right here.
+  (declare (special *supersede-documentation* ; SBCL may be right here.
                     *only-documented*
                     *only-exported*
                     *everything*
@@ -126,10 +136,14 @@ effectively ignored.
            documentation files regardless of the value of other 'limiting' ~@
            variables."))
 
+  (ignore-errors
+    (dolist (smdf special-methods-defs-files)
+      (load smdf)))
+
   (when (member clear-documentation-db '(t :before))
     (clear-doc-bits-db))
 
-  (prog1
+  (unwind-protect
       (build-documentation for-what
                            format
                            :layout layout
