@@ -78,7 +78,7 @@ The structure of a documentation bit."
 
 
 (defun doc-bit-pathname-name (doc-bit)
-  (nsubstitute #\| #\/
+  (nsubstitute #\= #\/
                (nsubstitute #\_ #\Space
                             (format nil "~A-~A"
                                     (doc-bit-kind-tag doc-bit)
