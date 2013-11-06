@@ -916,6 +916,7 @@ given 'output-format'."))
   (let* ((pll ll)
          (wv (macro-lambda-list-whole-var pll))
          (ev (macro-lambda-list-env-var pll))
+         (bv (macro-lambda-list-body-var pll))
          
          (rvs (ll-ordinary-vars pll))
          (ovs (ll-optional-vars pll))
@@ -926,10 +927,22 @@ given 'output-format'."))
 
          (rendered-ll ())
          )
-    (flet ((render-ll-item (lli)
+
+    (when (and bv rv)
+      (warn "HELambdaP: parsing a macro lambda list that has ~
+             both &rest and &body variables."))
+
+    (labels ((render-ll-item (lli)
              (etypecase lli
                (lambda-list-item
-                (push (<:i () (llv-name lli)) rendered-ll))
+                (let ((llv-n (lli-name lli)))
+                  (etypecase llv-n
+                    (symbol (push (<:i () llv-n) rendered-ll))
+                    (t_lambda-list
+                     (push (render-lambda-list :macro llv-n)
+                           rendered-ll))
+                    (list (mapc #'render-ll-item lli))
+                    )))
                (t_lambda-list
                 (push (render-lambda-list :macro lli)
                       rendered-ll))
@@ -963,6 +976,16 @@ given 'output-format'."))
 
       (when rv
         (render-ll-item (first rv))
+        ;; (push (<:i () (llv-name (first rv))) rendered-ll)
+        )
+
+
+      (when bv
+        (push (<:span (:style "color: blue") (string '&body))
+              rendered-ll))
+
+      (when bv
+        (render-ll-item (first bv))
         ;; (push (<:i () (llv-name (first rv))) rendered-ll)
         )
 
@@ -1041,6 +1064,7 @@ given 'output-format'."))
                                   &allow-other-keys)
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
+        (deps-on (system-doc-bit-depends-on doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
         (<:document
@@ -1049,9 +1073,10 @@ given 'output-format'."))
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
          (<:body
           (<:h1 (<:i "System ") (<:strong name))
-          (<:h2 "Depends on:")
-          (<:p (mapcar (lambda (d) (<:i () d))
-                       (system-doc-bit-depends-on doc-bit)))
+          (when deps-on
+            (list
+             (<:h2 () "Depends on:")
+             (<:p () (mapcar (lambda (d) (<:i () d)) deps-on))))
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
@@ -2444,7 +2469,7 @@ given 'output-format'."))
          )
     (format t "~&HELAMBDAP: produce-package-navigation-list ~S ~S ~S ~S~%"
             fs
-            (package-name pkg)
+            (if pkg (package-name pkg) "#<not-yet-defined package>")
             (package-doc-bit-name pkg-doc-bit)
             pkg-list-pathname)
           
