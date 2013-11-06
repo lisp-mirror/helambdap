@@ -42,6 +42,28 @@
    "Extracts the documentation from a form tagged with a specific kind."))
 
 
+;;; extract-named-form-documentation --
+
+(defgeneric extract-named-form-documentation (form-kind name form)
+  (:documentation
+   "Extracts the documentation from a 'namd' form.
+
+A 'named' form has the following structure: (<name> . <forms>).
+This generic function is useful to add functionality in the presence
+of symbols for which the package may not be present at runtime.
+
+This function is called by the more general EXTRACT-FORM-DOCUMENTATION
+method on (FORM-KIND SYMBOL).  The call has the form:
+
+    (extract-named-form-documentation s (intern s \"HELAMBDAP\") form)
+
+In this way it is possible to write special methods to handle
+\"unpackaged\" symbols.
+")
+  (:method ((form-kind symbol) name form) nil)
+  )
+
+
 ;;;; Package handling --
 
 (defparameter *current-package* (find-package "COMMON-LISP-USER")
@@ -113,7 +135,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
 
 (defmethod extract-documentation :around ((forms-stream stream))
-  (let ((doc-bits (call-next-method)))
+  (let ((doc-bits (delete nil (call-next-method))))
     (unless *everything*
       (when *only-documented*
         (setf doc-bits
@@ -176,8 +198,14 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 ;;; extract-form-documentation --
 
 (defmethod extract-form-documentation ((fk symbol) (form cons))
-  (warn "Operator ~A not handled." fk)
-  nil)
+  (let ((doc-bit
+         (extract-named-form-documentation fk
+                                           (intern (string fk) "HELAMBDAP")
+                                           form))
+        )
+    (unless doc-bit
+      (warn "Operator ~A not handled." fk))
+    doc-bit))
 
 
 (defmethod extract-form-documentation ((fk (eql 'deftype)) (form cons))
@@ -537,14 +565,14 @@ T). Only top-level occurrences of these forms are considered.")
   (destructuring-bind (eval-when times &rest forms)
       form
     (declare (ignore eval-when times))
-    (mapcar #'form-documentation forms)))
+    (delete nil (mapcar #'form-documentation forms))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'progn)) (form cons))
   (destructuring-bind (progn &rest forms)
       form
     (declare (ignore progn))
-    (mapcar #'form-documentation forms)))
+    (delete nil (mapcar #'form-documentation forms))))
 
 
 (defun extract-symbol-form-documentation (form)
@@ -571,6 +599,32 @@ T). Only top-level occurrences of these forms are considered.")
                            :initial-value (third form)
                            :kind 'constant
                            :doc-string doc)))
+
+
+(define-documentation-extractor (declaim &rest forms)
+  (declare (ignore forms))
+  nil
+  )
+
+
+(define-documentation-extractor (proclaim &rest forms)
+  (declare (ignore forms))
+  nil
+  )
+
+
+(define-documentation-extractor (let bindings &rest forms) ; Hmmmmm!
+  ;; LET is a 'special operator'; it should work, but...
+  (declare (ignore bindings))
+  (delete nil (mapcar #'form-documentation forms))
+  )
+
+
+(define-documentation-extractor (let* bindings &rest forms) ; Hmmmmm!
+  ;; LET is a 'special operator'; it should work, but...
+  (declare (ignore bindings))
+  (mapcar #'form-documentation forms)
+  )
 
 
 (define-documentation-extractor (defsetf access-fn &rest form)
@@ -637,6 +691,14 @@ T). Only top-level occurrences of these forms are considered.")
   (make-lw-system-doc-bit :name name
                           :kind 'scm:scm-system
                           :doc-string (getf options :documentation "")))
+
+
+(defmethod extract-form-documentation :around ((fk symbol) form)  ; Catch all that fixes all problems.
+  (let ((r (call-next-method)))
+    (etypecase r
+      (doc-bit r)
+      (null nil)
+      (list (delete nil r)))))
 
 
 ;;;;===========================================================================
