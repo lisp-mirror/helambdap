@@ -941,13 +941,14 @@ given 'output-format'."))
                     (t_lambda-list
                      (push (render-lambda-list :macro llv-n)
                            rendered-ll))
-                    (list (mapc #'render-ll-item lli))
+                    (list (mapc #'render-ll-item lli)
+			  rendered-ll)
                     )))
                (t_lambda-list
                 (push (render-lambda-list :macro lli)
                       rendered-ll))
                ))
-           )
+	     )
     
       (when wv
         (push (<:span (:style "color: blue") (string '&whole))
