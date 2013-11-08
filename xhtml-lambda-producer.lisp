@@ -632,6 +632,23 @@ Each FRAMESET and FRAME is contained in a separate file.
       arg))
 
 
+(defun produce-doc-bit-title-name (doc-bit)
+  (let* ((db-name (doc-bit-name doc-bit)) ; This can be a (SETF ID).
+         (dbi (doc-bit-identifier doc-bit))
+         (name (format nil "~(~A~)" db-name))
+         (kind-tag (doc-bit-kind-tag doc-bit))
+         (qualifier (if (symbolp dbi)
+                        (if (external-symbol-p dbi)
+                            ""
+                            "Internal")
+                        ""))
+         )
+    (<:h1 ()
+          (<:i () qualifier kind-tag)
+          (<:strong () name)
+          )))
+
+
 (defun paragraphize-doc-string (s)
   (loop for par in (split-at-tex-paragraphs s)
         when (string/= "" par)
@@ -837,7 +854,7 @@ given 'output-format'."))
         ))))
 
 
-(defun dump-doc-bit-html (n str-tag doc-string out)
+(defun dump-doc-bit-html (doc-bit n str-tag doc-string out)
   (let ((name (string-downcase n)))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
         (<:document
@@ -845,7 +862,9 @@ given 'output-format'."))
           (<:title (format nil "~A ~A" str-tag name))
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
          (<:body
-          (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
+          (produce-doc-bit-title-name doc-bit)
+          ;; (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
+
           (<:h2 "Package: ")
           (<:p (package-name (symbol-package n)))
           ;; (<:h2 "Description:")
@@ -1024,7 +1043,8 @@ given 'output-format'."))
                                   &allow-other-keys
                                   )
   (declare (ignorable documentation-title))
-  (dump-doc-bit-html (doc-bit-name doc-bit)
+  (dump-doc-bit-html doc-bit
+                     (doc-bit-name doc-bit)
                      (doc-bit-kind-tag doc-bit)
                      (doc-bit-doc-string doc-bit)
                      out))
@@ -1346,7 +1366,8 @@ given 'output-format'."))
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
          (<:body
-          (<:h1 (<:i kind) (<:strong name))
+          ;; (<:h1 (<:i kind) (<:strong name))
+          (produce-doc-bit-title-name doc-bit)
 
           (<:h2 "Package: ")
           (<:p (<:code (package-name (doc-bit-package doc-bit))))
@@ -1440,7 +1461,8 @@ given 'output-format'."))
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
          (<:body
-          (<:h1 (<:i kind) (<:strong name))
+          (produce-doc-bit-title-name doc-bit)
+          ;; (<:h1 (<:i kind) (<:strong name))
 
           (<:h2 "Package: ")
           (<:p (<:code (package-name (doc-bit-package doc-bit))))
@@ -1570,7 +1592,8 @@ given 'output-format'."))
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
          (<:body
-          (<:h1 (<:i kind) (<:strong name))
+          (produce-doc-bit-title-name doc-bit)
+          ;; (<:h1 (<:i kind) (<:strong name))
 
           (<:h2 "Package: ")
           (<:p (<:code (package-name (doc-bit-package doc-bit))))
@@ -1644,7 +1667,8 @@ given 'output-format'."))
            (<:title kind (string-downcase name))
            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
           (<:body
-           (<:h1 (<:i kind) (<:strong (string-downcase name)))
+           (produce-doc-bit-title-name doc-bit)
+           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
            (<:h2 "Package:")
            (<:p (package-name (symbol-package name)))
@@ -1682,7 +1706,8 @@ given 'output-format'."))
            (<:link :rel "stylesheet"
                    :href (namestring *helambdap-css-filename-up*))) 
           (<:body
-           (<:h1 (<:i kind) (<:strong (string-downcase name)))
+           (produce-doc-bit-title-name doc-bit)
+           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
            (<:h2 "Package: ")
            (<:p (<:code (package-name (symbol-package name))))
@@ -1743,7 +1768,8 @@ given 'output-format'."))
            (<:title kind (string-downcase name))
            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
           (<:body
-           (<:h1 (<:i kind) (<:strong (string-downcase name)))
+           (produce-doc-bit-title-name doc-bit)
+           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
             
            (<:h2 "Package: ")
            (<:p (<:code (package-name (symbol-package name))))
@@ -1857,9 +1883,12 @@ given 'output-format'."))
             (<:title documentation-title ": " "Generic Function" name)
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
            (<:body
-            (<:h1 (<:i "Generic Function") (<:strong name))
+            (produce-doc-bit-title-name doc-bit)
+            ;; (<:h1 (<:i "Generic Function") (<:strong name))
+
             (<:h2 "Package:")
             (<:p (package-name (symbol-package gfname)))
+
             (<:h2 "Syntax:")
             (<:p (<:strong name)
                  (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
@@ -2022,7 +2051,8 @@ given 'output-format'."))
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
            (<:body
 
-            (<:h1 (<:i "Generic Function") (<:strong name))
+            (produce-doc-bit-title-name doc-bit)
+            ;; (<:h1 (<:i "Generic Function") (<:strong name))
 
             (<:h2 "Package:")
             (<:p (package-name (symbol-package gfname)))
