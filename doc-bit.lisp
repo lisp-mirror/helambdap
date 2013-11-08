@@ -77,12 +77,29 @@ The structure of a documentation bit."
                (string (doc-bit-name doc-bit))))
 
 
+#+old-old-version
 (defun doc-bit-pathname-name (doc-bit)
+  "Ensures that the resulting pathname does not contain 'problematic' characters.
+
+More specifically: #\\/ #\\Space #\\*"
   (nsubstitute #\= #\/
                (nsubstitute #\_ #\Space
                             (format nil "~A-~A"
                                     (doc-bit-kind-tag doc-bit)
                                     (doc-bit-name doc-bit)))))
+
+
+(defun doc-bit-pathname-name (doc-bit
+                              &aux
+                              (dbpn (format nil "~A-~A"
+                                            (doc-bit-kind-tag doc-bit)
+                                            (doc-bit-name doc-bit))))
+  "Ensures that the resulting pathname does not contain 'problematic' characters.
+
+More specifically: #\\/ #\\Space #\\*"
+  (nsubstitute #\_ #\*
+               (nsubstitute #\= #\/
+                            (nsubstitute #\_ #\Space dbpn))))
 
 
 (defun make-doc-bit-pathname (doc-bit
@@ -92,7 +109,7 @@ The structure of a documentation bit."
   (make-pathname :name (doc-bit-pathname-name doc-bit)
                  :type type
                  :defaults where))
-      
+
 
 ;;;;===========================================================================
 ;;;; Known DOC-BITS.
