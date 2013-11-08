@@ -88,7 +88,7 @@ More specifically: #\\/ #\\Space #\\*"
                                     (doc-bit-kind-tag doc-bit)
                                     (doc-bit-name doc-bit)))))
 
-
+#+old-new-version
 (defun doc-bit-pathname-name (doc-bit
                               &aux
                               (dbpn (format nil "~A-~A"
@@ -96,10 +96,36 @@ More specifically: #\\/ #\\Space #\\*"
                                             (doc-bit-name doc-bit))))
   "Ensures that the resulting pathname does not contain 'problematic' characters.
 
-More specifically: #\\/ #\\Space #\\*"
+More specifically: #\\/ #\\Space #\\* #\%"
   (nsubstitute #\_ #\*
-               (nsubstitute #\= #\/
-                            (nsubstitute #\_ #\Space dbpn))))
+               (nsubstitute #\_ #\*
+                            (nsubstitute #\= #\/
+                                         (nsubstitute #\_ #\Space dbpn)))))
+
+(defun doc-bit-pathname-name (doc-bit
+                              &aux
+                              (bad-chars
+                               '((#\/ "=")
+                                 (#\Space "_")
+                                 (#\* "_")
+                                 (#\% "p100")
+                                 (#\# "hash")
+                                 (#\& "amp")
+                                 )
+                               )
+                              (dbpn (format nil "~A-~A"
+                                            (doc-bit-kind-tag doc-bit)
+                                            (doc-bit-name doc-bit))))
+  "Ensures that the resulting pathname does not contain 'problematic' characters.
+
+More specifically: #\\/ #\\Space #\\* #\%"
+  (with-output-to-string (result)
+    (loop for c across dbpn
+          for bad-char-n-repl = (find c bad-chars :key #'first :test #'char=)
+          if bad-char-n-repl
+          do (write-string (second bad-char-n-repl) result)
+          else
+          do (write-char c result))))
 
 
 (defun make-doc-bit-pathname (doc-bit
