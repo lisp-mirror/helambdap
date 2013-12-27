@@ -111,6 +111,8 @@ More specifically: #\\/ #\\Space #\\* #\%"
                                  (#\% "p100")
                                  (#\# "hash")
                                  (#\& "amp")
+                                 (#\( "op")
+                                 (#\) "cp")
                                  )
                                )
                               (dbpn (format nil "~A-~A"
@@ -118,7 +120,7 @@ More specifically: #\\/ #\\Space #\\* #\%"
                                             (doc-bit-name doc-bit))))
   "Ensures that the resulting pathname does not contain 'problematic' characters.
 
-More specifically: #\\/ #\\Space #\\* #\%"
+More specifically: #\\/ #\\Space #\\* #\% #\( #\)"
   (with-output-to-string (result)
     (loop for c across dbpn
           for bad-char-n-repl = (find c bad-chars :key #'first :test #'char=)
