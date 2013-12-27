@@ -307,12 +307,15 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (defpackage name &rest options)
       form
     (declare (ignore defpackage))
+    ;; We must ensure that a package always has a doc string.
     (make-package-doc-bit :name name
                           :kind 'package
                           :use-list (rest (find :use options :key #'first))
                           :nicknames (rest (find :nicknames options :key #'first))
-                          :doc-string (second (find :documentation options
-                                                    :key #'first)))))
+                          :doc-string (or (second (find :documentation options
+                                                        :key #'first))
+                                          (format nil "The ~A Package." name)
+                                          ))))
 
 
 (defvar *try-to-ensure-packages* t
@@ -667,12 +670,15 @@ T). Only top-level occurrences of these forms are considered.")
 
 #+mk-defsystem
 (define-documentation-extractor (mk:defsystem name &rest rest-system)
+  ;; We must ensure that a system always has a doc string.
   (make-mk-system-doc-bit :name name
                           :kind 'mk::system
                           :depends-on (getf rest-system :depends-on)
-                          :doc-string (second
-                                       (member :documentation rest-system
-                                               :test #'eq))))
+                          :doc-string (or (second
+                                           (member :documentation rest-system
+                                                   :test #'eq))
+                                          (format nil "The ~A System." name))
+                                          ))
 
 
 #+asdf
@@ -680,9 +686,11 @@ T). Only top-level occurrences of these forms are considered.")
   (make-asdf-system-doc-bit :name name
                             :kind 'asdf:system
                             :depends-on (getf rest-system :depends-on)
-                            :doc-string (second
-                                         (member :description rest-system
-                                                 :test #'eq))))
+                            :doc-string (or (second
+                                             (member :documentation rest-system
+                                                     :test #'eq))
+                                            (format nil "The ~A System." name))
+                            ))
 
 
 #+lispworks
