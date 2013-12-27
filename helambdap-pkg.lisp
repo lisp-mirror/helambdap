@@ -49,6 +49,14 @@
    "INSERT-DOC-BIT"
    )
 
+  (:export
+   "+DOCTYPE-FRAMESET-CONTROL-STRING+"
+   "+DOCTYPE-XHTML1-STRING-CONTROL-STRING+"
+   "+DOCTYPE-HTML5-CONTROL-STRING+"
+   "+FRAMESET-DOCTYPE-PUBLIC-ID+"
+   "+FRAMESET-DOCTYPE-SYSTEM-ID+"
+   )
+
   (:documentation "The HELambdaP Package.
 
 The package containing the implementation of the 'semi-offline'
