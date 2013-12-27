@@ -2373,6 +2373,7 @@ given 'output-format'."))
              ((<:div :class "helambdap_navmap")
               (<:h3 "Systems and Packages")
 
+	      #| ;; Why did I need this?
 
               (<:p
                (<:strong ((<:script :type "text/javascript")
@@ -2382,6 +2383,7 @@ given 'output-format'."))
                                                    + '</i>' + Date())"
                                   (format nil "~A_navigation_list" (element-name fs))
                                   ))))
+	      |#
 
               (let ((syss (remove-if (complement #'system-doc-bit-p)
                                      doc-bits))
