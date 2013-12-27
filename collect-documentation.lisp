@@ -58,6 +58,12 @@
         (exclude-dir-names (mapcar #'directory-last-name *exclude-directories*))
         (exclude-file-names (mapcar #'namestring *exclude-files*))
         )
+    (declare (type hash-table color-table)
+	     (type list
+		   doc-bits
+		   exclude-dir-names
+		   exclude-file-names)
+	     )
     (labels (
 	     ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
 
@@ -73,6 +79,7 @@
 
              (dfs (p)
                (let ((ntp (namestring (truename p))))
+		 (declare (type string ntp))
                  (when (is-white ntp)
                    (format t "~&HELAMBDAP: Considering ~10A " p)
                    (grey ntp)
@@ -110,6 +117,8 @@
         (gfs ())
         (methods ())
         )
+    (declare (type hash-table gfs-table)
+	     (type list doc-bits gfs methods))
 
     (loop for db in doc-bits
           when (generic-function-doc-bit-p db)
@@ -137,6 +146,7 @@
   (declare (type list doc-bits)) ; (type (list doc-bits) doc-bits)
 
   (flet ((sort-doc-bits (doc-bits)
+	   (declare (type list doc-bits))
            (sort (copy-list doc-bits) #'string<= :key 'doc-bit-identifier))
          )
 
@@ -159,6 +169,25 @@
           modify-macros
           others
           )
+      (declare (type list
+		     systems
+		     packages
+		     constants
+		     parameters
+		     variables
+		     types
+		     classes
+		     structs
+		     conditions
+		     generic-functions
+		     methods
+		     functions
+		     macros
+		     method-combinations
+		     setf-expanders
+		     modify-macros
+		     others))
+		     
       (macrolet ((put-in (list)
                    `(push doc-bit ,list)))
         (dolist (doc-bit doc-bits)
