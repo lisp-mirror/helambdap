@@ -46,6 +46,7 @@
   "<!DOCTYPE html>"
 
 "The standard HTML5 doctype declaration.")
+
 )
 
 
@@ -82,5 +83,8 @@
 "The standard HTML5 doctype declaration.")
 )
 
+
+(defparameter *helambdap-site*
+  "http://helambdap.sourceforge.net")
 
 ;;;; end of file -- xhtml-common-definitions.lisp --

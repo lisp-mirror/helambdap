@@ -2633,7 +2633,7 @@ given 'output-format'."))
                      #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
               (<:strong (or documentation-title fs-body-title))
               "documentation produced with"
-              "HE&Lambda;P"
+              ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
               (<:br)
               (<:comment "hhmts start")
               "Last modified: " (text-timestamp)
