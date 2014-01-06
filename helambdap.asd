@@ -7,7 +7,7 @@
   )
 
 
-(asdf:defsystem "HELAMBDAP"
+(asdf:defsystem "helambdap"
   :description "The HELambdaP System."
   :components ((:file "helambdap-pkg")
                (:file "helambdap-globals")
