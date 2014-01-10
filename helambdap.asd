@@ -65,12 +65,12 @@
 			     ))
                )
   :depends-on ("cl-fad"
-               "SPLIT-SEQUENCE"
-               #+helambdap.version-using-MOP "CLOSER-MOP"
-               #+helambdap.with-cxml "CXML"
-               #+helambdap.with-ediware "CL-WHO"
-               #+helambdap.with-ediware "HTML-TEMPLATE"
-               #+helambdap.with-xhtmlambda "XHTMLAMBDA"
+               "split-sequence"
+               #+helambdap.version-using-MOP "closer-mop"
+               #+helambdap.with-cxml "cxml"
+               #+helambdap.with-ediware "cl-WHO"
+               #+helambdap.with-ediware "html-template"
+               #+helambdap.with-xhtmlambda "xhtmlambda"
                )
   )
 
