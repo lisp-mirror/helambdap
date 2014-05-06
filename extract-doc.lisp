@@ -325,9 +325,153 @@ DEFPACKAGE and IN-PACKAGE forms will be evaluated if non-NIL (default
 T). Only top-level occurrences of these forms are considered.")
 
 
+#| Not fully working...
 (defmethod extract-form-documentation :before ((fk (eql 'defpackage)) (form cons))
   (when (and *try-to-ensure-packages* (not (find-package (second form))))
-    (eval form)))
+    ;; Suppose we are seeing this DEFPACKAGE *after* an IN-PACKAGE
+    ;; that caused HELambdaP to crate the package with a nickname in
+    ;; the DEFPACKAGE.
+    ;;
+    ;; We need to ensure that no package name conflicts appear and
+    ;; that symbols already defined get properly handled.
+    ;;
+    ;; The following is rather kludgy, but hey!!!!
+
+    (handler-case
+        (eval form)
+      (package-error (pe)
+        ;; Most likely a 'nickname' error.
+        ;; Different implementations have different 'nickname' errors.
+        (let* ((nicknames
+                (mapcan #'rest (remove :nicknames (cddr form)
+                                       :key #'first
+                                       :test-not #'eq)))
+               (pkgs (delete-duplicates (mapcar #'find-package nicknames)
+                                        :test #'eq))
+               (n-pkgs (list-length pkgs))
+               )
+          (cond ((zerop n-pkgs)
+                 ;; Infer that the error was something not 'nickname'
+                 ;; related: just re-signal.
+                 (signal pe))
+                ((and (= n-pkgs 1)
+                      (string-not-equal (package-name (first pkgs))
+                                        (second form)))
+                 ;; Maybe there is a bona-fide 'nickname' error.
+                 ;; Allow the user to continue...
+                 (cerror "Go ahead and fix the packages (the ~
+                          defpackage form will have precedence and the nicknamed ~
+                          package will be deleted)."
+                         "HELambdaP found a defpackage form with one ~
+                          of its nicknames naming the ~S package; ~
+                          the defpackage wants to define a package named ~A."
+                         (package-name (first pkgs))
+                         (second form)
+                         )
+                 ;; Now the tricky part...
+                 
+                 ;; 1 - make the defpackage package.
+                 (let ((pkg-defpkg (make-package (second form))))
+                   ;; 2 - move the symbols from the 'nickname' pkg to
+                   ;;     the defpkg package.
+                   (loop for s being the present-symbols of (first pkgs)
+                         for ns = (intern (string s) pkg-defpkg)
+                         do (setf (symbol-plist ns) (symbol-plist s)
+                                  (symbol-value ns) (symbol-value s)
+                                  (symbol-function ns) (symbol-function s)
+                                  ))
+                   ;; 3 - delete the 'nicknamed' package.
+                   (delete-package (first pkgs))
+                   pkg-defpkg
+                   ))
+                ((and (= n-pkgs 1)
+                      (string-equal (package-name (first pkgs))
+                                    (second form)))
+                 ;; Different kind of error: resignal.
+                 (signal pe))
+                (t
+                 ;; Catch all.
+                 (signal pe))
+                )
+          )))))
+|#
+
+
+(defmethod extract-form-documentation :before ((fk (eql 'defpackage)) (form cons))
+  "This :before method takes care of ensuring that the defpackage is
+actually evaluated while avoing problems with package synonyms.  This
+method may signal a continuable error, that a user may decide s/he has
+to handle in a particular way; the continuable error is generated when
+there exist a package named by one of the defpackage form nicknames."
+
+  (when (and *try-to-ensure-packages* (not (find-package (second form))))
+    ;; Suppose we are seeing this DEFPACKAGE *after* an IN-PACKAGE
+    ;; that caused HELambdaP to crate the package with a nickname in
+    ;; the DEFPACKAGE.
+    ;;
+    ;; We need to ensure that no package name conflicts appear and
+    ;; that symbols already defined get properly handled.
+    ;;
+    ;; The following is rather kludgy, but hey!!!!
+
+    ;; We need to check whether a nickname already names a package.
+    (let* ((nicknames
+            (mapcan #'rest (remove :nicknames (cddr form)
+                                   :key #'first
+                                   :test-not #'eq)))
+           (pkgs (delete-duplicates (mapcar #'find-package nicknames)
+                                    :test #'eq))
+           (n-pkgs (list-length pkgs))
+           )
+      (cond ((zerop n-pkgs)
+             ;; All "good nicknames"; just eval the form.
+             (eval form))
+
+            ((and (= n-pkgs 1)
+                  (string-not-equal (package-name (first pkgs))
+                                    (string (second form))))
+             ;; This will generate a 'nickname error' (which different
+             ;; impelementations signal differently).
+             (cerror "Go ahead and fix the packages (the ~
+                      defpackage form will have precedence and the nicknamed ~
+                      package will be deleted)."
+                     "HELambdaP found a defpackage form with one ~
+                      of its nicknames naming the ~S package; ~
+                      the defpackage wants to define a package named ~A."
+                     (package-name (first pkgs))
+                     (second form)
+                     )
+             ;; Now the tricky part...
+
+             ;; 1 - make the defpackage package.
+             (let ((pkg-defpkg (make-package (second form))))
+               ;; 2 - move the symbols from the 'nickname' pkg to
+               ;;     the defpkg package.
+               (loop for s being the present-symbols of (first pkgs)
+                     for ns = (intern (string s) pkg-defpkg)
+                     do (setf (symbol-plist ns) (symbol-plist s))
+                     when (boundp s)
+                     do (setf (symbol-value ns) (symbol-value s))
+                     when (fboundp s)
+                     do (setf (symbol-function ns) (symbol-function s))
+                     )
+               ;; 3 - delete the 'nicknamed' package.
+               (delete-package (first pkgs))
+
+               ;; 4 - Eval the full defpackage form (maybe generating
+               ;; warnings, but who cares).
+               (eval form)
+               ))
+            ((and (= n-pkgs 1)
+                  (string-equal (package-name (first pkgs))
+                                (string (second form))))
+             ;; No nickname will be generated; just eval the form.
+             (eval form))
+            (t
+             ;; Catch all.
+             (eval form))
+            )
+      )))
 
 
 (defmethod extract-form-documentation :before ((fk (eql 'in-package)) (form cons))
@@ -335,9 +479,10 @@ T). Only top-level occurrences of these forms are considered.")
     (let* ((pkg-name (second form))
            (pkg (find-package pkg-name))
            )
-      (when *try-to-ensure-packages*
-        (unless pkg
-          (make-package pkg-name))))))
+      (unless pkg
+        ;; The next form can create 'nickname conflicts' with full
+        ;; DEFPACKAGE forms encountered 'later' by HELambdaP.
+        (make-package pkg-name)))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'in-package)) (form cons))
