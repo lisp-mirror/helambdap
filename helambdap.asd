@@ -10,7 +10,7 @@
 (asdf:defsystem "helambdap"
   :description "The HELambdaP System."
   :components ((:file "helambdap-pkg")
-               (:file "helambdap-globals")
+               (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ((:file "text-utilities")
@@ -20,36 +20,45 @@
                              (:file "symbols-utilities")
                              (:file "lambda-list-parsing")
                              ))
-               (:file "naming")
-               (:file "doc-bit" :depends-on ("naming"))
-               (:file "extract-doc")
-               (:file "helambdap")
-               (:file "collect-documentation")
-               (:file "doc-structure")
+               (:file "naming" :depends-on ("helambdap-pkg"))
+               (:file "doc-bit" :depends-on ("naming" "helambdap-globals"))
+               (:file "extract-doc" :depends-on ("doc-bit"))
+               (:file "helambdap" :depends-on ("doc-bit"))
+               (:file "collect-documentation" :depends-on ("doc-bit"))
+               (:file "doc-structure" :depends-on ("helambdap-pkg"))
                (:file "documentation-production"
-                :depends-on ("impl-dependent"))
+                :depends-on ("impl-dependent" "doc-structure"))
 
-               (:file "xhtml-common-definitions")
+               (:file "xhtml-common-definitions"
+                :depends-on ("helambdap-pkg"))
 
                #+helambdap.with-ediware
                (:file "xml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"
-                                             "xhtml-common-definitions"))
+                :depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
 
                #+helambdap.with-ediware
                (:file "xhtml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"
-                                             "xhtml-common-definitions"))
+                :depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
 
                #+helambdap.with-cxml
                (:file "xhtml-cxml-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"
-                                             "xhtml-common-definitions"))
+                :depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
 
                #+helambdap.with-xhtmlambda
                (:file "xhtml-lambda-producer"
-                :depends-on ("doc-structure" "utilities" "documentation-production"
-                                             "xhtml-common-definitions"))
+                :depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
 
 	       (:module "impl-dependent"
 		:depends-on ("helambdap-pkg")
