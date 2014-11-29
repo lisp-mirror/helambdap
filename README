@@ -1,5 +1,5 @@
 HEΛP
-Copyright (c) 2012-2013 Marco Antoniotti
+Copyright (c) 2012-2015 Marco Antoniotti
 See file COPYING for licensing information
 
 
@@ -41,11 +41,12 @@ appears on the first page. It usually appears blank.
 
 INSTALLATION
 
-Installation should be simple if you have quicklisp, ASDF, or
-MK-DEFSYSTEM set up.  You will need also XHTMΛ and a few other
+HEΛP is available on quicklisp.
+
+Otherwise, installation should be simple if you have quicklisp, ASDF,
+or MK-DEFSYSTEM set up.  You will need also XHTMΛ and a few other
 libraries.  Check out the defsystem files for the current list.
 
 Enjoy
 
-Marco Antoniotti 2013-06-25
-
+Marco Antoniotti 2014-11-29
