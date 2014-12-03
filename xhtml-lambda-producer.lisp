@@ -1980,9 +1980,12 @@ given 'output-format'."))
            (render-method-specializers (specializers)
              (loop for sp in specializers
                    for s = (if (eql-spec-p sp)
-                               (if (quoted-exp-p (second sp))
-                                   (<:i () (format nil "(EQL '~A)" (second (second sp))))
-                                   (<:i () sp))
+                               (cond ((quoted-exp-p (second sp))
+                                      (<:i () (format nil "(EQL '~A)" (second (second sp)))))
+                                     ((keywordp (second sp))
+                                      (<:i () (format nil "(EQL :~A)" (second sp))))
+                                     (t
+                                      (<:i () sp)))
                                (<:i () (format nil "&lt;~A&gt;" sp)))
                    collect s))
 
