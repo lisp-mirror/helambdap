@@ -9,6 +9,14 @@
 ;;;;===========================================================================
 ;;;; Global special parameters controlling the documentation production.
 
+
+;;;; *helambdap-site* --
+
+(defparameter *helambdap-site*
+  "http://helambdap.sourceforge.net"
+  "The site where HELambdaP currently resides.")
+
+
 ;;;; *supersede-documentation* --
 
 (defparameter *supersede-documentation* t)
