@@ -102,7 +102,7 @@ FORMAT --- a SYMBOL designating the desired kind of output.
 DESTINATION --- a (directory) PATHANME where the documentation will be produced.
 ONLY-DOCUMENTED --- a BOOLEAN: whether to produce documentation only for documented items.
 ONLY-EXPORTED --- a BOOLEAN: whether to produce documentation only for 'exported' items.
-EVERYTHING --- a BOOLEAN: whether to produce documentation for everython, no matter what.
+EVERYTHING --- a BOOLEAN: whether to produce documentation for everything, no matter what.
 EXCLUDE-DIRECTORIES --- a LIST of directory pathnames not to be considered.
 EXCLUDE-FILES --- a list of FILES not to be considered.
 SPECIAL-METHODS-DEFS-FILES --- a list of FILES to be LOADed before running the parsers. 
