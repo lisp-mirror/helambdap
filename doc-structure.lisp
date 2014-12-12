@@ -320,6 +320,11 @@ that include ELEMENT."))
   (index ()))
 
 
+(defmethod print-object ((fs file-set) stream)
+  (print-unreadable-object (fs stream)
+    (format stream "FILE-SET ~S" (file-set-name fs))))
+
+
 (defmethod pprint-element ((o stream) (f file-set))
   (if *print-pretty*
       (print-object f o)
