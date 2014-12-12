@@ -160,7 +160,10 @@ More specifically: #\\/ #\\Space #\\* #\% #\( #\)"
 
 (defstruct (parameterized-doc-bit (:include doc-bit)
                                   (:constructor nil))
-  (lambda-list () :read-only t :type list))
+  (lambda-list () :read-only t :type list)
+  (type-declarations () :read-only t :type list) ; From DECLARE.
+  (ftype-declarations () :read-only t :type list) ; From DECLARE.
+  )
 
 
 (defstruct (function-doc-bit (:include parameterized-doc-bit (kind-tag "Function")))

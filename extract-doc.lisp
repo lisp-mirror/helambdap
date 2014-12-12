@@ -222,13 +222,18 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
   (destructuring-bind (defun name ll &rest forms)
       form
     (declare (ignore defun))
-    (let* ((decls (collect-declarations forms))
-           (values-decl (find 'returns (mapcan #'rest decls) :key #'first))
+    (let* ((decls (mapcan #'rest (collect-declarations forms)))
+           (values-decl (find 'returns decls :key #'first))
+           (type-decls (remove 'type decls :key #'first :test (complement #'eq)))
+           (ftype-decls (remove 'ftype decls :key #'first :test (complement #'eq)))
            )
+      (declare (ignorable type-decls ftype-decls))
       (make-function-doc-bit :name name
                              :kind 'function
                              :lambda-list ll
                              :values (rest values-decl)
+                             :type-declarations type-decls
+                             :ftype-declarations ftype-decls
                              :doc-string (extricate-doc-string forms)))))
 
 
@@ -570,6 +575,13 @@ there exist a package named by one of the defpackage form nicknames."
                          slots)
                  )
 
+               (extract-slot-types (slots)
+                 (mapcar (lambda (slot-spec)
+                           (typecase slot-spec
+                             (symbol t)
+                             (list (getf (cddr slot-spec) :type t))))
+                         slots))
+
                (build-doc-for-slots-fns (slots)
                  (loop for s in slots
                        if (symbolp s)
@@ -650,6 +662,11 @@ there exist a package named by one of the defpackage form nicknames."
                                            (extract-slot-names slots))
                                      ()
                                      )
+                    :type-declarations (mapcan (lambda (slot type)
+                                                 (when type
+                                                   `((type ,type ,slot))))
+                                               (extract-slot-names slots)
+                                               (extract-slot-types slots))
                     :values (list name)
                     :doc-string
                     (format nil "A constructor for the structure ~A." name)
@@ -683,6 +700,11 @@ there exist a package named by one of the defpackage form nicknames."
                                        :lambda-list (cond (boa-ll boa-ll)
                                                           (slots (cons '&key
                                                                        (extract-slot-names slots))))
+                                       :type-declarations (mapcan (lambda (slot type)
+                                                                    (when type
+                                                                      `((type ,type ,slot))))
+                                                                  (extract-slot-names slots)
+                                                                  (extract-slot-types slots))
                                        :values (list name)
                                        :doc-string
                                        (format nil

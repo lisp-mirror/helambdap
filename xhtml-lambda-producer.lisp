@@ -660,17 +660,21 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   args-n-values-p
                                   lambda-list
                                   result-p
-                                  returns-decl)
+                                  returns-decl
+                                  type-decls
+                                  )
   (:method ((s null) input-syntax output-format
             &optional
             args-n-values-p
             lambda-list
             result-p
-            returns-decl)
+            returns-decl
+            type-decls)
    (declare (ignore args-n-values-p
                     lambda-list
                     result-p
-                    returns-decl))
+                    returns-decl
+                    type-decls))
    )
   (:documentation
    "Processes a 'doc string'.
@@ -789,7 +793,9 @@ given 'output-format'."))
             lambda-list
             result-p
             returns-decl
+            type-decls
             )
+  (declare (ignorable type-decls))
   ;; Try to process Hyperspec-style.
 
   (multiple-value-bind (syntax-pars
@@ -825,11 +831,17 @@ given 'output-format'."))
                      (push (<:ul (:style "list-style-type: none")
                                  (append
                                   (loop for arg in ll-vars
+                                        for arg-type-decl = (or (find-if (lambda (type-decl)
+                                                                           (member arg (cddr type-decl)))
+                                                                         type-decls)
+                                                                `(type t ,arg))
                                         collect
                                         (<:li (:style "list-style-type: none")
                                               (<:i () (<:code () (arg-name arg)))
                                               " : "
-                                              "a T." ; To be FIXED.
+                                              ;; "a T." ; To be FIXED.
+                                              "a "
+                                              (second arg-type-decl)
                                               ))
                                   (and result-p
                                        (process-returns-declaration returns-decl))))
@@ -1452,7 +1464,9 @@ given 'output-format'."))
          (doc-string (doc-bit-doc-string doc-bit))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          (returns (function-doc-bit-values doc-bit))
+         (type-decls (function-doc-bit-type-declarations doc-bit))
          )
+    (declare (ignorable type-decls))
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
         (<:document
@@ -1490,7 +1504,8 @@ given 'output-format'."))
                               t
                               (parse-ll :ordinary ll)
                               t
-                              returns)
+                              returns
+                              type-decls)
           )))))
 
 
@@ -1735,7 +1750,9 @@ given 'output-format'."))
                          (list
                           (<:dt () sn)
                           (<:dd ()
-                                (format nil "with initial value ~S of type ~A~@[; the slot is read-only~]."
+                                (format nil
+                                        ;; "with initial value ~S of type ~A~@[; the slot is read-only~]."
+                                        "with initial value ~A of type ~A~@[; the slot is read-only~]."
                                         sv type read-only)))))
                  ))
            ;; (<:h2 "Description:")
@@ -2345,6 +2362,7 @@ given 'output-format'."))
 
 
 (defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
+  (declare (type frameset fs))
   (format t "~&HELAMBDAP: producing NAV MAP file ~S ~S ~S~2%"
           fs nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
@@ -2483,7 +2501,7 @@ given 'output-format'."))
                                         pkg-doc-bit
                                         pkg-list-pathname
                                         doc-bits)
-
+  (declare (type frameset fs))
   (let* ((pkg (find-package (package-doc-bit-name pkg-doc-bit)))
          (target (format nil "~A_frame"
                          (element-name nav-element)))
@@ -2530,6 +2548,7 @@ given 'output-format'."))
         (sift-standard-doc-bits pkg-doc-bits)
 
       (declare (ignore systems packages methods others))
+      ;; (format t "~&HELAMBDAP:~{~} ~%") ; Count stuff.
       (flet ((build-list (list-name doc-bits)
                (when doc-bits
                  (list* (<:h4 () list-name)
