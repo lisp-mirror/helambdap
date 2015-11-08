@@ -2671,7 +2671,18 @@ given 'output-format'."))
 ;;;;===========================================================================
 ;;;; Utilities.
 
-(defgeneric extract-sections (source format))
+(defgeneric extract-sections (source format)
+  (:documentation "Quick and dirty 'section' finding in (X)HTML(5) source.
+
+The EXTRACT-SECTIONS function looks at an (X)HTML(5) source looking
+for top level <H1>...</H1> 'section'.  More specifically, it looks for
+sectioning markup of the form:
+
+     <H1><A name=\"Section Name\">....</A></H1>
+
+The \"Section Name\" is what is eventually saved in the result, which
+is then used to produce a file navigation bar.
+"))
 
 
 (defmethod extract-sections ((p pathname) format)
