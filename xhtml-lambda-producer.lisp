@@ -91,6 +91,9 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 |#
 
+;;;; Notes:
+;;;; The layout already reflects HTML5 elements.
+
 
 ;;;;===========================================================================
 ;;;; Protocol.
