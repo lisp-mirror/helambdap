@@ -23,13 +23,13 @@ We are in the directory where the code to be documented resides.  The
 actual documentation will end up in the directory (using POSIX syntax
 and conventions) `./docs/html/`.
 
-```
+~~~~
     cl-prompt> (document *the-current-directory* :documentation-title "My Library")
     ;;; Several messages, some warnings and error messages.
     ;;; More messages, more warnings and error messages (these last ones ignored.).
     ;;; Yadda, yadda, yadda....
     NIL
-```
+~~~~
 
 As stated, the previous command will create the documentation (with an
 index.htm file in the `./docs/html/` folder.  Alas, note that the
