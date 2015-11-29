@@ -9,6 +9,11 @@
 
 (asdf:defsystem "helambdap"
   :description "The HELambdaP System."
+
+  :author "Marco Antoniotti <mantoniotti (you-know-the-drill) common-lisp.net>"
+
+  :license "BSD like"
+
   :components ((:file "helambdap-pkg")
                (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
                (:module "utilities"
@@ -25,7 +30,7 @@
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
-               (:file "doc-structure" :depends-on ("helambdap-pkg"))
+               (:file "doc-structure" :depends-on ("helambdap-pkg" "utilities"))
                (:file "documentation-production"
                 :depends-on ("impl-dependent" "doc-structure"))
 
