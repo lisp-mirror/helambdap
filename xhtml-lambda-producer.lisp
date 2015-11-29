@@ -288,7 +288,8 @@ Each FRAMESET and FRAME is contained in a separate file.
         (produce-documentation format
                                fs-content
                                fs-file
-                               doc-bits))
+                               doc-bits
+                               :documentation-title documentation-title))
 
       (<:with-html-syntax-output (fs-file :print-pretty t :syntax :compact)
           (<:document 
@@ -335,7 +336,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                     #|(produce-documentation format
                                            fs-content
                                            fs-file
-                                           doc-bits)|#
+                                           doc-bits
+                                           :documentation-title documentatio-title)|#
                     (produce-frame format fs-content fs-file)
                     )
                   (<:frame (:name (format nil "~A_frame" (element-name structure))
@@ -531,7 +533,8 @@ Each FRAMESET and FRAME is contained in a separate file.
         (produce-documentation 'html
                                doc-bit
                                doc-bit-stream
-                               doc-bits))))
+                               doc-bits
+                               :documentation-title documentation-title))))
   )
 
 
@@ -2366,7 +2369,10 @@ given 'output-format'."))
 
 (defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
   (declare (type frameset fs))
-  (format t "~&HELAMBDAP: producing NAV MAP file ~S ~S ~S~2%"
+  (format t "~&HELAMBDAP: producing NAV MAP file~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~2%"
           fs nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
     (with-open-file (nm nm-pathname
@@ -2524,7 +2530,11 @@ given 'output-format'."))
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&HELAMBDAP: produce-package-navigation-list ~S ~S ~S ~S~%"
+    (format t "~&HELAMBDAP: produce-package-navigation-list~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
             (package-doc-bit-name pkg-doc-bit)
