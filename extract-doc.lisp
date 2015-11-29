@@ -424,56 +424,83 @@ there exist a package named by one of the defpackage form nicknames."
             (mapcan #'rest (remove :nicknames (cddr form)
                                    :key #'first
                                    :test-not #'eq)))
-           (pkgs (delete-duplicates (mapcar #'find-package nicknames)
-                                    :test #'eq))
+           (pkgs (delete nil
+                         (delete-duplicates (mapcar #'find-package nicknames)
+                                            :test #'eq)))
            (n-pkgs (list-length pkgs))
            )
       (cond ((zerop n-pkgs)
              ;; All "good nicknames"; just eval the form.
              (eval form))
 
-            ((and (= n-pkgs 1)
-                  (string-not-equal (package-name (first pkgs))
-                                    (string (second form))))
-             ;; This will generate a 'nickname error' (which different
-             ;; impelementations signal differently).
-             (cerror "Go ahead and fix the packages (the ~
-                      defpackage form will have precedence and the nicknamed ~
-                      package will be deleted)."
-                     "HELambdaP found a defpackage form with one ~
-                      of its nicknames naming the ~S package; ~
-                      the defpackage wants to define a package named ~A."
-                     (package-name (first pkgs))
-                     (second form)
-                     )
-             ;; Now the tricky part...
+            ((= n-pkgs 1)
+             (cond ((string-equal (package-name (first pkgs))
+                                  (string (second form)))
+                    ;; No nickname will be generated; just eval the form.
+                    (eval form))
 
-             ;; 1 - make the defpackage package.
-             (let ((pkg-defpkg (make-package (second form))))
-               ;; 2 - move the symbols from the 'nickname' pkg to
-               ;;     the defpkg package.
-               (loop for s being the present-symbols of (first pkgs)
-                     for ns = (intern (string s) pkg-defpkg)
-                     do (setf (symbol-plist ns) (symbol-plist s))
-                     when (boundp s)
-                     do (setf (symbol-value ns) (symbol-value s))
-                     when (fboundp s)
-                     do (setf (symbol-function ns) (symbol-function s))
-                     )
-               ;; 3 - delete the 'nicknamed' package.
-               (delete-package (first pkgs))
+                   ((string-not-equal (package-name (first pkgs))
+                                      (string (second form)))
+                    ;; This will generate a 'nickname error' (which different
+                    ;; implementations signal differently).
+                    (cerror "Go ahead and fix the packages; the ~@
+                             'defpackage' form will have precedence and the nicknamed ~@
+                             package will be assimilated and deleted."
+                            "HELambdaP found a defpackage form with one ~@
+                             of its nicknames naming the ~S package; ~@
+                             the defpackage wants to define a package named ~A."
+                            (package-name (first pkgs))
+                            (second form)
+                            )
+                    ;; Now the tricky part...
 
-               ;; 4 - Eval the full defpackage form (maybe generating
-               ;; warnings, but who cares).
-               (eval form)
-               ))
-            ((and (= n-pkgs 1)
-                  (string-equal (package-name (first pkgs))
-                                (string (second form))))
-             ;; No nickname will be generated; just eval the form.
-             (eval form))
+                    ;; 1 - make the defpackage package.
+                    (let ((pkg-defpkg (make-package (second form))))
+                      ;; 2 - Assimilate the 'nickname' pkg to
+                      ;;     the defpkg package.
+                      (assimilate-package (first pkgs) pkg-defpkg)
+
+                      ;; 3 - Eval the full defpackage form (maybe generating
+                      ;; warnings, but who cares).
+                      (eval form)
+                     ))
+                   ))
+            ((> n-pkgs 1)
+             ;; This is a show stopper.  Basically  we have
+             ;; encountered two or more different packages named by
+             ;; nicknames of the DEFPACKAGE form at hand.
+             ;; This may have happened because of different IN-PACKAGE
+             ;; forms in different files containing code of the
+             ;; package.
+             ;; There is no way to resolve this issue without doing
+             ;; extra messy work looking at the different internal,
+             ;; inherited and external lists of symbols from the
+             ;; differen symbols.
+             ;; FTTB I punt.
+             
+             (error
+              "HELambdaP found a defpackage form with some of its nicknames naming ~@
+               the ~{~S~#[~;, and ~:;, ~]~} package~P; ~@
+               the DEFPACKAGE form wants to define a package named ~A.
+               ~@
+               HELambdaP cannot fix this yet, but you probaly can just by using just ~@
+               one package name or just one of its nicknames form the DEFPACKAGE ~@
+               form."
+              (mapcar #'package-name pkgs)
+              (list-length pkgs)
+              (string (second form)))
+             )
             (t
-             ;; Catch all.
+             ;; Should never get here.
+             ;; Catch all; which will probably make demons fly out of
+             ;; your nose.  However, in that case, you are probably
+             ;; better off cleaning up your code.
+             (cerror
+              "Continue evaluating the DEFPACKAGE form."
+              "Something strange happened while dealing with the defpackage form for ~@
+               ~S, with nickname~P ~{~S~#[~;, and ~:;, ~]~}."
+              (list-length pkgs)
+              (mapcar #'package-name pkgs))
              (eval form))
             )
       )))
