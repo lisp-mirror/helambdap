@@ -199,14 +199,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &allow-other-keys
                                   )
   (let* ((doc-directory where)
-         (dfn (doc-file-name structure))
+         (dfname (doc-file-name structure))
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
-                         :name (pathname-name dfn)
-                         :type (pathname-type dfn)))
+                         :name (pathname-name dfname)
+                         :type (pathname-type dfname)))
          )
-    (cond ((probe-file dfn)
-           (cl-fad:copy-file dfn destination-path :overwrite nil))
+    (cond ((probe-file dfname)
+           (cl-fad:copy-file dfname destination-path :overwrite nil))
           ((not (probe-file destination-path))
            (produce-doc-file-placeholder structure
                                          destination-path
@@ -223,14 +223,14 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &allow-other-keys
                                   )
   (let* ((doc-directory where)
-         (dfn (doc-file-name structure))
+         (dfname (doc-file-name structure))
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
-                         :name (pathname-name dfn)
-                         :type (or (pathname-type dfn) *default-html-extension*)))
+                         :name (pathname-name dfname)
+                         :type (or (pathname-type dfname) *default-html-extension*)))
          )
-    (cond ((probe-file dfn)
-           (cl-fad:copy-file dfn destination-path :overwrite nil))
+    (cond ((probe-file dfname)
+           (cl-fad:copy-file dfname destination-path :overwrite nil))
           ((not (probe-file destination-path))
            (produce-doc-file-placeholder structure
                                          destination-path
@@ -544,25 +544,25 @@ Each FRAMESET and FRAME is contained in a separate file.
   (declare (type doc-file doc-file)
            (type pathname doc-file-pathname)
            )
-  (let ((dfn (doc-file-name doc-file)))
+  (let ((dfname (doc-file-name doc-file)))
     (with-open-file (dffs doc-file-pathname
                           :direction :output
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
           (<:document
-           (<:comment dfn)
+           (<:comment dfname)
            (<:html
 
             +doctype-xhtml1-string-control-string+
             (string #\Newline)
 
             (<:head
-             (<:title dfn)
+             (<:title dfname)
              (<:link :rel "stylesheet" :href *helambdap-css-filename*))
             
             (<:body
-             (<:h1 documentation-title dfn)
+             (<:h1 documentation-title dfname)
              (<:p "This is a placeholder for information pertaining "
                   documentation-title)
              (<:p (format nil
@@ -571,7 +571,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                           doc-file-pathname))
              )
             )
-           (<:comment "end of file : " (string dfn)))
+           (<:comment "end of file : " (string dfname)))
           ))
     ))
 
@@ -2764,6 +2764,7 @@ is then used to produce a file navigation bar.
                    (process-char (read-char in))))
 
              (process-h1 (c)
+               (format t "HELAMBDA: Collecting H1 Section.~%")
                (setf (fill-pointer section) 0
                      collecting t)
                (vector-push-extend #\< section)
@@ -2782,8 +2783,11 @@ is then used to produce a file navigation bar.
                  (assert (char= (read-char in) #\>))
                  (vector-push-extend #\> section)
                  (push (copy-seq section) sections)
+                 
+                 (format t "HELAMBDA: Collected H1 Section ~S.~%" section)
+               
                  (setf collecting nil))
-                 (process-char (read-char in))
+               (process-char (read-char in))
                )
 
              (finish ()
