@@ -668,6 +668,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   result-p
                                   returns-decl
                                   type-decls
+                                  skip-description-header-p
                                   )
   (:method ((s null) input-syntax output-format
             &optional
@@ -675,12 +676,16 @@ Each FRAMESET and FRAME is contained in a separate file.
             lambda-list
             result-p
             returns-decl
-            type-decls)
+            type-decls
+            skip-description-header-p
+            )
    (declare (ignore args-n-values-p
                     lambda-list
                     result-p
                     returns-decl
-                    type-decls))
+                    type-decls
+                    skip-description-header-p
+                    ))
    )
   (:documentation
    "Processes a 'doc string'.
@@ -706,6 +711,8 @@ given 'output-format'."))
          (sal (length see-also))
          (notes "Notes:")
          (nl (length notes))
+         (excepts "Exceptional Situations:")
+         (exl (length excepts))
          (pars (split-at-tex-paragraphs s))
          )
     ;; Assumes that the doc string follows the Hyperspec sectioning
@@ -733,6 +740,8 @@ given 'output-format'."))
           do (setf state 'see-also)
           else if (string= p notes :end1 (min pl nl))
           do (setf state 'notes)
+          else if (string= p excepts :end1 (min pl exl))
+          do (setf state 'excepts)
           
           else
           
@@ -757,6 +766,9 @@ given 'output-format'."))
           else if (eq state 'notes)
           collect p into notes-pars
 
+          else if (eq state 'excepts)
+          collect p into excepts-pars
+
           ;; else collect p into description-pars ; ? Should I leave this?
           end
 
@@ -767,7 +779,8 @@ given 'output-format'."))
                           examples-pars
                           affected-by-pars
                           see-also-pars
-                          notes-pars))
+                          notes-pars
+                          excepts-pars))
           )))
 
 
@@ -800,6 +813,7 @@ given 'output-format'."))
             result-p
             returns-decl
             type-decls
+            skip-description-header-p
             )
   (declare (ignorable type-decls))
   ;; Try to process Hyperspec-style.
@@ -810,12 +824,12 @@ given 'output-format'."))
                         examples-pars
                         affected-by-pars
                         see-also-pars
-                        notes-pars)
+                        notes-pars
+                        except-pars)
       (parse-doc-hyperspec-style s)
     (declare (ignore syntax-pars))
     
-    (let ((elements ())
-          )
+    (let ((elements ()))
       (flet ((push-pars (subsection-header pars)
                (when pars
                  (when subsection-header
@@ -823,6 +837,19 @@ given 'output-format'."))
                  (dolist (par pars)
                    (when (string/= "" par)
                      (push (<:p () par) elements)))))
+
+             (format-example-section-paragraphs (example-pars)
+               (dolist (ep example-pars)
+                 (if (string= ";;;" ep :end1 3 :end2 3)
+                     (let* ((ep-lines (split-sequence:split-sequence #\Newline ep))
+                            (comment-text
+                             (format nil "~{~A~}"
+                                     (mapcar (lambda (epl)
+                                               (string-left-trim '(#\;) epl))
+                                             ep-lines)))
+                            )
+                       (push (<:p () comment-text) elements))
+                     (push (<:pre () (sanitize-string-for-html ep)) elements))))
              )
 
         (when args-n-values-p
@@ -854,15 +881,23 @@ given 'output-format'."))
                            elements))))
                 ))
         
-        (push-pars "Description:" description-pars)
+        (push-pars (and (not skip-description-header-p)
+                        "Description:")
+                   description-pars)
 
         (when examples-pars
           (push (<:h2 () "Examples:") elements)
+          #|
           (push (<:pre () (sanitize-string-for-html
                            (format nil "~{~A~2%~}" examples-pars)))
-                elements))
+                elements)
+          |#
+          (format-example-section-paragraphs examples-pars)
+          )
 
         (push-pars (and affected-by-pars "Affected By:") affected-by-pars)
+
+        (push-pars (and except-pars "Exceptional Situations:") except-pars)
 
         (push-pars (and see-also-pars "See Also:") see-also-pars)
     
@@ -1937,7 +1972,7 @@ given 'output-format'."))
             ))))))
 
 
-;;; The next method should eb reworked in order to take advantage of
+;;; The next method should be reworked in order to take advantage of
 ;;; RENDER-SYNTAX-SECTION.  However, it works and I need to do other
 ;;; things now (20130618).
 
@@ -2016,7 +2051,17 @@ given 'output-format'."))
              (let ((*print-right-margin* *formatted-section-right-margin*))
                (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
                      for (specializers other) = (method-signature mdb)
-                     for mdb-doc = (doc-bit-doc-string mdb)
+                     ;; for mdb-doc = (doc-bit-doc-string mdb)
+                     for mdb-doc = (process-doc-string (doc-bit-doc-string mdb)
+                                                       'text/hyperspec
+                                                       'html
+                                                       nil
+                                                       nil
+                                                       t
+                                                       nil
+                                                       t
+                                                       t
+                                                       )
                      for qualfs = (method-doc-bit-qualifiers mdb)
                      collect (<:htmlise (:syntax :compact)
                                  (<:li
@@ -2024,15 +2069,16 @@ given 'output-format'."))
                                    (<:pre
                                     (let ((*print-pretty* t))
                                       (with-output-to-string (pre-string)
-                                        (pprint-logical-block (pre-string
-                                                               (list (<:strong () name)
-                                                                     qualfs
-                                                                     ;; (list :around)
-                                                                     (nconc
-                                                                      (render-method-specializers specializers)
-                                                                      (render-lambda-list other))
-                                                                     ))
-                                          (write-string "  " pre-string)
+                                        (pprint-logical-block
+                                            (pre-string
+                                             (list (<:strong () name)
+                                                   qualfs
+                                                   ;; (list :around)
+                                                   (nconc
+                                                    (render-method-specializers specializers)
+                                                    (render-lambda-list other))
+                                                   ))
+                                          (write-string " " pre-string)
                                           (bypass-pprint pre-string (pprint-pop) nil nil)
                                           ;; (write (pprint-pop) :stream pre-string)
                                           (write-char #\Space pre-string)
@@ -2057,7 +2103,7 @@ given 'output-format'."))
                                           )))
                                     )) ; <:/pre <:/p
                                   (when mdb-doc
-                                    (<:p ()  mdb-doc))
+                                    (<:p () mdb-doc))
                                   ) ; <:li
                                  ))))
            )
@@ -2124,7 +2170,7 @@ given 'output-format'."))
                   )
               (when known-methods-els
                 (<:div ()
-                       (<:h3 () "Known Documented Methods:")
+                       (<:h2 () "Known Documented Methods:")
                        (<:ol () known-methods-els)))
               
               ))
@@ -2351,12 +2397,14 @@ given 'output-format'."))
                                      fs-name)
                        :src (base-name nav-map-pathname)
                        :frameborder 0
+                       :scrolling :auto
                        ))
              ((<:frame :name (format nil
                                      "~A_navigation_lists"
                                      fs-name)
                        ;; :src (namestring nav-list-pathname)
                        :frameborder 0
+                       :scrolling :auto
                        ))
              ))
            (<:comment (format nil "end of file : ~A"
@@ -2400,7 +2448,9 @@ given 'output-format'."))
              )
 
             (<:body
-             ((<:div :class "helambdap_navmap")
+             ((<:div :class "helambdap_navmap"
+                     ;; :style "border-bottom-style: dotted"
+                     )
               (<:h3 "Systems and Packages")
 
 	      #| ;; Why did I need this?
@@ -2764,11 +2814,12 @@ is then used to produce a file navigation bar.
                    (process-char (read-char in))))
 
              (process-h1 (c)
-               (format t "HELAMBDA: Collecting H1 Section.~%")
+               ;; (format t "HELAMBDA: Collecting H1 Section.~%")
                (setf (fill-pointer section) 0
                      collecting t)
                (vector-push-extend #\< section)
                (vector-push-extend #\H section)
+               (vector-push-extend #\1 section)
                (process-char c))
 
              (process-/ (c)
@@ -2784,7 +2835,7 @@ is then used to produce a file navigation bar.
                  (vector-push-extend #\> section)
                  (push (copy-seq section) sections)
                  
-                 (format t "HELAMBDA: Collected H1 Section ~S.~%" section)
+                 ;; (format t "HELAMBDA: Collected  H1 Section ~S.~%" section)
                
                  (setf collecting nil))
                (process-char (read-char in))
