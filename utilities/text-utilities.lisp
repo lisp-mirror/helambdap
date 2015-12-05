@@ -56,7 +56,10 @@
   (loop with parbreak = (format nil "~2%")
         for start = 0 then (+ 2 pbr)
         for pbr = (search parbreak s :start2 start)
-        collect (subseq s start pbr)
+        ;; Remove extra spurious newlines and spaces after the empty
+        ;; line.
+        collect (string-left-trim '(#\Space #\Tab #\Newline)
+                                  (subseq s start pbr))
         while pbr))
 
 
