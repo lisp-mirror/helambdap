@@ -341,7 +341,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                     (produce-frame format fs-content fs-file)
                     )
                   (<:frame (:name (format nil "~A_frame" (element-name structure))
-                            :frameborder 0))
+                            :frameborder 0
+                            #| :class "helambda_dict_entry" |#
+                            ))
                   )
               )
 
@@ -393,7 +395,9 @@ Each FRAMESET and FRAME is contained in a separate file.
                                (pathname-name
                                 (file-pathname element))
                                "_frame")
-            :frameborder 0)
+            :frameborder 0
+            :class "helambdap_dict_entry"
+            )
            (<:comment () "FRAME " (element-name element))))
 
 
@@ -408,6 +412,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                (file-set-name element)
                                "_frame") 
             :frameborder 0
+            :class "helambdap_dict_entry"
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
@@ -605,7 +610,8 @@ Each FRAMESET and FRAME is contained in a separate file.
             
             (<:body
              (<:h1 "Dictionary Entries")
-             (<:p "Click on the menu on the side to choose what information to display.")
+             (<:p "Click and/or scroll on the menus on the side to choose "
+                  "what information to display.")
              )
             )
            (<:comment "end of file : " (file-set-name file-set)))
@@ -1119,10 +1125,18 @@ given 'output-format'."))
          (<:head
           (<:title "Package " name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
+
          (<:body
           (<:h1 (<:i "Package ") (<:strong name))
-          (<:h2 "Use list:") (<:p (package-doc-bit-use-list doc-bit))
-          (<:h2 "Nicknames:") (<:p (package-doc-bit-nicknames doc-bit))
+
+          (<:h2 "Use list:")
+          (<:p (mapcan (lambda (up) (list up (<:br)))
+                       (package-doc-bit-use-list doc-bit)))
+
+          (<:h2 "Nicknames:")
+          (<:p (mapcan (lambda (pn) (list pn (<:br)))
+                       (package-doc-bit-nicknames doc-bit)))
+
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
@@ -1150,7 +1164,8 @@ given 'output-format'."))
           (when deps-on
             (list
              (<:h2 () "Depends on:")
-             (<:p () (mapcar (lambda (d) (<:i () d)) deps-on))))
+             (<:p () (mapcan (lambda (d) (list (<:i () d) (<:br))) deps-on))))
+
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
@@ -2328,6 +2343,7 @@ given 'output-format'."))
              (string #\Newline)
 
              +doctype-xhtml1-string-control-string+
+
              (string #\Newline)
              (string #\Newline)
 
@@ -2398,6 +2414,7 @@ given 'output-format'."))
                        :src (base-name nav-map-pathname)
                        :frameborder 0
                        :scrolling :auto
+                       :class "helambdap_navmap"
                        ))
              ((<:frame :name (format nil
                                      "~A_navigation_lists"
@@ -2448,7 +2465,7 @@ given 'output-format'."))
              )
 
             (<:body
-             ((<:div :class "helambdap_navmap"
+             ((<:div ;; :class "helambdap_navmap"
                      ;; :style "border-bottom-style: dotted"
                      )
               (<:h3 "Systems and Packages")
@@ -2655,7 +2672,7 @@ given 'output-format'."))
                          (<:h3 "Package interface" <:br
                                (package-name pkg))
 
-                         ((<:div :class "helambdap_navmap")
+                         ((<:div #| :class "helambdap_navmap" |#)
                           ;; systems
                           ;; packages
                           (build-list "Constants" constants)
