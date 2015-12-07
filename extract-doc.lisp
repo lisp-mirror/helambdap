@@ -881,7 +881,7 @@ there exist a package named by one of the defpackage form nicknames."
                             :kind 'asdf:system
                             :depends-on (getf rest-system :depends-on)
                             :doc-string (or (second
-                                             (member :documentation rest-system
+                                             (member :description rest-system
                                                      :test #'eq))
                                             (format nil "The ~A System." name))
                             ))
