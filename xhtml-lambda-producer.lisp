@@ -1438,7 +1438,7 @@ given 'output-format'."))
           (produce-doc-bit-title-name doc-bit)
 
           (<:h2 "Package: ")
-          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+          (<:p (package-name (doc-bit-package doc-bit)))
 
           #|
           (<:h2 "Syntax:")
@@ -1535,7 +1535,7 @@ given 'output-format'."))
           ;; (<:h1 (<:i kind) (<:strong name))
 
           (<:h2 "Package: ")
-          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+          (<:p (package-name (doc-bit-package doc-bit)))
 
           (<:h2 "Syntax:")
           (render-syntax-section format doc-bit)
@@ -1667,7 +1667,7 @@ given 'output-format'."))
           ;; (<:h1 (<:i kind) (<:strong name))
 
           (<:h2 "Package: ")
-          (<:p (<:code (package-name (doc-bit-package doc-bit))))
+          (<:p (package-name (doc-bit-package doc-bit)))
 
           #|
           (<:h2 "Syntax:")
@@ -1781,7 +1781,7 @@ given 'output-format'."))
            ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
 
            (<:h2 "Package: ")
-           (<:p (<:code (package-name (symbol-package name))))
+           (<:p (package-name (symbol-package name)))
 
            (<:h2 "Class Precedence List:")
            (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
@@ -1845,7 +1845,7 @@ given 'output-format'."))
            ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
             
            (<:h2 "Package: ")
-           (<:p (<:code (package-name (symbol-package name))))
+           (<:p (package-name (symbol-package name)))
 
            (<:h2 "Class Precedence List:")
            (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
