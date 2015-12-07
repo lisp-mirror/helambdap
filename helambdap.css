@@ -5,7 +5,7 @@
  *
  * New code, modifications
  * (c) Idan Gazit 2002, and
- * (c) Marco Antoniotti, 2003-2013
+ * (c) Marco Antoniotti, 2003-2016
  *
  * Permission is hereby granted to use this style, etc etc etc.
  */
@@ -56,19 +56,19 @@ a.return {
 }
 
 a.return:hover {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     color: #68548D;
     font-size: 8pt;
     font-weight: normal;
 }
 
 a {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     color: #41286f;
 }
 
 a:hover {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     color: #68548D;
 }
 
@@ -272,6 +272,7 @@ pre {
     background-color: #f5f5f5;
     padding-top: 6px;
     padding-bottom: 6px;
+    padding-left: 6px;
 }
 
 
@@ -320,6 +321,24 @@ h5 {
     max-width: 4cm;
     padding-left: 2em;
 }
+
+
+/* HELambdaP specialized styles. */
+
+.helambdap_navmap {
+    border-color: #808080;
+    border-width: 0px;
+    border-style: dotted;
+    border-bottom-width: 1px;
+}
+
+.helambdap_dict_entry {
+    border-color: #808080;
+    border-width: 0px;
+    border-style: dotted;
+    border-left-width: 1px;
+}
+
 
 
 /* end of file -- clstyle.css -- */
