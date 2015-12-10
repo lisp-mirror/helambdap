@@ -203,13 +203,15 @@
             (condition-doc-bit (put-in conditions))
             (class-doc-bit (put-in classes))
             (struct-doc-bit (put-in structs))
-            ((or type-doc-bit deftype-doc-bit) (put-in types))
+
+            (method-combination-doc-bit (put-in method-combinations))
+
+            ((or type-doc-bit deftype-doc-bit) (put-in types)) ; This would shadow the above.
             (generic-function-doc-bit (put-in generic-functions))
             (method-doc-bit (put-in methods))
             (function-doc-bit (put-in functions))
             (modify-macro-doc-bit (put-in modify-macros))
             (macro-doc-bit (put-in macros))
-            (method-combination-doc-bit (put-in method-combinations))
             (setf-expander-doc-bit (put-in setf-expanders))
             (t (put-in others))
             ))
@@ -241,11 +243,23 @@
 (defun directory-last-name (p)
   (declare (type (or string pathname) p))
   (let ((p-dir (pathname-directory (pathname p))))
+    
+    (declare (type (or null string list (member :wild :unspecific))
+                   p-dir))
+
+    ;; P-DIR is now a proper directory pathname component.
+    ;; SBCL complains with a note here about "unreachable code"; but
+    ;; that is because it is too eager in its optimizations to pay
+    ;; respect Section 19.2.2.4.3 of the ANSI spec.
+
     (cond ((null p-dir) ".")
+          
           ((eq :unspecific p-dir) ".")
+          
           ((eq :wild p-dir) "*")
+          
           ((stringp p-dir) p-dir)
-          ((symbolp p-dir) (string p-dir))
+
           ((listp p-dir)
            (let ((p-dir-l (list-length p-dir)))
              ;; Note that the result may be :wild, :wild-inferiors,

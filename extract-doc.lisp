@@ -46,7 +46,7 @@
 
 (defgeneric extract-named-form-documentation (form-kind name form)
   (:documentation
-   "Extracts the documentation from a 'namd' form.
+   "Extracts the documentation from a 'named' form.
 
 A 'named' form has the following structure: (<name> . <forms>).
 This generic function is useful to add functionality in the presence
@@ -60,7 +60,9 @@ method on (FORM-KIND SYMBOL).  The call has the form:
 In this way it is possible to write special methods to handle
 \"unpackaged\" symbols.
 ")
-  (:method ((form-kind symbol) name form) nil)
+  (:method ((form-kind symbol) name form)
+   (declare (ignorable name form))
+   nil)
   )
 
 
@@ -896,6 +898,7 @@ there exist a package named by one of the defpackage form nicknames."
 
 
 (defmethod extract-form-documentation :around ((fk symbol) form)  ; Catch all that fixes all problems.
+  (declare (ignorable form))
   (let ((r (call-next-method)))
     (etypecase r
       (doc-bit r)

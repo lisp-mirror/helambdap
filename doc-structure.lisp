@@ -448,6 +448,7 @@ that include ELEMENT."))
 
 
 (defmethod register-element :after ((e framesets) parent doc-structure)
+  (declare (ignorable parent))
   (loop for fs in (framesets-list e)
         for i from 0
         do (register-element fs e doc-structure)
@@ -456,6 +457,7 @@ that include ELEMENT."))
 
 
 (defmethod register-element :after ((e file-set) parent doc-structure)
+  (declare (ignorable parent))
   (loop for fs in (file-set-files e)
         for i from 0
         do (register-element fs e doc-structure)))

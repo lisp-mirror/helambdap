@@ -177,7 +177,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
+  (declare (ignorable doc-bits documentation-title))
   (let ((doc-directory where)
         (sfn (style-file-name structure))
         )
@@ -198,6 +198,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (documentation-title "")
                                   &allow-other-keys
                                   )
+  (declare (ignorable doc-bits))
   (let* ((doc-directory where)
          (dfname (doc-file-name structure))
          (destination-path
@@ -222,6 +223,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   (documentation-title "")
                                   &allow-other-keys
                                   )
+  (declare (ignorable doc-bits))
   (let* ((doc-directory where)
          (dfname (doc-file-name structure))
          (destination-path
@@ -380,7 +382,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  (declare (ignorable documentation-title))
+  (declare (ignorable doc-bits documentation-title))
   (<:frame (:src (frame-source element)
             :name (frame-name element)
             :frameborder 0))) 
@@ -425,6 +427,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                  doc-bits
                                  documentation-title
                                  )
+  (declare (ignorable doc-bits))
   (let ((header (frameset-header fs)))
     (unless (or (null header) (string= header ""))
       (let ((header-pathname
@@ -481,6 +484,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                  doc-bits
                                  documentation-title
                                  )
+  (declare (ignorable doc-bits))
   (let ((footer (frameset-footer fs)))
     (unless (or (null footer) (string= footer ""))
       (let ((footer-pathname
@@ -505,7 +509,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  (declare (ignorable documentation-title))
+  (declare (ignorable doc-bits documentation-title))
   (<:frame (:src (element-name structure)
             :frameborder 0
             )))
@@ -685,7 +689,8 @@ Each FRAMESET and FRAME is contained in a separate file.
             type-decls
             skip-description-header-p
             )
-   (declare (ignore args-n-values-p
+   (declare (ignorable input-syntax output-format)
+            (ignore args-n-values-p
                     lambda-list
                     result-p
                     returns-decl
@@ -1101,7 +1106,7 @@ given 'output-format'."))
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
+  (declare (ignorable doc-bits documentation-title))
   (dump-doc-bit-html doc-bit
                      (doc-bit-name doc-bit)
                      (doc-bit-kind-tag doc-bit)
@@ -1114,9 +1119,10 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  ;; documentation-title
+                                  (documentation-title "")
                                   &allow-other-keys)
   "This specialized method produces the documentation for a package."
+  (declare (ignorable doc-bits documentation-title))
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -1150,6 +1156,7 @@ given 'output-format'."))
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         (deps-on (system-doc-bit-depends-on doc-bit))
@@ -1419,8 +1426,9 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  (documentation-title "")
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
          (name (format nil "~(~A~)" db-name))
          (kind (doc-bit-kind doc-bit))
@@ -1512,8 +1520,9 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  (documentation-title "")
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
          (name (format nil "~(~A~)" db-name))
          (kind (doc-bit-kind doc-bit))
@@ -1648,8 +1657,9 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  documentation-title
+                                  (documentation-title "")
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
          (name (format nil "~(~A~)" db-name))
          (kind (doc-bit-kind doc-bit))
@@ -1713,6 +1723,7 @@ given 'output-format'."))
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
@@ -1760,6 +1771,7 @@ given 'output-format'."))
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
+  (declare (ignorable doc-bits))
   (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
@@ -1825,6 +1837,7 @@ given 'output-format'."))
                                   ;; documentation-title
                                   &allow-other-keys
                                   )
+  (declare (ignorable doc-bits))
   (let* ((name (doc-bit-name doc-bit))
          (kind (doc-bit-kind-tag doc-bit))
          (doc-string (doc-bit-doc-string doc-bit))
@@ -1894,7 +1907,7 @@ given 'output-format'."))
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
+  (declare (ignorable structure documentation-title))
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -2000,7 +2013,8 @@ given 'output-format'."))
                                   documentation-title
                                   &allow-other-keys)
   "This specialized method produces the documentation for a generic function."
-  (declare (ignorable documentation-title))
+
+  (declare (ignorable doc-bits documentation-title))
   (labels ((method-signature (mdb)
              (declare (type method-doc-bit mdb))
              (let* ((mll (method-doc-bit-lambda-list mdb))
