@@ -720,6 +720,8 @@ given 'output-format'."))
          (abl (length affected-by))
          (see-also "See Also:")
          (sal (length see-also))
+         (side-effects "Side Effects:")
+         (sel (length side-effects))
          (notes "Notes:")
          (nl (length notes))
          (excepts "Exceptional Situations:")
@@ -753,6 +755,8 @@ given 'output-format'."))
           do (setf state 'notes)
           else if (string= p excepts :end1 (min pl exl))
           do (setf state 'excepts)
+          else if (string= p side-effects :end1 (min pl sel))
+          do (setf state 'side-effects)
           
           else
           
@@ -780,6 +784,9 @@ given 'output-format'."))
           else if (eq state 'excepts)
           collect p into excepts-pars
 
+          else if (eq state 'side-effects)
+          collect p into side-effects-pars
+
           ;; else collect p into description-pars ; ? Should I leave this?
           end
 
@@ -791,7 +798,9 @@ given 'output-format'."))
                           affected-by-pars
                           see-also-pars
                           notes-pars
-                          excepts-pars))
+                          excepts-pars
+                          side-effects-pars
+                          ))
           )))
 
 
@@ -836,7 +845,9 @@ given 'output-format'."))
                         affected-by-pars
                         see-also-pars
                         notes-pars
-                        except-pars)
+                        except-pars
+                        side-effects-pars
+                        )
       (parse-doc-hyperspec-style s)
     (declare (ignore syntax-pars))
     
@@ -907,6 +918,8 @@ given 'output-format'."))
           )
 
         (push-pars (and affected-by-pars "Affected By:") affected-by-pars)
+
+        (push-pars (and side-effects-pars "Side Effects:") side-effects-pars)
 
         (push-pars (and except-pars "Exceptional Situations:") except-pars)
 
