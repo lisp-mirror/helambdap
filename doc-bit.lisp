@@ -107,12 +107,14 @@ More specifically: #\\/ #\\Space #\\* #\%"
                               (bad-chars
                                '((#\/ "=")
                                  (#\Space "_")
-                                 (#\* "_")
+                                 (#\* "ast")
                                  (#\% "p100")
                                  (#\# "hash")
                                  (#\& "amp")
                                  (#\( "op")
                                  (#\) "cp")
+                                 (#\? "qm")
+                                 (#\! "em")
                                  )
                                )
                               (dbpn (format nil "~A-~A"
