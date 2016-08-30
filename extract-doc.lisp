@@ -84,8 +84,8 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
         (read forms-stream nil eof))
     (simple-error (e)
       (format *error-output*
-              "~%HELambdaP form reader: trying to read a form caused errors.~@
-               ~?~@
+              "~%HELambdaP form reader: trying to read a form caused errors.
+               ~?
                The result will be NIL, hence the form will be ignored.~2%"
               (simple-condition-format-control e)
               (simple-condition-format-arguments e)
@@ -93,8 +93,8 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
       nil)
     (error (e)
       (format *error-output*
-              "~&HELambdaP form reader: trying to read a form caused errors; most likely a missing package.~@
-               The error is ~S.~@
+              "~&HELambdaP form reader: trying to read a form caused errors; most likely a missing package.
+               The error is ~S.
                The result will be NIL, hence the form will be ignored.~2%"
               e)
       nil)))
@@ -445,11 +445,11 @@ there exist a package named by one of the defpackage form nicknames."
                                       (string (second form)))
                     ;; This will generate a 'nickname error' (which different
                     ;; implementations signal differently).
-                    (cerror "Go ahead and fix the packages; the ~@
-                             'defpackage' form will have precedence and the nicknamed ~@
+                    (cerror "Go ahead and fix the packages; the 
+                             'defpackage' form will have precedence and the nicknamed 
                              package will be assimilated and deleted."
-                            "HELambdaP found a defpackage form with one ~@
-                             of its nicknames naming the ~S package; ~@
+                            "HELambdaP found a defpackage form with one 
+                             of its nicknames naming the ~S package; 
                              the defpackage wants to define a package named ~A."
                             (package-name (first pkgs))
                             (second form)
@@ -481,12 +481,12 @@ there exist a package named by one of the defpackage form nicknames."
              ;; FTTB I punt.
              
              (error
-              "HELambdaP found a defpackage form with some of its nicknames naming ~@
-               the ~{~S~#[~;, and ~:;, ~]~} package~P; ~@
+              "HELambdaP found a defpackage form with some of its nicknames naming 
+               the ~{~S~#[~;, and ~:;, ~]~} package~P; 
                the DEFPACKAGE form wants to define a package named ~A.
-               ~@
-               HELambdaP cannot fix this yet, but you probaly can just by using just ~@
-               one package name or just one of its nicknames form the DEFPACKAGE ~@
+               
+               HELambdaP cannot fix this yet, but you probaly can just by using just 
+               one package name or just one of its nicknames form the DEFPACKAGE 
                form."
               (mapcar #'package-name pkgs)
               (list-length pkgs)
@@ -499,7 +499,7 @@ there exist a package named by one of the defpackage form nicknames."
              ;; better off cleaning up your code.
              (cerror
               "Continue evaluating the DEFPACKAGE form."
-              "Something strange happened while dealing with the defpackage form for ~@
+              "Something strange happened while dealing with the defpackage form for 
                ~S, with nickname~P ~{~S~#[~;, and ~:;, ~]~}."
               (list-length pkgs)
               (mapcar #'package-name pkgs))
@@ -643,11 +643,11 @@ there exist a package named by one of the defpackage form nicknames."
                         :lambda-list (list 'object)
                         :values (list type)
                         :doc-string
-                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A.~@
-                                     ~@
-                                     Arguments and Values:~@
-                                     ~@
-                                     OBJECT : a ~A~@
+                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A.
+                                     
+                                     Arguments and Values:
+                                     
+                                     OBJECT : a ~A
                                      result : a ~A"
                                 read-only
                                 sn
@@ -664,11 +664,11 @@ there exist a package named by one of the defpackage form nicknames."
                           :lambda-list (list 'v 'object)
                           :values (list type)
                           :doc-string
-                          (format nil "Setter for the slot ~A of an object of type ~A.~@
-                                     ~@
-                                     Arguments and Values:~@
-                                     ~@
-                                     OBJECT : a ~A~@
+                          (format nil "Setter for the slot ~A of an object of type ~A.
+                                     
+                                     Arguments and Values:
+                                     
+                                     OBJECT : a ~A
                                      result : a ~A"
                                   sn
                                   name
@@ -737,7 +737,7 @@ there exist a package named by one of the defpackage form nicknames."
                                        :values (list name)
                                        :doc-string
                                        (format nil
-                                               "A constructor for the ~
+                                               "A constructor for the 
                                                 structure ~A." name)
                                        ))
                                   )))

@@ -14,7 +14,8 @@
 
   :license "BSD like"
 
-  :components ((:file "helambdap-pkg")
+  :components (
+	       (:file "helambdap-pkg")
                (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
@@ -59,7 +60,7 @@
                              "xhtml-common-definitions"))
 
                #+helambdap.with-xhtmlambda
-               (:file "xhtml-lambda-producer"
+               (:file "html5-lambda-producer"
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"

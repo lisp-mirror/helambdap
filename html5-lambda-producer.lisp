@@ -254,6 +254,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                            :documentation-title documentation-title)))
 
 
+; index.html
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure frameset)
                                   (where pathname)
@@ -301,11 +302,50 @@ Each FRAMESET and FRAME is contained in a separate file.
            +doctype-frameset-control-string+
            (string #\Newline)
            (<:html
-
+	    
             (<:head
              (<:title fs-title)
+	     
+	     ((<:script :type "text/javascript" :src "loader.js") "")
+	     
              (<:link :rel "stylesheet" :href (frameset-style structure)))
-             
+
+	    #|START OF HTML5 GENERATION|#
+	    (<:body
+	     
+	     (<:header
+	      ((<:div :class "header")
+	       (<:strong (or documentation-title (frameset-body-title structure))))
+	      ((<:div :class "navigation")
+		    ((<:a :href "#" :onclick "load_index()") "Index")
+		    "|"
+		    ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
+
+
+	     ((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	     ((<:nav :id "nav") "")
+
+	     
+	     (<:footer
+	      ((<:div :class "footer")
+	       (<:strong (or documentation-title (frameset-body-title structure)))
+	       "documentation produced with"
+	       ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
+	       (<:br)
+	       (<:comment "hhmts start")
+	       "Last modified: " (text-timestamp)
+	       (<:comment "hhmts end")
+	       (<:br)
+	       (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
+		       (nth-value 5 (decode-universal-time (get-universal-time))))))
+	     (<:script "load_index()")
+
+	     )
+
+
+	    #|
+	      ;OLD FRAME GENERATION
+	    
             ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
              ;; HEADER ROW.
              (<:comment "HEADER ROW")
@@ -368,10 +408,14 @@ Each FRAMESET and FRAME is contained in a separate file.
               <:br
               "Link to "
               ((<:a :href "overview-summary.html") "Non-frame version.")))
-            )
+	    |#
+
+	    
+            ) ;HTML END
            (<:comment 
             (format nil "end of file : ~A.htm" fs-name))
-           ))
+           ) ;DOCUMENT END
+	  )
       )))
 
 
@@ -559,7 +603,16 @@ Each FRAMESET and FRAME is contained in a separate file.
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
-          (<:document
+	((<:div :class "innertube")
+	 (<:h1 documentation-title dfname)
+	 (<:p "This is a placeholder for information pertaining "
+	      documentation-title)
+	 (<:p (format nil
+		      "Please edit the file '~A', to complete 
+                           the documentation."
+		      doc-file-pathname)))
+          #| OLD FRAME PRODUCTION
+	(<:document
            (<:comment dfname)
            (<:html
 
@@ -575,12 +628,13 @@ Each FRAMESET and FRAME is contained in a separate file.
              (<:p "This is a placeholder for information pertaining "
                   documentation-title)
              (<:p (format nil
-                          "Please edit the file '~A', to complete ~
+                          "Please edit the file '~A', to complete 
                            the documentation."
                           doc-file-pathname))
              )
             )
            (<:comment "end of file : " (string dfname)))
+	  |#
           ))
     ))
 
@@ -600,6 +654,11 @@ Each FRAMESET and FRAME is contained in a separate file.
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (fsfs :print-pretty t :syntax :compact)
+	((<:div :class "innertube")
+	 (<:h1 "Dictionary Entries")
+	 (<:p "Click and/or scroll on the menus on the side to choose "
+	      "what information to display."))
+	#| OLD FRAME PRODUCTION
           (<:document
            (<:comment (file-set-name file-set))
            (<:html
@@ -618,7 +677,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                   "what information to display.")
              )
             )
-           (<:comment "end of file : " (file-set-name file-set)))
+           (<:comment "end of file : " (file-set-name file-set)))|#
           ))
     ))
 
@@ -934,6 +993,13 @@ given 'output-format'."))
 (defun dump-doc-bit-html (doc-bit n str-tag doc-string out)
   (let ((name (string-downcase n)))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+       (<:h2 "Package: ")
+       (<:p (package-name (symbol-package n)))
+       (process-doc-string doc-string 'text/hyperspec 'html)
+       )
+      #| OLD FRAME PRODUCTION
         (<:document
          (<:head
           (<:title (format nil "~A ~A" str-tag name))
@@ -947,7 +1013,8 @@ given 'output-format'."))
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
-          )))))
+          ))
+	|#)))
 
 
 
@@ -1025,7 +1092,7 @@ given 'output-format'."))
          )
 
     (when (and bv rv)
-      (warn "HELambdaP: parsing a macro lambda list that has ~
+      (warn "HELambdaP: parsing a macro lambda list that has 
              both &rest and &body variables."))
 
     (labels ((render-ll-item (lli)
@@ -1140,7 +1207,20 @@ given 'output-format'."))
         (doc-string (doc-bit-doc-string doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (<:h1 (<:i "Package ") (<:strong name))
+
+       (<:h2 "Use list:")
+       (<:p (mapcan (lambda (up) (list up (<:br)))
+		    (package-doc-bit-use-list doc-bit)))
+
+       (<:h2 "Nicknames:")
+       (<:p (mapcan (lambda (pn) (list pn (<:br)))
+		    (package-doc-bit-nicknames doc-bit)))
+
+       (process-doc-string doc-string 'text/hyperspec 'html))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:head
           (<:title "Package " name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -1159,7 +1239,8 @@ given 'output-format'."))
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
-         )))))
+	  ))
+	|#)))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1175,7 +1256,16 @@ given 'output-format'."))
         (deps-on (system-doc-bit-depends-on doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (<:h1 (<:i "System ") (<:strong name))
+       (when deps-on
+	 (list
+	  (<:h2 () "Depends on:")
+	  (<:p () (mapcan (lambda (d) (list (<:i () d) (<:br))) deps-on))))
+
+       (process-doc-string doc-string 'text/hyperspec 'html))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:head
           (<:title "System " name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -1190,7 +1280,8 @@ given 'output-format'."))
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html)
           )
-         ))))
+         )
+	|#)))
 
 
 
@@ -1449,7 +1540,19 @@ given 'output-format'."))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package: ")
+       (<:p (package-name (doc-bit-package doc-bit)))
+       
+       (<:h2 "Syntax:")
+       (render-syntax-section format doc-bit)
+
+       (process-doc-string doc-string 'text/hyperspec 'html
+			   t (parse-ll :ordinary ll)))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:head
           (<:title documentation-title ": " kind name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -1491,7 +1594,8 @@ given 'output-format'."))
           ;; (paragraphize-doc-string doc-string)
           (process-doc-string doc-string 'text/hyperspec 'html
                               t (parse-ll :ordinary ll))
-          )))))
+          ))|#
+	)))
 
 
 (defun process-returns-declaration (returns)
@@ -1547,7 +1651,23 @@ given 'output-format'."))
     (declare (ignorable type-decls))
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package: ")
+       (<:p (package-name (doc-bit-package doc-bit)))
+
+       (<:h2 "Syntax:")
+       (render-syntax-section format doc-bit)
+
+       (process-doc-string doc-string 'text/hyperspec 'html
+			   t
+			   (parse-ll :ordinary ll)
+			   t
+			   returns
+			   type-decls))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:head
           (<:title documentation-title ": " kind name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -1584,7 +1704,8 @@ given 'output-format'."))
                               t
                               returns
                               type-decls)
-          )))))
+          ))
+	|#)))
 
 
 #| Without RENDER-LAMBDA-LIST
@@ -1680,7 +1801,23 @@ given 'output-format'."))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package: ")
+       (<:p (package-name (doc-bit-package doc-bit)))
+
+       (<:h2 "Syntax:")
+       (render-syntax-section 'html doc-bit (macro-doc-bit-lambda-list doc-bit))
+
+       (process-doc-string doc-string 'text/hyperspec 'html
+			   t
+			   (parse-ll :macro ll)
+			   t
+			   '(form)
+			   ))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:head
           (<:title documentation-title ": " kind name)
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -1726,7 +1863,7 @@ given 'output-format'."))
                               t
                               '(form)
                               )
-          )))))
+          ))|#)))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1753,7 +1890,18 @@ given 'output-format'."))
                               value))
          )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package:")
+       (<:p (package-name (symbol-package name)))
+
+       (<:h2 "Value:")
+       (<:p (<:code value-presented))
+
+       (process-doc-string doc-string 'text/hyperspec 'html))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:html
           +doctype-xhtml1-string-control-string+
           (string #\Newline)
@@ -1774,7 +1922,7 @@ given 'output-format'."))
            ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
-         ))))))
+         )))|#)))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1792,7 +1940,42 @@ given 'output-format'."))
          (slots (struct-doc-bit-slots doc-bit))
          )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package: ")
+       (<:p (package-name (symbol-package name)))
+
+       (<:h2 "Class Precedence List:")
+       (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
+		    name
+		    include))
+
+       (<:h2 "Slots:")
+       (<:p (<:dl
+	     (loop for s in slots
+		if (symbolp s)
+		collect
+		  (<:dt () s)
+		and collect
+		  (<:dd ()
+			(format nil
+				"with initial value ~A of type ~A~@[; the slot is read-only~]."
+				nil T nil))
+		else
+		nconc
+		  (destructuring-bind (sn &optional sv &key read-only (type t))
+		      s
+		    (list
+		     (<:dt () sn)
+		     (<:dd ()
+			   (format nil
+				   "with initial value ~A of type ~A~@[; the slot is read-only~]."
+				   sv type read-only)))))
+	     ))
+       (process-doc-string doc-string 'text/hyperspec 'html))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:html
           +doctype-xhtml1-string-control-string+
           (string #\Newline)
@@ -1839,7 +2022,7 @@ given 'output-format'."))
            ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
-         ))))))
+         )))|#)))
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1858,7 +2041,48 @@ given 'output-format'."))
          (slots (class-doc-bit-slots doc-bit))
          )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (produce-doc-bit-title-name doc-bit)
+
+       (<:h2 "Package: ")
+       (<:p (package-name (symbol-package name)))
+
+       (<:h2 "Class Precedence List:")
+       (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
+
+       (when slots
+	 (<:htmlize
+	  (<:div
+	   (<:h2 "Slots:")
+	   (<:p (<:dl
+		 (loop for s in slots
+		    if (symbolp s)
+		    collect (<:dt () s)
+		    else
+		    nconc
+		      (destructuring-bind (sn &key
+					      type
+					      documentation
+					      allocation
+					      initarg
+					      initform
+					      &allow-other-keys)
+			  s
+			`(
+			  ,(<:dt () sn)
+			   ,@(when type (list (<:dd () "Type: " type)))
+			   ,@(when allocation (list (<:dd () "Allocation: " allocation)))
+			   ,@(when initarg (list (<:dd () "Initarg: " initarg)))
+			   ,@(when initform (list (<:dd () "Initform: " initform)))
+			   ,@(when documentation (list (<:dd () documentation)))
+			   )
+			))
+		 )))
+	  :syntax :compact))
+
+       (process-doc-string doc-string 'text/hyperspec 'html))
+        #| OLD FRAME PRODUCTION
+      (<:document
          (<:html
           +doctype-xhtml1-string-control-string+
           (string #\Newline)
@@ -1909,7 +2133,7 @@ given 'output-format'."))
            ;; (<:h2 "Description:")
            ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html)
-         ))))))
+         )))|#)))
        
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1926,7 +2150,12 @@ given 'output-format'."))
         )
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        (<:document
+      ((<:div :class "innertube")
+       (<:h1 (<:i "Function") (<:strong name))
+       (<:h2 "Package:")
+       (<:h2 "Description:" (<:br) doc-string))
+        #| OLD FRAME PRODUCTION
+      (<:document
 
          (<:head
           (<:title (format nil "DOC FOR ~A" (string-downcase name)))
@@ -1936,7 +2165,7 @@ given 'output-format'."))
           (<:h1 (<:i "Function") (<:strong name))
           (<:h2 "Package:")
           (<:h2 "Description:" (<:br) doc-string)
-          )))
+          ))|#)
     t))
 
 
@@ -1977,7 +2206,33 @@ given 'output-format'."))
            )
       (declare (ignore kind))
       (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-          (<:document
+	((<:div :class "innertube")
+	 (produce-doc-bit-title-name doc-bit)
+
+	 (<:h2 "Package:")
+	 (<:p (package-name (symbol-package gfname)))
+
+	 (<:h2 "Syntax:")
+	 (<:p (<:strong name)
+	      (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+	 (process-doc-string doc-string 'text/hyperspec 'html
+			     t
+			     )
+
+	 (<:h3 "Known Methods:")
+	 (<:ul
+	  (loop for (specializers other) in (method-signatures (symbol-function gfname))
+	     collect (<:htmlize
+		      (<:li
+		       (<:p (<:strong name)
+			    (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
+			    (format nil "~{ <i>~A</i>~}" other)
+			    )
+		       )
+		      :syntax :compact)
+	       )))
+          #| OLD FRAME DOCUMENTATION
+	(<:document
            (<:head
             (<:title documentation-title ": " "Generic Function" name)
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -2010,7 +2265,7 @@ given 'output-format'."))
                              )
                             :syntax :compact)
                    ))
-            ))))))
+            ))|#))))
 
 
 ;;; The next method should be reworked in order to take advantage of
@@ -2159,7 +2414,31 @@ given 'output-format'."))
            )
       (declare (ignore kind))
       (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-          (<:document
+	((<:div :class "innertube")
+	 (produce-doc-bit-title-name doc-bit)
+
+	 (<:h2 "Package:")
+	 (<:p (package-name (symbol-package gfname)))
+
+	 (<:h2 "Syntax:")
+	 (<:p
+	  (<:pre (pre-format-syntax-entry name ll)
+		 ))
+
+	 (process-doc-string doc-string 'text/hyperspec 'html
+			     t (parse-ll :generic-function ll)
+			     t f-values
+			     )
+	 
+	 (let ((known-methods-els (render-known-methods name doc-bit))
+	       )
+	   (when known-methods-els
+	     (<:div ()
+		    (<:h2 () "Known Documented Methods:")
+		    (<:ol () known-methods-els)))
+	   ))
+          #| OLD FRAME PRODUCTION
+	(<:document
            (<:head
             (<:title documentation-title ": " "Generic Function" name)
             (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
@@ -2216,7 +2495,7 @@ given 'output-format'."))
                        (<:ol () known-methods-els)))
               
               ))
-           )))))
+           )|#))))
 
 
 ;;;---------------------------------------------------------------------------
@@ -2237,6 +2516,7 @@ given 'output-format'."))
   )
 
 
+; useless in HTML5
 (defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
   (declare (type pathname header-pathname))
   (declare (ignorable documentation-title))
@@ -2350,6 +2630,7 @@ given 'output-format'."))
         )
     (declare (ignore fs-order fs-body-title))
 
+    #|FRAME TO BE LINKED|#
     (flet ((make-nav-links ()
              (loop for sn in section-names
                    collect (<:li (:style "list-style-type: none")
@@ -2365,7 +2646,10 @@ given 'output-format'."))
                           :if-exists :supersede
                           :if-does-not-exist :create)
         (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
-            (<:document
+	  ((<:div :class "innertube")
+	   (<:ul (make-nav-links)))
+            #| OLD FRAME PRODUCTION
+	  (<:document
              (<:comment (base-name nav-pathname))
              (string #\Newline)
 
@@ -2383,10 +2667,11 @@ given 'output-format'."))
                (<:ul (make-nav-links))))
              (string #\Newline)
              (<:comment "end of file :" (base-name nav-pathname))
-             ))))
+             )|#)))
     ))
 
 
+;; USELESS IN HTML5
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element file-set)
                                     nav-pathname
@@ -2461,9 +2746,9 @@ given 'output-format'."))
 
 (defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
   (declare (type frameset fs))
-  (format t "~&HELAMBDAP: producing NAV MAP file~%~:
-           ~S~%~:
-           ~S~%~:
+  (format t "~&HELAMBDAP: producing NAV MAP file~%
+           ~S~%
+           ~S~%
            ~S~2%"
           fs nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
@@ -2472,7 +2757,79 @@ given 'output-format'."))
                         :if-exists :supersede
                         :if-does-not-exist :create)
       (<:with-html-syntax-output (nm :print-pretty t :syntax :compact)
-          (<:document
+	((<:div :class "innertube")
+	 ((<:div ;; :class "helambdap_navmap"
+	   ;; :style "border-bottom-style: dotted"
+	   )
+	  (<:h3 "Systems and Packages")
+
+	  (let ((syss (remove-if (complement #'system-doc-bit-p)
+				 doc-bits))
+		(pkgs (remove-if (complement #'package-doc-bit-p)
+				 doc-bits))
+		)
+	    (list
+	     (<:h4 () "Systems")
+	     (<:div ()
+		    (loop for s in (remove-duplicates
+				    syss
+				    :test
+				    (lambda (s1 s2)
+				      (and (not (eq (type-of s1)
+						    (type-of s2)))
+					   (string-equal (doc-bit-name s1)
+							 (doc-bit-name s2)))))
+		       ;; The above is kludgy!  It is meant to
+		       ;; remove duplicate systems assuming
+		       ;; that different kinds of systems are
+		       ;; mutually exclusive.
+		       ;; In practice it will not affect most people.
+		       for s-doc-pathname
+			 = (make-doc-bit-pathname s
+						  *default-html-extension*
+						  nm-pathname)
+			 
+			 #|FRAME TO BE LINKED|#
+		       for s-filename = (base-name s-doc-pathname)
+		       collect (<:p ()
+				    (<:a (:href s-filename
+						:target nav-element-target
+						)
+					 (doc-bit-name s))
+				    )))
+
+	     (<:h4 () "Packages")
+	     (<:div ()
+		    (loop for p in pkgs
+
+		       for p-doc-pathname =
+			 (make-doc-bit-pathname p
+						*default-html-extension*
+						nm-pathname)
+		       for p-filename = (base-name p-doc-pathname)
+
+		       for p-list-pathname =
+			 (make-pathname :name (format nil "~A-list"
+						      (pathname-name p-doc-pathname))
+					:type *default-html-extension*
+					:defaults nm-pathname)
+		       for p-list-filename = (base-name p-list-pathname)
+
+			 #|FRAME TO BE LINKED|#
+		       do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
+		       collect (<:p ()
+				    (<:a (:href p-filename
+						:target nav-element-target
+						:onclick
+						(format nil
+							"parent.frames[1].location.href = '~A'"
+							p-list-filename
+							)
+						)
+					 (doc-bit-name p)))))
+	     ))))
+          #| OLD FRAME GENERATION
+	(<:document
            (<:comment (base-name nm-pathname))
            (string #\Newline)
            (string #\Newline)
@@ -2486,8 +2843,8 @@ given 'output-format'."))
              (<:link :rel "stylesheet"
                      :href (namestring *helambdap-css-filename-up*)) ; TESTING!
              (<:style (format nil
-                              ".helambdap_navmap li {~
-                                  display: inline;~
+                              ".helambdap_navmap li {
+                                  display: inline;
                               }"))
              )
 
@@ -2596,7 +2953,7 @@ given 'output-format'."))
             (<:comment (format nil "end of file : ~A"
                                (base-name nm-pathname)))
             (string #\newline)
-            ))))))
+            ))|#))))
 
 
 (defun produce-package-navigation-list (fs
@@ -2624,10 +2981,10 @@ given 'output-format'."))
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&HELAMBDAP: produce-package-navigation-list~%~:
-           ~S~%~:
-           ~S~%~:
-           ~S~%~:
+    (format t "~&HELAMBDAP: produce-package-navigation-list~%
+           ~S~%
+           ~S~%
+           ~S~%
            ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
@@ -2655,7 +3012,8 @@ given 'output-format'."))
         (sift-standard-doc-bits pkg-doc-bits)
 
       (declare (ignore systems packages methods others))
-      ;; (format t "~&HELAMBDAP:~{~} ~%") ; Count stuff.
+
+      #|FRAME TO BE LINKED|#
       (flet ((build-list (list-name doc-bits)
                (when doc-bits
                  (list* (<:h4 () list-name)
@@ -2679,7 +3037,41 @@ given 'output-format'."))
                             :direction :output)
 
           (<:with-html-syntax-output (ps :print-pretty t :syntax :compact)
-              (<:document
+	     (if pkg-doc-bits
+		 (<:htmlise (:syntax :compact)
+			    ((<:div :class "innertube")
+			     (<:h3 "Package interface" <:br
+				   (package-name pkg))
+
+			     ((<:div #| :class "helambdap_navmap" |#)
+			      ;; systems
+			      ;; packages
+			      (build-list "Constants" constants)
+			      (build-list "Parameters" parameters)
+			      (build-list "Variables" variables)
+			      (build-list "Types" types)
+			      (build-list "Classes" classes)
+			      (build-list "Structures" structs)
+			      (build-list "Conditions" conditions)
+			      (build-list "Generic Functions" generic-functions)
+			      (build-list "Functions" functions)
+			      (build-list "Macros" macros)
+			      (build-list "Method Combinations" method-combinations)
+			      (build-list "Setf expanders" setf-expanders)
+			      (build-list "Modify Macros" modify-macros)
+			      )
+			     ))
+
+		 (<:htmlise (:syntax :compact)
+			    ((<:div :class "innertube")
+			     (<:h3 "Package interface" <:br
+				   (package-name pkg))
+
+			     (<:p (<:i "No published interface."))
+			     ))
+		 )
+              #| OLD FRAME PRODUCTION
+	    (<:document
                (<:comment (base-name pkg-list-pathname))
 
                +doctype-xhtml1-string-control-string+
@@ -2689,8 +3081,8 @@ given 'output-format'."))
                  (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
                  (<:link :rel "stylesheet" :href (frameset-style fs))
                  (<:style (format nil
-                                  ".helambdap_navmap li {~
-                                      display: inline;~
+                                  ".helambdap_navmap li {
+                                      display: inline;
                                   }")))
 
                 (if pkg-doc-bits
@@ -2730,11 +3122,11 @@ given 'output-format'."))
                         )
                     )
                 ) ; html
-               ) ; document
+               )|# ; document
               )))
       )))
 
-
+; useless in HTML5
 (defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
   (declare (type pathname footer-pathname))
   (declare (ignorable documentation-title))
@@ -2773,6 +3165,8 @@ given 'output-format'."))
                       (nth-value 5 (decode-universal-time (get-universal-time)))))
              )))))
     ))
+
+
 
 
 ;;;;===========================================================================

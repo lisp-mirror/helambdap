@@ -12,7 +12,6 @@
 
 /* body styles. */
 body {
-    /* margin: 0; */
     background: #ffffff;
     font-family: Verdana, Arial, Helvetica;
     font-weight: normal;
@@ -20,89 +19,96 @@ body {
     color: black;
 }
 
-
-/* A element styles. */
-a.navigation-link-selected {
-    text-decoration: none;
-    color: #ffffff;
-    font-weight: normal;
-    font-style: italic;
+main{
+    position: fixed;   
+    top: 65px;         /*set to height of the header*/
+    bottom: 65px;      /*set to height of the footer*/
+    left: 25%;       /*set to width of the navbar*/  /*TO BE FIXED: 25%*/
+    background: #ffffff;
+    border-color: #808080;
+    border-width: 1px;
+    border-style: none none none dotted;
 }
 
-a.navigation-link-selected:hover {
-    text-decoration: underline;
-    color: #ffffff;
-    font-weight: normal;
-    font-style: italic;
-}
-
-a.navigation-link {
-    text-decoration: none;
-    color: rgb(100, 100, 100);
-    font-weight: normal;
-}
-
-a.navigation-link:hover {
-    text-decoration: underline;
-    color: #ffffff;
-    font-weight: normal;
-}
-
-a.return {
-    text-decoration: none;
-    color: #41286f;
-    font-size: 8pt;
-    font-weight: normal;
-}
-
-a.return:hover {
-    /* text-decoration: underline; */
-    color: #68548D;
-    font-size: 8pt;
-    font-weight: normal;
-}
-
-a {
-    /* text-decoration: underline; */
-    color: #41286f;
-}
-
-a:hover {
-    /* text-decoration: underline; */
-    color: #68548D;
-}
-
-/* P element styles. */
-p {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    font-weight: normal;
-}
-
-p.navindex {
-    /*
-      font-family: Verdana, Arial, Helvetica;
-      font-size: 12px;
-      color: #000000;
-      font-weight: normal;
-      */
-
-    text-indent: 10pt;
-
-    margin-bottom: 1px;
-    margin-top: 1px;
-}
-
-
-/* Element-independent class styles. */
-.header {
+header{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 65px;
+    overflow: hidden;
     background: #9ebcb4;
-    /* background-image: url("./images/header_bg_1.gif"); */
-    /* background-repeat: no-repeat; */
-    height: 55px;
 }
 
+footer{
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 65px;
+    overflow: hidden;
+    background: #ffffff;
+    border-color: #808080;
+    border-width: 1px;
+    border-style: dotted none none none;
+}
+
+nav{
+    position: absolute;
+    top: 65px;
+    bottom: 65px;
+    width: 25%;
+    background: #ffffff;
+}
+
+#nav_index{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    overflow: auto;
+    background: #ffffff;
+}
+
+#nav_map{
+    position: absolute;
+    top: 0;
+    bottom: 75%;    /*complement of #nav_list top*/
+    width: 100%;
+    overflow: auto;
+    background: #ffffff;
+    border-color: #808080;
+    border-width: 1px;
+    border-style: none none dotted none;
+}
+
+#nav_list{
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    top: 25%;    /*complement of #nav_map bottom*/
+    width: 100%;
+    overflow: auto;
+    background: #ffffff;
+}
+
+.header{
+    padding-left: 2em;
+    padding-top: 5pt;
+    color: #41286f;
+    font-size: 14pt;
+}
+
+.footer {
+    font-family: Verdana, Arial, Helvetica;
+    font-size: 10px;
+    color: #808080;
+    font-weight: normal;
+    padding: 5px;
+    text-align: right;
+}
+
+/*.navigation as of old CSS - should work with no problem*/
 .navigation {
     word-spacing: 5px;
     position: absolute;
@@ -115,230 +121,3 @@ p.navindex {
     font-weight: normal;
     word-spacing: 0px;
  }
-
-.sidebar {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    font-weight: normal;
-    padding-left: 15px;
-    padding-right: 5px;
-    position: fixed;
-    top: 10ex;
-    right: 1em;
-}
-
-.text {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    font-weight: normal;
-    margin-left: 5cm;
-    margin-right: 2em;
-}
-
-
-.label {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    text-align: center;
-    font-style: italic;
-}
-
-.command {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    background: #eae8e3;
-    font-weight: normal;
-    margin-bottom: 10px;
-}
-
-.content {
-    background: #ffffff;
-    padding: 5px;
-    padding-right: 15px;
-}
-
-.toc {
-    font-size: 10px;
-    background: #ffffff;
-    padding: 5px;
-    padding-right: 5px;
-}
-
-.middle-bar {
-    height: 5px;
-    background: #A497BA;
-}
-
-.black-line {
-    height: 1px;
-    background: #000000;
-}
-
-.bottom {
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
-}
-
-.copyright {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 10px;
-    color: #808080;
-    font-weight: normal;
-    padding: 5px;
-    text-align: right;
-    border-color: #808080;
-    border-width: 0px;
-    border-style: dotted;
-    border-top-width: 1px;
-}
-
-.centerblock {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: black;
-    font-weight: normal;
-}
-
-.tableheader {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: white;
-    font-weight: bold;
-    background: #505050;
-    padding: 4px;
-}
-
-.tablerow1 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: black;
-    font-weight: normal;
-    background: #e0e0e0;
-    padding: 4px;
-}
-
-.tablerow2 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: black;
-    font-weight: normal;
-    background: #f0f0f0;
-    padding: 4px;
-}
-
-.tablerow_style {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: black;
-    font-weight: normal;
-    background: #f0f0f0;
-    padding: 4px;
-}
-
-.captionimg {
-    text-align: right;
-    font-style: italic;
-    font-weight: normal;
-    font-size: 10px;
-    color: #303030;
-}
-
-.indent {
-    padding-left: 50px;
-}
-
-/*
-.command
-{
-    font-family: Courier;
-}
-*/
-
-/* LI element style. */
-li {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #000000;
-    font-weight: normal;
-}
-
-/* PRE element style. */
-pre {
-    background-color: #f5f5f5;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    padding-left: 6px;
-}
-
-
-/* H elements styles. */
-h1 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 18px;
-    color: #41286f;
-    font-weight: bold;
-}
-
-h2 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 16px;
-    color: #41286f;
-    font-weight: bold;
-}
-
-h3 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 14px;
-    color: #41286f;
-    font-weight: bold;
-}
-
-h4 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 12px;
-    color: #41286f;
-    font-weight: bold;
-}
-
-h5 {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 10px;
-    color: #41286f;
-    font-weight: bold;
-}
-
-
-/* Floating menu to the right */
-
-#menu {
-    position: fixed;
-    top: 2cm;
-    max-width: 4cm;
-    padding-left: 2em;
-}
-
-
-/* HELambdaP specialized styles. */
-
-.helambdap_navmap {
-    border-color: #808080;
-    border-width: 0px;
-    border-style: dotted;
-    border-bottom-width: 1px;
-}
-
-.helambdap_dict_entry {
-    border-color: #808080;
-    border-width: 0px;
-    border-style: dotted;
-    border-left-width: 1px;
-}
-
-
-
-/* end of file -- clstyle.css -- */
