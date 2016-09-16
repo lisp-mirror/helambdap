@@ -53,15 +53,22 @@
                              "xhtml-common-definitions"))
 
                #+helambdap.with-cxml
-               (:file "xhtml-cxml-producer"
+	       (:file "xhtml-cxml-producer"
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
                              "xhtml-common-definitions"))
 
                #+helambdap.with-xhtmlambda
-               (:file "html5-lambda-producer"
-                :depends-on ("doc-structure"
+	       (:file "xhtml-lambda-producer"
+		:depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
+
+	       #+helambdap.with-xhtmlambda
+	       (:file "html5-lambda-producer"
+		:depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
                              "xhtml-common-definitions"))

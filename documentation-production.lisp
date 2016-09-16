@@ -123,7 +123,7 @@ definitions.  The loading of these files is wrapped in an
 IGNORE-ERRORS form: failure to load one of them will not completely
 hamper the documentation procedure.
 "
-
+  
   (declare (special *supersede-documentation* ; SBCL may be right here.
                     *only-documented*
                     *only-exported*
@@ -159,7 +159,7 @@ hamper the documentation procedure.
 ;;;; Build documentation implementations.
 
 (defmethod build-documentation ((p pathname)
-                                (format (eql 'html))
+                                format
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)

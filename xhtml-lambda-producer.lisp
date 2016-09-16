@@ -575,7 +575,7 @@ Each FRAMESET and FRAME is contained in a separate file.
              (<:p "This is a placeholder for information pertaining "
                   documentation-title)
              (<:p (format nil
-                          "Please edit the file '~A', to complete ~
+                          "Please edit the file '~A', to complete 
                            the documentation."
                           doc-file-pathname))
              )
@@ -1025,7 +1025,7 @@ given 'output-format'."))
          )
 
     (when (and bv rv)
-      (warn "HELambdaP: parsing a macro lambda list that has ~
+      (warn "HELambdaP: parsing a macro lambda list that has 
              both &rest and &body variables."))
 
     (labels ((render-ll-item (lli)
@@ -2461,9 +2461,9 @@ given 'output-format'."))
 
 (defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
   (declare (type frameset fs))
-  (format t "~&HELAMBDAP: producing NAV MAP file~%~:
-           ~S~%~:
-           ~S~%~:
+  (format t "~&HELAMBDAP: producing NAV MAP file~%:
+           ~S~%:
+           ~S~%:
            ~S~2%"
           fs nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
@@ -2486,8 +2486,8 @@ given 'output-format'."))
              (<:link :rel "stylesheet"
                      :href (namestring *helambdap-css-filename-up*)) ; TESTING!
              (<:style (format nil
-                              ".helambdap_navmap li {~
-                                  display: inline;~
+                              ".helambdap_navmap li {
+                                  display: inline;
                               }"))
              )
 
@@ -2624,10 +2624,10 @@ given 'output-format'."))
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&HELAMBDAP: produce-package-navigation-list~%~:
-           ~S~%~:
-           ~S~%~:
-           ~S~%~:
+    (format t "~&HELAMBDAP: produce-package-navigation-list~%:
+           ~S~%:
+           ~S~%:
+           ~S~%:
            ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
@@ -2689,8 +2689,8 @@ given 'output-format'."))
                  (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
                  (<:link :rel "stylesheet" :href (frameset-style fs))
                  (<:style (format nil
-                                  ".helambdap_navmap li {~
-                                      display: inline;~
+                                  ".helambdap_navmap li {
+                                      display: inline;
                                   }")))
 
                 (if pkg-doc-bits

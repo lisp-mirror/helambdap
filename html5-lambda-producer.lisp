@@ -153,7 +153,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;;===========================================================================
 ;;;; Implementation.
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure documentation-structure)
                                   (where pathname)
                                   doc-bits
@@ -164,12 +164,12 @@ Each FRAMESET and FRAME is contained in a separate file.
   (declare (ignorable documentation-title))
   (ensure-directories-exist where)
   (dolist (c (documentation-structure-structure structure))
-    (produce-documentation 'html c where doc-bits
+    (produce-documentation 'html5 c where doc-bits
                            :documentation-title documentation-title)
     ))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure style-file)
                                   (where pathname)
                                   doc-bits
@@ -190,7 +190,7 @@ Each FRAMESET and FRAME is contained in a separate file.
     ))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure doc-file)
                                   (where pathname)
                                   doc-bits
@@ -215,7 +215,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           )))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure doc-file)
                                   (where file-stream)
                                   doc-bits
@@ -240,7 +240,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           )))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (fss framesets)
                                   (where pathname)
                                   doc-bits
@@ -250,12 +250,12 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable documentation-title))
   (dolist (fs (framesets-list fss))
-    (produce-documentation 'html fs where doc-bits
+    (produce-documentation 'html5 fs where doc-bits
                            :documentation-title documentation-title)))
 
 
 ; index.html
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure frameset)
                                   (where pathname)
                                   doc-bits
@@ -298,8 +298,8 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:document 
            (<:comment fs-name)
            (string #\Newline)
-            
-           +doctype-frameset-control-string+
+           +doctype-html5-control-string+
+           ;+doctype-frameset-control-string+
            (string #\Newline)
            (<:html
 	    
@@ -419,7 +419,7 @@ Each FRAMESET and FRAME is contained in a separate file.
       )))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (element frame)
                                   (where stream)
                                   doc-bits
@@ -432,7 +432,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             :frameborder 0))) 
                                   
 
-(defmethod produce-frame ((format (eql 'html))
+(defmethod produce-frame ((format (eql 'html5))
                           (element doc-file)
                           (where stream)
                           )
@@ -447,7 +447,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:comment () "FRAME " (element-name element))))
 
 
-(defmethod produce-frame ((format (eql 'html))
+(defmethod produce-frame ((format (eql 'html5))
                           (element file-set)
                           (where stream)
                           )
@@ -464,7 +464,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            ))
 
 
-(defmethod produce-header-frame ((format (eql 'html))
+(defmethod produce-header-frame ((format (eql 'html5))
                                  (fs frameset)
                                  (fs-file stream)
                                  (where pathname)
@@ -491,7 +491,7 @@ Each FRAMESET and FRAME is contained in a separate file.
         ))))
 
 
-(defmethod produce-navigation-frame ((format (eql 'html))
+(defmethod produce-navigation-frame ((format (eql 'html5))
                                      (element frameset)
                                      (out stream)
                                      (where pathname)
@@ -521,7 +521,7 @@ Each FRAMESET and FRAME is contained in a separate file.
         ))))
 
 
-(defmethod produce-footer-frame ((format (eql 'html))
+(defmethod produce-footer-frame ((format (eql 'html5))
                                  (fs frameset)
                                  (fs-file stream)
                                  (where pathname)
@@ -546,7 +546,7 @@ Each FRAMESET and FRAME is contained in a separate file.
         ))))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure file-set)
                                   (where pathname)
                                   doc-bits
@@ -559,7 +559,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             )))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (structure file-set)
                                   (where file-stream)
                                   doc-bits
@@ -583,7 +583,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                       :direction :output
                                       :if-does-not-exist :create
                                       :if-exists :supersede)
-        (produce-documentation 'html
+        (produce-documentation 'html5
                                doc-bit
                                doc-bit-stream
                                doc-bits
@@ -885,7 +885,7 @@ given 'output-format'."))
 (defmethod process-doc-string
            ((s string)
             (input-syntax (eql 'text/hyperspec))
-            (output-format (eql 'html))
+            (output-format (eql 'html5))
             &optional
             args-n-values-p
             lambda-list
@@ -1178,7 +1178,7 @@ given 'output-format'."))
       )))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1194,7 +1194,7 @@ given 'output-format'."))
                      out))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit package-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1243,7 +1243,7 @@ given 'output-format'."))
 	|#)))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit system-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1314,7 +1314,7 @@ given 'output-format'."))
 
 
 (defmethod render-syntax-section
-           ((format (eql 'html))
+           ((format (eql 'html5))
             (doc-bit parameterized-doc-bit)
             &optional
             (ll (parameterized-doc-bit-lambda-list doc-bit))
@@ -1359,7 +1359,7 @@ given 'output-format'."))
 
 
 (defmethod render-syntax-section
-           ((format (eql 'html))
+           ((format (eql 'html5))
             (doc-bit deftype-doc-bit)
             &optional
             (ll (deftype-doc-bit-lambda-list doc-bit))
@@ -1401,7 +1401,7 @@ given 'output-format'."))
 
 
 (defmethod render-syntax-section
-           ((format (eql 'html))
+           ((format (eql 'html5))
             (doc-bit macro-doc-bit)
             &optional
             (ll (macro-doc-bit-lambda-list doc-bit))
@@ -1525,7 +1525,7 @@ given 'output-format'."))
 |#
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit parameterized-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1632,7 +1632,7 @@ given 'output-format'."))
         ))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit function-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1786,7 +1786,7 @@ given 'output-format'."))
 |#
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit macro-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1866,7 +1866,7 @@ given 'output-format'."))
           ))|#)))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit constant-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -1925,7 +1925,7 @@ given 'output-format'."))
          )))|#)))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit struct-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -2025,7 +2025,7 @@ given 'output-format'."))
          )))|#)))
 
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit class-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -2136,7 +2136,7 @@ given 'output-format'."))
          )))|#)))
        
 
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   structure
                                   (out stream)
                                   doc-bit
@@ -2170,7 +2170,7 @@ given 'output-format'."))
 
 
 #+helambdap.version-using-MOP
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit generic-function-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -2273,7 +2273,7 @@ given 'output-format'."))
 ;;; things now (20130618).
 
 #-helambdap.version-using-MOP
-(defmethod produce-documentation ((format (eql 'html))
+(defmethod produce-documentation ((format (eql 'html5))
                                   (doc-bit generic-function-doc-bit)
                                   (out file-stream)
                                   doc-bits
@@ -2570,7 +2570,7 @@ given 'output-format'."))
         (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
             (<:document
              (<:comment (base-name header-pathname))
-             +doctype-xhtml1-string-control-string+
+             +doctypehtml5-control-string+
              (<:html
               (<:head
                (<:title fs-head-title)
@@ -2709,7 +2709,7 @@ given 'output-format'."))
            (<:comment (base-name nav-pathname))
            (string #\Newline)
 
-           +doctype-frameset-control-string+
+           ;+doctype-frameset-control-string+
            (string #\Newline)
            (string #\Newline)
            (<:html
@@ -3143,7 +3143,7 @@ given 'output-format'."))
       (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
           (<:document
            (<:comment (base-name footer-pathname))
-           +doctype-xhtml1-string-control-string+
+           +doctype-html5-control-string+
            (<:html
             (<:head
              (<:title fs-head-title)
@@ -3196,7 +3196,7 @@ is then used to produce a file navigation bar.
     (extract-sections in format)))
 
 
-(defmethod extract-sections ((in stream) (format (eql 'html)))
+(defmethod extract-sections ((in stream) (format (eql 'html5)))
   ;; Poor man's parsing of HTML's files.
   ;; I just look for <H1>...</H1> sections.
   ;;
