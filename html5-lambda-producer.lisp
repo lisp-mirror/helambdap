@@ -306,7 +306,39 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title fs-title)
 	     
-	     ((<:script :type "text/javascript" :src "loader.js") "")
+	     ;((<:script :type "text/javascript" :src "loader.js") "")
+
+	     ((<:script :type "text/javascript")
+	      "var xhttp = new XMLHttpRequest();
+
+function set_nav_mode(mode){
+	str = '<div id=\"nav_index\"></div>';
+	if (mode === 1) {str = '<div id=\"nav_map\"></div><div id=\"nav_list\"></div>';}
+	document.getElementById(\"nav\").innerHTML = str;
+	
+	str = '<div id=\"introduction_frame\"></div>';
+	if (mode === 1) {str = '<div id=\"dictionary-entries_frame\"></div>';}
+	document.getElementById(\"main\").innerHTML = str;
+	};
+
+function load_section(id, filename){
+	xhttp.open(\"GET\", filename, false); 
+	xhttp.send();
+	document.getElementById(id).innerHTML = xhttp.responseText;
+	};
+
+function load_index(){
+	set_nav_mode(0);
+	load_section('nav_index','index-navigation.html');
+	load_section('introduction_frame','introduction.html');
+	};
+
+function load_dictionary(){
+	set_nav_mode(1);
+	load_section('nav_map','dictionary/dictionary-navigation.html');
+	load_section('dictionary/dictionary-entries_frame','dictionary/dictionary-entries.html')
+	};"
+	      )
 	     
              (<:link :rel "stylesheet" :href (frameset-style structure)))
 
@@ -319,10 +351,18 @@ Each FRAMESET and FRAME is contained in a separate file.
 	      ((<:div :class "navigation")
 		    ((<:a :href "#" :onclick "load_index()") "Index")
 		    "|"
-		    ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
+	            ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
+	     
+             (produce-navigation-frame 'html5
+                                        structure
+                                        fs-file
+                                        where
+                                        doc-bits
+                                        documentation-title) ;PRODUCE UN TAG FRAM DI TROPPO IN index.html
 
 
-	     ((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	     
+	     ;((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
 	     ((<:nav :id "nav") "")
 
 	     
@@ -418,7 +458,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 	  )
       )))
 
-
+#|
 (defmethod produce-documentation ((format (eql 'html5))
                                   (element frame)
                                   (where stream)
@@ -462,8 +502,9 @@ Each FRAMESET and FRAME is contained in a separate file.
             )
            ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
            ))
+|#
 
-
+#|
 (defmethod produce-header-frame ((format (eql 'html5))
                                  (fs frameset)
                                  (fs-file stream)
@@ -489,7 +530,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                   :frameborder 0
                   ))
         ))))
-
+|#
 
 (defmethod produce-navigation-frame ((format (eql 'html5))
                                      (element frameset)
@@ -514,13 +555,18 @@ Each FRAMESET and FRAME is contained in a separate file.
                                    nav-pathname
                                    doc-bits
                                    documentation-title))
+
+	(<:main (:id "main") "")             ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	
+	#| OLD FRAME GENERATION
         (<:frame (:src (base-name nav-pathname)
                   ;; :marginheight "5"
                   :frameborder "0"
                   ))
+        |#
         ))))
 
-
+#|
 (defmethod produce-footer-frame ((format (eql 'html5))
                                  (fs frameset)
                                  (fs-file stream)
@@ -544,8 +590,8 @@ Each FRAMESET and FRAME is contained in a separate file.
                   :frameborder 0
                   ))
         ))))
-
-
+|#
+#|
 (defmethod produce-documentation ((format (eql 'html5))
                                   (structure file-set)
                                   (where pathname)
@@ -557,7 +603,7 @@ Each FRAMESET and FRAME is contained in a separate file.
   (<:frame (:src (element-name structure)
             :frameborder 0
             )))
-
+|#
 
 (defmethod produce-documentation ((format (eql 'html5))
                                   (structure file-set)
@@ -2613,6 +2659,7 @@ given 'output-format'."))
         ))))
 
 
+;;; NAVIGATION FILE FOR INDEX - 1 PART NAVIGATION
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element doc-file)
                                     nav-pathname
@@ -2630,16 +2677,18 @@ given 'output-format'."))
         )
     (declare (ignore fs-order fs-body-title))
 
-    #|FRAME TO BE LINKED|#
+    #|FRAME TO BE LINKED --- DONE|# 
     (flet ((make-nav-links ()
              (loop for sn in section-names
                    collect (<:li (:style "list-style-type: none")
-                                 (<:a (:href (format nil "~A#~A"
-                                                     (base-name doc-file-pathname)
+                                 (<:a (:href (format nil "#~A"      ;"~A#~A"
+                                                     ;(base-name doc-file-pathname)
                                                      sn)
-                                       :target (format nil "~A_frame"
-                                                       (element-name nav-element)))
-                                       sn))))
+				       ;:target (format nil "~A_frame"
+				       ;              (element-name nav-element))
+					     )
+				      sn)
+				      )))
            )
       (with-open-file (ns nav-pathname
                           :direction :output
@@ -2671,7 +2720,7 @@ given 'output-format'."))
     ))
 
 
-;; USELESS IN HTML5
+;; NAVIGATION FILE FOR DICTIONARY - 2 PART NAVIGATION
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element file-set)
                                     nav-pathname
@@ -2699,7 +2748,7 @@ given 'output-format'."))
                          :defaults nav-pathname))
          )
     (declare (ignore fs-order fs-body-title nav-list-pathname))
-
+    #| OLD FRAME PRODUCTION - USELESS FILE IN HTML5
     (with-open-file (ns nav-pathname
                         :direction :output
                         :if-exists :supersede
@@ -2738,7 +2787,8 @@ given 'output-format'."))
              ))
            (<:comment (format nil "end of file : ~A"
                               (base-name nav-pathname))) 
-           (string #\newline)))) ; WITH-OPEN-FILE...
+           (string #\newline)))) ; WITH-OPEN-FILE...    
+    |#
 
     (produce-navigation-map fs nav-element nav-map-pathname doc-bits)
     ))
@@ -2789,12 +2839,18 @@ given 'output-format'."))
 						  *default-html-extension*
 						  nm-pathname)
 			 
-			 #|FRAME TO BE LINKED|#
+			 #|FRAME TO BE LINKED --- DONE|#
 		       for s-filename = (base-name s-doc-pathname)
 		       collect (<:p ()
-				    (<:a (:href s-filename
-						:target nav-element-target
-						)
+				    (<:a (:href "#"
+						:onclick
+						(format nil
+							"load_section('~A','~A')"
+							nav-element-target
+							s-filename))
+					 ;(:href s-filename
+					;	:target nav-element-target
+					;	)
 					 (doc-bit-name s))
 				    )))
 
@@ -2815,17 +2871,26 @@ given 'output-format'."))
 					:defaults nm-pathname)
 		       for p-list-filename = (base-name p-list-pathname)
 
-			 #|FRAME TO BE LINKED|#
+			 #|FRAME TO BE LINKED --- DONE|#
 		       do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
 		       collect (<:p ()
-				    (<:a (:href p-filename
-						:target nav-element-target
+				    (<:a (:href "#"
 						:onclick
 						(format nil
-							"parent.frames[1].location.href = '~A'"
-							p-list-filename
-							)
+							"load_section('~A','~A');
+                                                         load_section('nav_list','~A');"
+							nav-element-target
+							p-filename
+							p-list-filename)
 						)
+				     ;(:href p-filename
+				;		:target nav-element-target
+				;		:onclick
+				;		(format nil
+				;			"parent.frames[1].location.href = '~A'"
+				;			p-list-filename
+				;			)
+				;		)
 					 (doc-bit-name p)))))
 	     ))))
           #| OLD FRAME GENERATION
@@ -3013,7 +3078,7 @@ given 'output-format'."))
 
       (declare (ignore systems packages methods others))
 
-      #|FRAME TO BE LINKED|#
+      #|FRAME TO BE LINKED --- DONE|#
       (flet ((build-list (list-name doc-bits)
                (when doc-bits
                  (list* (<:h4 () list-name)
@@ -3024,8 +3089,14 @@ given 'output-format'."))
                                                         *default-html-extension*
                                                         pkg-list-pathname))
                               collect (<:p (:class "navindex")
-                                           (<:a (:href db-filename
-                                                 :target target)
+                                           (<:a (:href "#"
+						 :onclick
+						 (format nil
+							 "load_section('~A','~A')"
+							 target
+							 db-filename))
+					       ;(:href db-filename
+                                               ; :target target)
                                                 (format nil
                                                         "~(~A~)"
                                                         (doc-bit-name db)))))
