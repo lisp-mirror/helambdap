@@ -862,7 +862,7 @@ given 'output-format'."))
 
              (format-example-section-paragraphs (example-pars)
                (dolist (ep example-pars)
-                 (if (string= ";;;" ep :end1 3 :end2 3)
+                 (if (string= ";;;" ep :end1 3 :end2 (min 3 (length ep)))
                      (let* ((ep-lines (split-sequence:split-sequence #\Newline ep))
                             (comment-text
                              (format nil "~{~A~}"
@@ -1152,9 +1152,10 @@ given 'output-format'."))
           (<:p (mapcan (lambda (up) (list up (<:br)))
                        (package-doc-bit-use-list doc-bit)))
 
-          (<:h2 "Nicknames:")
-          (<:p (mapcan (lambda (pn) (list pn (<:br)))
-                       (package-doc-bit-nicknames doc-bit)))
+          (when (package-doc-bit-nicknames doc-bit)
+            (<:h2 () "Nicknames:")
+            (<:p () (mapcan (lambda (pn) (list pn (<:br)))
+                         (package-doc-bit-nicknames doc-bit))))
 
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
