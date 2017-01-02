@@ -1,7 +1,7 @@
 HEΛP
 ====
 
-Copyright (c) 2012-2016 Marco Antoniotti
+Copyright (c) 2012-2017 Marco Antoniotti and Stefano Gandelli
 See file COPYING for licensing information
 
 
