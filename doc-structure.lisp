@@ -530,9 +530,9 @@ A minimal documentation structure that contains only the main index
   (make-documentation-structure
    "html5"
    "index"
-   (style-file)
+   (style-file (pathname *helambdap5-css-pathname*))
    (framesets "doc-framesets"
-              *helambdap-css-filename*
+              *helambdap5-css-filename*
               (frameset "index"
                         :content (doc-file "introduction"))
               (frameset "dictionary"
