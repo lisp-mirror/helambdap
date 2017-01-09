@@ -38,6 +38,12 @@
                  :type "css"
                  :defaults *load-pathname*))
 
+(defparameter *helambdap5-css-filename* "helambdap5.css")
+
+(defparameter *helambdap5-css-pathname*
+  (make-pathname :name "helambdap5"
+		 :type "css"
+		 :defaults *load-pathname*))
 
 ;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
@@ -470,7 +476,6 @@ that include ELEMENT."))
   (make-pathname :directory '(:relative :up)
                  :defaults (pathname *helambdap-css-filename*)))
 
-
 (defparameter *xhtml-frame-documentation-structure*
   (make-documentation-structure
    "standard"
@@ -514,6 +519,36 @@ that include ELEMENT."))
 
 A minimal documentation structure that contains only the main index
 (and introduction and the dictionary of of the system/package/library.")
+
+
+
+
+
+;;;; WORK IN PROGRESS
+
+(defparameter *html5-documentation-structure*
+  (make-documentation-structure
+   "html5"
+   "index"
+   (style-file)
+   (framesets "doc-framesets"
+              *helambdap-css-filename*
+              (frameset "index"
+                        :content (doc-file "introduction"))
+              (frameset "dictionary"
+                        :location #P"dictionary/"
+                        :style (namestring *helambdap5-css-filename*)
+                        :content (file-set "dictionary-entries"))
+              )
+   )
+  "The HTML5 documentation structure.
+
+A minimal documentation structure that contains only the main index
+(and introduction and the dictionary of of the system/package/library.")
+
+;;;;WIP
+
+
 
 
 (defparameter *texinfo-documentation-structure*

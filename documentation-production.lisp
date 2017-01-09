@@ -159,7 +159,7 @@ hamper the documentation procedure.
 ;;;; Build documentation implementations.
 
 (defmethod build-documentation ((p pathname)
-                                format
+                                (format (eql 'html))
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
@@ -179,6 +179,29 @@ See Also:
 
 collect-documentation.
 "
+  (when documentation-title
+    (setf (property layout :documentation-title) documentation-title))
+
+  (let ((doc-bits (collect-documentation p)))
+    (produce-documentation format
+                           layout
+                           destination
+                           doc-bits
+                           :documentation-title documentation-title))
+  )
+
+
+(defmethod build-documentation ((p pathname)
+                                (format (eql 'html5))
+                                &key
+                                (documentation-title)
+                                (layout *html5-documentation-structure*)
+                                (source #P".")
+                                (destination
+                                 (make-pathname :directory '(:relative "docs" "html")))
+                                &allow-other-keys
+                                )
+  (declare (ignore source))
   (when documentation-title
     (setf (property layout :documentation-title) documentation-title))
 

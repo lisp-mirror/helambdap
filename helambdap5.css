@@ -28,7 +28,9 @@ main{
     position: fixed;   
     top: 65px;         /*set to height of the header*/
     bottom: 65px;      /*set to height of the footer*/
-    left: 25%;       /*set to width of the navbar*/  /*TO BE FIXED: 25%*/
+    left: 25%;         /*set to width of the navbar */
+    right: 0%;         /*to let the scroll lie on the far right*/
+    overflow: auto;
     background: #ffffff;
     border-color: #808080;
     border-width: 1px;

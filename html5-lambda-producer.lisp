@@ -298,8 +298,8 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:document 
            (<:comment fs-name)
            (string #\Newline)
-           +doctype-html5-control-string+
-           ;+doctype-frameset-control-string+
+           ;+doctype-html5-control-string+
+           +doctype-frameset-control-string+
            (string #\Newline)
            (<:html
 	    
@@ -2616,7 +2616,7 @@ given 'output-format'."))
         (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
             (<:document
              (<:comment (base-name header-pathname))
-             +doctypehtml5-control-string+
+             ;+doctypehtml5-control-string+
              (<:html
               (<:head
                (<:title fs-head-title)
@@ -3214,7 +3214,7 @@ given 'output-format'."))
       (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
           (<:document
            (<:comment (base-name footer-pathname))
-           +doctype-html5-control-string+
+           ;+doctype-html5-control-string+
            (<:html
             (<:head
              (<:title fs-head-title)
