@@ -69,6 +69,13 @@
                              "xhtml-common-definitions"
                              ))
 
+	       #+(and helambdap.with-xhtmlambda helambdap.html5-working)
+	       (:file "html5-lambda-producer"
+		:depends-on ("doc-structure"
+                             "utilities"
+                             "documentation-production"
+                             "xhtml-common-definitions"))
+
 	       (:module "impl-dependent"
 		:depends-on ("helambdap-pkg")
 		:components (
