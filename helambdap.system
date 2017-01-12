@@ -4,6 +4,7 @@
   ;; (pushnew :helambdap.with-cxml *features*)
   ;; (pushnew :helambdap.with-ediware *features*)
   (pushnew :helambdap.with-xhtmlambda *features*)
+  (pushnew :helambdap.html5-working *features*)
   )
 
 
