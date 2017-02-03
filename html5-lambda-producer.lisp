@@ -1,6 +1,6 @@
 ;;;; -*- Mode: Lisp -*-
 
-;;;; xhtml-producer.lisp --
+;;;; html5-producer.lisp --
 ;;;; Make a file out of a DOCUMENTATION-STRUCTURE and a set (list) of
 ;;;; DOC-BITs, using a (X)HTML output format.
 ;;;;
@@ -298,8 +298,8 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:document 
            (<:comment fs-name)
            (string #\Newline)
-           ;+doctype-html5-control-string+
-           +doctype-frameset-control-string+
+           +doctype-html5-control-string+
+           ;+doctype-frameset-control-string+
            (string #\Newline)
            (<:html
 	    
@@ -362,7 +362,7 @@ function load_dictionary(){
 
 
 	     
-	     ;((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	     ((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
 	     ((<:nav :id "nav") "")
 
 	     
@@ -3432,4 +3432,4 @@ is then used to produce a file navigation bar.
 |#
 
 
-;;;; end of file -- xhtml-producer.lisp --
+;;;; end of file -- html5-producer.lisp --
