@@ -102,21 +102,33 @@ More specifically: #\\/ #\\Space #\\* #\%"
                             (nsubstitute #\= #\/
                                          (nsubstitute #\_ #\Space dbpn)))))
 
+(defparameter *bad-chars-replacements*
+  '((#\/ "=")
+    (#\Space "_")
+    (#\* "ast")
+    (#\% "p100")
+    (#\# "hash")
+    (#\& "amp")
+    (#\( "op")
+    (#\) "cp")
+    (#\? "qm")
+    (#\! "em")
+
+    ;; The following (plus some above) are bad characters for Windows; see
+    ;; https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx#file_and_directory_names
+    ;; Thanks to Mirko Vukovic for noticing this.
+    (#\< "lt")
+    (#\> "gt")
+    (#\: "colon")
+    (#\" "dq")
+    (#\\ "bslash")
+    (#\| "vb")
+    )
+  )
+
 (defun doc-bit-pathname-name (doc-bit
                               &aux
-                              (bad-chars
-                               '((#\/ "=")
-                                 (#\Space "_")
-                                 (#\* "ast")
-                                 (#\% "p100")
-                                 (#\# "hash")
-                                 (#\& "amp")
-                                 (#\( "op")
-                                 (#\) "cp")
-                                 (#\? "qm")
-                                 (#\! "em")
-                                 )
-                               )
+                              (bad-chars *bad-chars-replacements*))
                               (dbpn (format nil "~A-~A"
                                             (doc-bit-kind-tag doc-bit)
                                             (doc-bit-name doc-bit))))
