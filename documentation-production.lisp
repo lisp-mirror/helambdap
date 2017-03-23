@@ -63,7 +63,6 @@ can be used as building blocks for the final documentation."))
 ;;;;===========================================================================
 ;;;; Implementation.
 
-
 (defun document (for-what
                  &key
                  (documentation-title)
@@ -148,7 +147,7 @@ hamper the documentation procedure.
                            format
                            :layout layout
                            :source source
-                           :destination destination
+                           :destination (pathname destination)
                            :documentation-title documentation-title)
 
     (when (member clear-documentation-db '(t :after))
@@ -158,29 +157,47 @@ hamper the documentation procedure.
 ;;;;---------------------------------------------------------------------------
 ;;;; Build documentation implementations.
 
+(defmethod build-documentation ((for-what t)
+                                (format t)
+                                &key
+                                &allow-other-keys)
+  (error "HELAMBDAP: unknown resulting documentation format ~A."
+         format))
+
+
+;;; The :before method is used to do some common preprocessing
+;;; (factored out from previous versions of the code).
+
+(defmethod build-documentation :before ((for-what t)
+                                        (format t)
+                                        &key
+                                        (documentation-title)
+                                        (layout *default-documentation-structure*)
+                                        &allow-other-keys
+                                        )
+  (when documentation-title
+    (setf (property layout :documentation-title) documentation-title))
+  )
+
+
 (defmethod build-documentation ((p pathname)
                                 (format (eql 'html))
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
-                                (source #P".")
                                 (destination
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  (declare (ignore source))
+  "Builds the documentation given a PATHNAME in a (X)HTML format.
 
-  "Builds the documentation given a PATHNAME.
-
-The pathname P can either denote a file or a folder.  If i is a folder
+The pathname P can either denote a file or a folder.  If it is a folder
 then it is recursively traversed.
 
 See Also:
 
 collect-documentation.
 "
-  (when documentation-title
-    (setf (property layout :documentation-title) documentation-title))
 
   (let ((doc-bits (collect-documentation p)))
     (produce-documentation format
@@ -196,23 +213,49 @@ collect-documentation.
                                 &key
                                 (documentation-title)
                                 (layout *html5-documentation-structure*)
-                                (source #P".")
                                 (destination
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  (declare (ignore source))
-  (when documentation-title
-    (setf (property layout :documentation-title) documentation-title))
+  "Builds the documentation given a PATHNAME in HTML5 format.
+
+The pathname P can either denote a file or a folder.  If i is a folder
+then it is recursively traversed.
+
+See Also:
+
+collect-documentation.
+"
 
   (let ((doc-bits (collect-documentation p)))
     (produce-documentation format
                            layout
-                           destination
+                           (pathname destination)
                            doc-bits
                            :documentation-title documentation-title))
   )
 
+
+;;; The :around method is used to proper "relativize" the excluded
+;;; files and directories to the pathname P.
+
+(defmethod build-documentation :around ((p pathname)
+                                        (format t)
+                                        &key
+                                        &allow-other-keys
+                                        )
+  (declare (special *exclude-directories* *exclude-files*))
+  (let ((*exclude-directories*
+         (mapcar #'(lambda (ed) (merge-pathnames ed p)) *exclude-directories*))
+        (*exclude-files*
+         (mapcar #'(lambda (ef) (merge-pathnames ef p)) *exclude-files*))
+        )
+    (declare (special *exclude-directories* *exclude-files*))
+    (call-next-method)
+    ))
+
+
+;;; "defsystem" methods
 
 #+asdf
 (defmethod build-documentation ((s asdf:system)
@@ -220,24 +263,58 @@ collect-documentation.
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
-                                (source #P".")
                                 (destination
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  "Builds the documentation for a ASDF system."
-  (declare (ignore source))
-
-  (when documentation-title
-    (setf (property layout :documentation-title) documentation-title))
+  "Builds the documentation for a ASDF system in the (X)HTML format."
 
   (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
     (produce-documentation format
                            layout
-                           destination
+                           (pathname destination)
                            doc-bits
                            :documentation-title documentation-title))
   )
+
+
+#+asdf
+(defmethod build-documentation ((s asdf:system)
+                                (format (eql 'html5))
+                                &key
+                                (documentation-title)
+                                (layout *default-documentation-structure*)
+                                (destination
+                                 (make-pathname :directory '(:relative "docs" "html")))
+                                &allow-other-keys
+                                )
+  "Builds the documentation for a ASDF system in the HTM5 format."
+
+  (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
+    (produce-documentation format
+                           layout
+                           (pathname destination)
+                           doc-bits
+                           :documentation-title documentation-title))
+  )
+
+
+#+asdf
+(defmethod build-documentation :around ((s asdf:system)
+                                        (format t)
+                                        &key
+                                        &allow-other-keys
+                                        )
+  (declare (special *exclude-directories* *exclude-files*))
+  (let* ((p (asdf:component-pathname s))
+         (*exclude-directories*
+         (mapcar #'(lambda (ed) (merge-pathnames ed p)) *exclude-directories*))
+        (*exclude-files*
+         (mapcar #'(lambda (ef) (merge-pathnames ef p)) *exclude-files*))
+        )
+    (declare (special *exclude-directories* *exclude-files*))
+    (call-next-method)
+    ))
 
 
 #+mk-defsystem
@@ -246,26 +323,64 @@ collect-documentation.
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
-                                (source #P".")
                                 (destination
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  "Builds the documentation for a MK-DEFSYSTEM system."
-  (declare (ignore source))
+  "Builds the documentation for a MK-DEFSYSTEM system in the (X)HTML format."
 
   (assert (eq :defsystem (mk::component-type s)))
-
-  (when documentation-title
-    (setf (property layout :documentation-title) documentation-title))
 
   (let ((doc-bits (collect-documentation (mapcar #'pathname (mk:files-in-system s)))))
     (produce-documentation format
                            layout
-                           destination
+                           (pathname destination)
                            doc-bits
                            :documentation-title documentation-title))
   )
-  
+
+
+#+mk-defsystem
+(defmethod build-documentation ((s mk::component)
+                                (format (eql 'html5))
+                                &key
+                                (documentation-title)
+                                (layout *default-documentation-structure*)
+                                (destination
+                                 (make-pathname :directory '(:relative "docs" "html")))
+                                &allow-other-keys
+                                )
+  "Builds the documentation for a MK-DEFSYSTEM system in the HTML5 format."
+
+  (assert (eq :defsystem (mk::component-type s)))
+
+  (let ((doc-bits (collect-documentation (mapcar #'pathname (mk:files-in-system s)))))
+    (produce-documentation format
+                           layout
+                           (pathname destination)
+                           doc-bits
+                           :documentation-title documentation-title))
+  )
+
+
+#+mk-defsystem
+(defmethod build-documentation :around ((s mk::component)
+                                        (format t)
+                                        &key
+                                        &allow-other-keys
+                                        )
+  (declare (special *exclude-directories* *exclude-files*))
+
+  (assert (eq :defsystem (mk::component-type s)))
+
+  (let* ((p (directory-pathname (mk::component-full-pathname s :source)))
+         (*exclude-directories*
+         (mapcar #'(lambda (ed) (merge-pathnames ed p)) *exclude-directories*))
+        (*exclude-files*
+         (mapcar #'(lambda (ef) (merge-pathnames ef p)) *exclude-files*))
+        )
+    (declare (special *exclude-directories* *exclude-files*))
+    (call-next-method)
+    ))
 
 ;;;; end of file -- documentation-production.lisp --
