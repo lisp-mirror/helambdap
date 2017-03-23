@@ -1,5 +1,11 @@
 ;;;; -*- Mode: Lisp -*-
 
+;;;; helambdap.system --
+;;;;
+;;;; Main MK:DEFSYSTEM spec for HELambdaP.
+;;;;
+;;;; See file COPYING for copyright and licensing information.
+
 (eval-when (:load-toplevel :compile-toplevel :execute)
   ;; (pushnew :helambdap.with-cxml *features*)
   ;; (pushnew :helambdap.with-ediware *features*)
@@ -38,12 +44,23 @@
                (:file "xhtml-common-definitions"
                 :depends-on ("helambdap-pkg"))
 
+               (:file "doc-string-handling"
+                :depends-on ("xhtml-common-definitions"))
+
+               (:file "html-source-handling"
+                :depends-on ("xhtml-common-definitions"))
+
+               (:file "xhtml-lambda-producer-protocol"
+                :depends-on ("xhtml-common-definitions"))
+
                #+helambdap.with-ediware
                (:file "xml-producer"
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
-                             "xhtml-common-definitions"
+                             "doc-string-handling"
+                             "html-source-handling"
+                             "xhtml-lambda-producer-protocol"
                              ))
 
                #+healmbdap.with-ediware
@@ -51,7 +68,9 @@
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
-                             "xhtml-common-definitions"
+                             "doc-string-handling"
+                             "html-source-handling"
+                             "xhtml-lambda-producer-protocol"
                              ))
 
                #+helambdap.with-cxml
@@ -59,7 +78,9 @@
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
-                             "xhtml-common-definitions"
+                             "doc-string-handling"
+                             "html-source-handling"
+                             "xhtml-lambda-producer-protocol"
                              ))
 
                #+helambdap.with-xhtmlambda
@@ -67,7 +88,9 @@
                 :depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
-                             "xhtml-common-definitions"
+                             "doc-string-handling"
+                             "html-source-handling"
+                             "xhtml-lambda-producer-protocol"
                              ))
 
 	       #+(and helambdap.with-xhtmlambda helambdap.html5-working)
@@ -75,7 +98,10 @@
 		:depends-on ("doc-structure"
                              "utilities"
                              "documentation-production"
-                             "xhtml-common-definitions"))
+                             "doc-string-handling"
+                             "html-source-handling"
+                             "xhtml-lambda-producer-protocol"
+                             ))
 
 	       (:module "impl-dependent"
 		:depends-on ("helambdap-pkg")
