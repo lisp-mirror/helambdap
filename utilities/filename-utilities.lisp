@@ -26,14 +26,19 @@
       ))
 
 
+(defun directory-pathname (file-n-or-p &aux (file-pathname (pathname file-n-or-p)))
+  (declare (type (or string pathname) file-n-or-p)
+           (type pathname file-pathname))
+  (make-pathname :device nil
+                 :name nil
+                 :type nil
+                 :defaults file-pathname))
+
+
 (defun directory-name (file-n-or-p &aux (file-pathname (pathname file-n-or-p)))
   (declare (type (or string pathname) file-n-or-p)
            (type pathname file-pathname))
-  (namestring
-   (make-pathname :device nil
-                  :name nil
-                  :type nil
-                  :defaults file-pathname)))
+  (namestring (directory-pathname file-pathname)))
 
 
 (defun enclosing-directory (file-n-or-p &aux (file-pathname (pathname file-n-or-p)))
