@@ -128,7 +128,7 @@ More specifically: #\\/ #\\Space #\\* #\%"
 
 (defun doc-bit-pathname-name (doc-bit
                               &aux
-                              (bad-chars *bad-chars-replacements*))
+                              (bad-chars *bad-chars-replacements*)
                               (dbpn (format nil "~A-~A"
                                             (doc-bit-kind-tag doc-bit)
                                             (doc-bit-name doc-bit))))
