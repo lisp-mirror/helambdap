@@ -1,8 +1,13 @@
 ;;;; -*- Mode: Lisp -*-
 
-(in-package "HELAMBDAP")
-
 ;;;; xhtml-common-definitions.lisp --
+;;;;
+;;;; This file contains several common definitions for the (X)HTML(5)
+;;;; documentation production.
+;;;;
+;;;; See file COPYING for copyright and licensing information.
+
+(in-package "HELAMBDAP")
 
 (declaim (type string
                +doctype-frameset-control-string+
