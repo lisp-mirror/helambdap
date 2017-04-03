@@ -9,10 +9,10 @@
 
 # Other generated files.
 
-doc/html*/*
-doc/html*/*/*
-docs/html*/*
-docs/html*/*/*
+doc/*html*/*
+doc/*html*/*/*
+docs/*html*/*
+docs/*html*/*/*
 
 # Temporary files.
 
