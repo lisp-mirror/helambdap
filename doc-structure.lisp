@@ -3,7 +3,7 @@
 ;;;; doc-structure.lisp --
 ;;;; Collecting the documentation about a library entails a number of
 ;;;; steps, with the goal of producing a "structured" web site
-;;;; organized as a (static) setf of pages.
+;;;; organized as a (static) set of pages.
 ;;;;
 ;;;; The final organization of the the documentation web site is stored in a
 ;;;; "template file" which may or may not exist.
@@ -28,22 +28,54 @@
 
 (in-package "HELAMBDAP")
 
+
 ;;;---------------------------------------------------------------------------
 ;;; Global definitions.
 
-(defparameter *helambdap-css-filename* "helambdap.css")
+(defparameter *helambdap-css-filename* "helambdap.css"
+  "The default name for the (x)html .css file.")
+
 
 (defparameter *helambdap-css-pathname*
   (make-pathname :name "helambdap"
                  :type "css"
-                 :defaults *load-pathname*))
+                 :defaults *load-pathname*)
+    "The default pathname for the (X)HTML .css file.
 
-(defparameter *helambdap5-css-filename* "helambdap5.css")
+The default directory is set to the location of the source file.")
+
+
+(defparameter *helambdap5-css-filename* "helambdap5.css"
+  "The default name for the HTML5 .css file.")
+
 
 (defparameter *helambdap5-css-pathname*
   (make-pathname :name "helambdap5"
 		 :type "css"
-		 :defaults *load-pathname*))
+		 :defaults *load-pathname*)
+  "The default pathname for the (X)HTML .css file.
+
+The default directory is set to the location of the source file.")
+
+(defparameter *default-html-extension* "html")
+
+
+;;; Useful macro
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+
+(defmacro def-element-class (name superclasses slots &rest options)
+  (let ((pred-name (intern (format nil "~A-P" name) (symbol-package name))))
+    `(progn
+       (defclass ,name ,superclasses ,slots ,@options)
+       (defgeneric ,pred-name (x)
+         (:method ((x ,name)) t)
+         (:method ((x t)) nil))
+       (defun ,name (name &rest keys &key &allow-other-keys)
+         (apply #'make-instance ',name :name name keys))
+       )))
+)
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
@@ -64,6 +96,7 @@
   (:documentation "The Document Structure Class."))
 
 
+
 (defun property (ds p &optional default)
   (declare (type documentation-structure ds)
            (type symbol p))
@@ -82,38 +115,55 @@
   (setf (property ds p) v))
 
 
+
+;;;---------------------------------------------------------------------------
+;;; Elements of a doc structure (template).
+;;;
+;;; 20170215 MA: Reworked with classes.
+
 ;;; element --
 
-(defstruct element
-  ;; (name "" :read-only t :type string)
-  (name "" :read-only t)
-  (doc-structure nil
-                 :type (or null documentation-structure))
-  (parent nil
-          :type (or null element))
-  (style nil :type (or null string pathname))
-  (source "" :type (or string pathname))
+(defclass element ()
+  ((name :initform (symbol-name (gensym "ELEMENT-"))
+         :reader element-name
+         :reader name
+         :initarg :name)
+   (doc-structure :initform nil
+                  :initarg :doc-structure
+                  :accessor element-doc-structure
+                  :type (or null documentation-structure))
+   (parent :initform nil
+           :initarg :parent
+           :accessor element-parent
+           :type (or null element))
+   (style :initform nil
+          :initarg :style
+          :accessor element-style
+          :type (or null string pathname))
+   (source :initform ""
+           :initarg :source
+           :initarg :location
+           :accessor element-source
+           :accessor element-location
+           :type (or string pathname))
+   )
   )
 
 
-(defgeneric initialize-element (e &key parent doc-structure &allow-other-keys)
+(defgeneric element-p (x)
+  (:method ((x element)) t)
+  (:method ((x t)) nil))
+
+
+(defun is-element (x) (element-p x))
+
+
+#|(defgeneric initialize-element (e &key parent doc-structure &allow-other-keys)
   (:documentation "Initializes some parts of an ELEMENT.
 
 This function may and should be called by constructors of structures
 that include ELEMENT."))
-
-
-(defmethod initialize-element ((e element)
-                               &key parent doc-structure
-                               &allow-other-keys)
-  (declare (type element e)
-           (type (or null documentation-structure) doc-structure)
-           (type (or null element) parent))
-  (when parent
-    (setf (element-parent e) parent))
-  (when doc-structure
-    (setf (element-doc-structure e) doc-structure))
-  e)
+|#
 
 
 (defgeneric pprint-element (os e)
@@ -133,30 +183,371 @@ that include ELEMENT."))
 
 
 ;;;---------------------------------------------------------------------------
-;;; XHTML documentation structure.
+;;; Logical documentation structure.
+;;;
+;;; Will be mostly mapped to HTML5 semantic elements.
+
+;;; composite --
+
+(defclass composite ()
+  ((elements :initform ()
+             :initarg :elements
+             :accessor elements-of
+             )
+   )
+  )
+
+
+(defgeneric composite-p (x)
+  (:method ((x composite)) t)
+  (:method ((x t)) nil))
+
+
+(defmethod initialize-instance :after ((c composite)
+                                       &key elements
+                                       &allow-other-keys)
+  (dolist (e elements)
+    (setf (element-parent e) c)))
+
+
+;;; site --
+
+(defclass site (element composite) ())
+
+
+(defgeneric site-p (x)
+  (:method ((x site)) t)
+  (:method ((x t)) nil))
+
+
+(defun site (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'site :name name keys))
+
+
+;;; pages --
+
+(defclass pages (element composite) ())
+
+
+(defgeneric pages-p (x)
+  (:method ((x pages)) t)
+  (:method ((x t)) nil))
+
+
+(defun pages (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'pages :name name keys))
+
+
+;;; view --
+
+(defclass view (element composite) ())
+
+
+(defgeneric view-p (x)
+  (:method ((x view)) t)
+  (:method ((x t)) nil))
+
+
+;;; main-view --
+
+(defclass main-view (view)
+  ((name :type string))
+  )
+
+
+(defgeneric main-view-p (x)
+  (:method ((x main-view)) t)
+  (:method ((x t)) nil))
+
+
+(defun main-view (name style &rest elements)
+  (make-instance 'main-view
+                 :name name
+                 :style style
+                 :elements elements
+                 ))
+
+
+;;; header --
+
+(defclass header (element)
+  ((name :type string)))
+
+
+(defgeneric header-p (x)
+  (:method ((x header)) t)
+  (:method ((x t)) nil))
+
+
+(defun header (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance :name name keys))
+
+
+;;; footer --
+
+(defclass footer (element)
+  ((name :type string)))
+
+
+(defgeneric footer-p (x)
+  (:method ((x footer)) t)
+  (:method ((x t)) nil))
+
+
+(defun footer (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance :name name keys))
+
+
+;;; doc-area --
+
+(defclass doc-area (view)
+  ((nav :accessor doc-area-navigation
+        :initarg :navigation)
+   (content :accessor doc-area-content
+            :initarg :content
+            :initarg :info-area)
+   ))
+
+
+(defgeneric doc-area-p (x)
+  (:method ((x doc-area)) t)
+  (:method ((x t)) nil))
+
+
+(defun doc-area (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'doc-area :name name keys))
+
+
+;;; navigation --
+
+(defclass navigation (element)
+  ((name :type string)))
+
+
+(defgeneric navigation-p (x)
+  (:method ((x navigation)) t)
+  (:method ((x t)) nil))
+
+
+(defun navigation (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'navigation :name name keys))
+
+
+;;; info-area --
+
+(defclass info-area (view)
+  ((name :type string))
+  )
+
+
+(defgeneric info-area-p (x)
+  (:method ((x info-area)) t)
+  (:method ((x t)) nil))
+
+
+(defun info-area (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'info-area :name name keys))
+
+
+;;; section --
+
+(defclass section (element)
+  ((name :type string))
+  )
+
+
+(defgeneric section-p (x)
+  (:method ((x section)) t)
+  (:method ((x t)) nil))
+
+
+(defun section (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'section :name name keys))
+
+
+;;; article --
+
+(defclass article (element)
+  ((name :type string))
+  )
+
+
+(defgeneric article-p (x)
+  (:method ((x article)) t)
+  (:method ((x t)) nil))
+
+
+(defun article (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'article :name name keys))
+
+
+;;;---------------------------------------------------------------------------
+;;; Physical / "File" System
+
+;;; file-system-entity --
+
+(defclass file-system-entity (element)
+  ((name :type (or string pathname)))
+  )
+
+(defgeneric file-system-entity-p (x)
+  (:method ((x file-system-entity)) t)
+  (:method ((x t)) nil))
+
+
+;;; file --
+
+(defclass file (file-system-entity)
+  ((name :reader file-name)))
+
+
+(defgeneric file-p (x)
+  (:method ((x file)) t)
+  (:method ((x t)) nil))
+
+
+(defun file (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'file :name name keys))
+
+
+(defgeneric file-pathname (fd &optional defaults)
+  (:method ((f file)
+            &optional (defaults *default-pathname-defaults*))
+   (merge-pathnames (pathname (file-name f))) defaults))
+
+
+(defmethod pprint-element ((os stream) (f file))
+  (if *print-readably*
+      (print-object f os)
+      (format os "File ~S." (file-pathname f))))
+
+
+;;; style-file --
+
+(defclass style-file (file)
+  ((name :initform (pathname *helambdap-css-pathname*)
+         :accessor style-file-name)))
+
+
+(defgeneric style-file-p (x)
+  (:method ((x style-file)) t)
+  (:method ((x t)) nil))
+
+
+(defun style-file (&optional (name (pathname *helambdap-css-pathname*)))
+  (make-instance 'style-file :name name))
+
+
+;;; doc-file --
+
+(defclass doc-file (file)
+  ((name :accessor doc-file-name)))
+
+
+(defgeneric doc-file-p (x)
+  (:method ((x doc-file)) t)
+  (:method ((x t)) nil))
+
+
+(defun doc-file (name)
+  (make-instance 'doc-file :name name))
+
+
+(defun doc-file-pathname-type ()
+  (make-pathname :type *default-html-extension* :directory ()))
+
+
+(defmethod file-pathname ((df doc-file)
+                          &optional
+                          (defaults *default-pathname-defaults*))
+  (merge-pathnames
+   (merge-pathnames (file-name df)
+                    (doc-file-pathname-type))
+   defaults))
+
+
+;;; file-set --
+
+(defclass file-set (element composite)
+  ((elements :initform () :accessor file-set-files)
+   (index :accessor file-set-index)
+   (name :accessor file-set-name)
+   ))
+
+
+(defgeneric file-set-p (x)
+  (:method ((x file-set)) t)
+  (:method ((x t)) nil))
+
+
+(defmethod print-object ((fs file-set) stream)
+  (print-unreadable-object (fs stream)
+    (format stream "FILE-SET ~S" (file-set-name fs))))
+
+
+(defmethod pprint-element ((o stream) (f file-set))
+  (if *print-pretty*
+      (print-object f o)
+      (format o "File Set ~S." (element-name f))))
+
+
+(defun file-set (name &rest list)
+  (make-instance 'file-set :name name :elements list))
+
+
+;;; folder --
+
+(defclass folder (file-set)
+  ((elements :accessor folder-files)))
+
+
+(defgeneric folder-p (x)
+  (:method ((x folder)) t)
+  (:method ((x t)) t))
+
+
+(defun folder (name &rest files)
+  (make-instance 'folder :name name :elements files))
+  
+
+;;;---------------------------------------------------------------------------
+;;; Hybrid (XHTML) documentation structure.
 
 ;;; frame --
 
-(defstruct (frame (:include element (name "" :type string))
-                  (:constructor %make-frame (name))))
+(defclass frame (view)
+  ((name :type string
+         :accessor frame-name)
+   (source :accessor frame-source)
+   )
+  )
 
 
-(defun frame (name)
-  (initialize-element (%make-frame name)))
+(defgeneric frame-p (x)
+  (:method ((x frame)) t)
+  (:method ((x t)) nil))
 
 
-;;; framesets --  
+(defun frame (name &rest keys &key &allow-other-keys)
+  (apply #'make-instance 'frame :name name keys))
 
-(defstruct (framesets (:include element)
-                      (:constructor %make-framesets (name style list)))
-  (list ()))
+
+;;; framesets --
+
+(defclass framesets (pages)
+  ((elements :accessor framesets-list)))
+
+
+(defgeneric framsets-p (x)
+  (:method ((x framesets)) t)
+  (:method ((x t)) nil))
 
 
 (defun framesets (name style &rest framesets)
-  (let ((fss (%make-framesets name style framesets)))
-    (initialize-element fss)
-    (dolist (fs framesets fss)
-      (setf (element-parent fs) fss))))
+  (make-instance 'framesets
+                 :name name
+                 :style style 
+                 :elements framesets))
 
 
 (defmethod print-object ((fs framesets) o)
@@ -168,19 +559,41 @@ that include ELEMENT."))
 
 ;;; frameset --
 
-(defstruct (frameset (:include element)
-                     (:constructor %make-frameset))
-  (header nil :read-only t :type t) ; :type (or null string)
-  (footer nil :read-only t :type t) ; :type (or null string)y
-  (navigation nil :read-only t :type t) ; :type (or string frameset)
-  (sidebar nil :read-only t :type t) ; :type (or string frameset)
-  (content nil)
-  (location #P"./" :read-only t :type (or null pathname))
-  (order 0 :type (integer 0 #.most-positive-fixnum))
+(defclass frameset (view)
+  ((name :initform (symbol-name (gensym "FRAMESET-"))
+         :accessor frameset-name)
+   (style :accessor frameset-style)
+   (header :initform t
+           :reader frameset-header
+           :initarg :header
+           :type t) ; :type (or null string)
+   (footer :initform t
+           :reader frameset-footer
+           :initarg :footer
+           :type t) ; :type (or null string)y
+   (navigation :initform t
+               :reader frameset-navigation
+               :initarg :navigation
+               :type t) ; :type (or string frameset)
+   (sidebar :reader frameset-sidebar
+            :initarg :sidebar
+            :type t) ; :type (or string frameset)
+   (content :accessor frameset-content
+            :initarg :content)
+   (source :initform #P"./"
+           :reader frameset-location
+           )
+   (order :initform 0
+          :accessor frameset-order
+          :initarg :order
+          :type (integer 0 #.most-positive-fixnum))
+   )
   )
 
 
 (defun frameset (name
+                 &rest
+                 keys
                  &key
                  style
                  (header t)
@@ -188,23 +601,30 @@ that include ELEMENT."))
                  (navigation t)
                  sidebar
                  content
-                 (location #P"./"))
-  (let ((fs (%make-frameset :name name
-                            :style style
-                            :header header
-                            :footer footer
-                            :navigation navigation
-                            :sidebar sidebar
-                            :content content
-                            :location location
-                            :source location))
-        )
-    (initialize-element fs)
-    (unless content
-      (setf (frameset-content fs)
-            (doc-file (concatenate 'string name "-frame"))))
-    fs
-    ))
+                 (location #P"./")
+                 &allow-other-keys)
+  (apply #'make-instance 'frameset
+         :name name
+         :style style
+         :header header
+         :footer footer
+         :navigation navigation
+         :sidebar sidebar
+         :content content
+         :location location
+         :source location
+         keys))
+
+
+(defmethod initialize-instance :after ((fs frameset)
+                                       &key
+                                       (content nil csp)
+                                       &allow-other-keys)
+  (declare (ignore content))
+  (unless csp
+    (setf (frameset-content fs)
+          (doc-file (concatenate 'string (name fs) "-frame"))))
+  )
 
 
 (defun frameset-header-name (fs)
@@ -256,92 +676,8 @@ that include ELEMENT."))
         (format o "~:@_Footer     ~S~:@_" (frameset-footer fs)))))
 
 
-;;; file --
-
-(defstruct (file (:include element (name "" :type (or string pathname)))
-                 (:constructor %make-file (name))))
-
-
-(defgeneric file-pathname (fd &optional defaults))
-
-
-(defmethod file-pathname ((f file)
-                          &optional (defaults *default-pathname-defaults*))
-  (merge-pathnames (pathname (file-name f))) defaults)
-
-
-(defmethod pprint-element ((os stream) (f file))
-  (if *print-readably*
-      (print-object f os)
-      (format os "File ~S." (file-pathname f))))
-
-
-(defun file (name)
-  (initialize-element (%make-file name)))
-
-
-;;; style-file --
-
-(defstruct (style-file
-            (:include file)
-            (:constructor %make-style-file (&optional (name (pathname *helambdap-css-pathname*)))))
-  )
-
-(defun style-file (&optional (name (pathname  *helambdap-css-pathname*)))
-  (initialize-element (%make-style-file name)))
-
-
-;;; doc-file --
-
-(defstruct (doc-file
-            (:include file)
-            (:constructor %make-doc-file (name)))
-  )
-
-
-(defun doc-file (name)
-  (initialize-element (%make-doc-file name)))
-
-
-(defparameter *default-html-extension* "html")
-
-(defun doc-file-pathname-type ()
-  (make-pathname :type *default-html-extension* :directory ()))
-
-
-(defmethod file-pathname ((df doc-file)
-                          &optional
-                          (defaults *default-pathname-defaults*))
-  (merge-pathnames
-   (merge-pathnames (file-name df)
-                    (doc-file-pathname-type))
-   defaults))
-
-
-;;; file-set --
-
-(defstruct (file-set (:include element)
-                     (:constructor %make-file-set (name files index)))
-  (files ())
-  (index ()))
-
-
-(defmethod print-object ((fs file-set) stream)
-  (print-unreadable-object (fs stream)
-    (format stream "FILE-SET ~S" (file-set-name fs))))
-
-
-(defmethod pprint-element ((o stream) (f file-set))
-  (if *print-pretty*
-      (print-object f o)
-      (format o "File Set ~S." (element-name f))))
-
-
-(defun file-set (name &rest list)
-  (initialize-element (%make-file-set name list nil)))
-
-
-;;; elements utilities.
+;;;---------------------------------------------------------------------------
+;;; Elements utilities.
 
 (defun element-location-path (e)
   (let ((source (element-source e))
@@ -379,18 +715,27 @@ that include ELEMENT."))
                     :defaults fp)))
   )
 
+
 ;;;---------------------------------------------------------------------------
 ;;; Texinfo documentation structure.
 
-(defstruct (texinfo-file (:include element)
-                         (:constructor %make-texinfo-file))
-  (location #P"./" :type (or pathname string))
-  (contents () :type list)
+;;; texinfo-file --
+
+(defclass texinfo-file (element composite)
+  ((location :initform #P"./"
+             :accessor texinfo-file-location
+             :type (or pathname string))
+   )
   )
 
 
+(defgeneric texinfo-file-p (x)
+  (:method ((x texinfo-file)) t)
+  (:method ((x t)) nil))
+
+
 (defun texinfo-file (name &rest contents)
-  (initialize-element (%make-texinfo-file :name name :contents contents)))
+  (make-instance 'texinfo-file :name name :elements contents))
 
 
 ;;;---------------------------------------------------------------------------
@@ -459,7 +804,6 @@ that include ELEMENT."))
         for i from 0
         do (register-element fs e doc-structure)
         do (setf (frameset-order fs) i)))
-  
 
 
 (defmethod register-element :after ((e file-set) parent doc-structure)
@@ -469,12 +813,45 @@ that include ELEMENT."))
         do (register-element fs e doc-structure)))
 
 
+(defun read-structure-file (&optional
+                            (struct-pathname (pathname
+                                              *structure-file-name*)))
+  (declare (special *default-documentation-structure*)) ; Defined later.
+  (if (probe-file struct-pathname)
+      (with-open-file (sfs struct-pathname :direction :input)
+        (read sfs))
+      *default-documentation-structure*))
+
+
+(defun pprint-documentation-structure (structure &optional (out *standard-output*))
+  (pprint (documentation-structure-structure structure) out))
+
+
 ;;;---------------------------------------------------------------------------
+;;; Auxiliary files production.
+
+(defgeneric head-title (e)
+  (:method ((e doc-area)) "Doc area head placeholder title")
+  (:method ((e view)) "View head placeholder title"))
+
+
+(defgeneric body-title (fs)
+  (:method ((e doc-area)) "Doc area body placeholder title")
+  (:method ((e view)) "View body placeholder title"))
+
+
+;;;===========================================================================
 ;;; Documentation structures.
 
 (defparameter *helambdap-css-filename-up*
   (make-pathname :directory '(:relative :up)
                  :defaults (pathname *helambdap-css-filename*)))
+
+
+(defparameter *helambdap5-css-filename-up*
+  (make-pathname :directory '(:relative :up)
+                 :defaults (pathname *helambdap5-css-filename*)))
+
 
 (defparameter *xhtml-frame-documentation-structure*
   (make-documentation-structure
@@ -531,13 +908,17 @@ A minimal documentation structure that contains only the main index
    "html5"
    "index"
    (style-file (pathname *helambdap5-css-pathname*))
-   (framesets "doc-framesets"
+   (main-view "doc-framesets"
               *helambdap5-css-filename*
-              (frameset "index"
-                        :content (doc-file "introduction"))
-              (frameset "dictionary"
+              (doc-area "index"
+                        :navigation (navigation "intro-nav")
+                        :content (doc-file "introduction")
+                        :style (namestring *helambdap5-css-filename*)
+                        )
+              (doc-area "dictionary"
                         :location #P"dictionary/"
                         :style (namestring *helambdap5-css-filename*)
+                        :navigation (navigation "dictionaty-nav")
                         :content (file-set "dictionary-entries"))
               )
    )
@@ -564,19 +945,6 @@ A minimal documentation structure that contains only the main index
 (defparameter *default-documentation-structure* 
   *xhtml-simple-frame-documentation-structure*
   "The variable containing the default documentation structure.")
-
-
-(defun read-structure-file (&optional
-                            (struct-pathname (pathname
-                                              *structure-file-name*)))
-  (if (probe-file struct-pathname)
-      (with-open-file (sfs struct-pathname :direction :input)
-        (read sfs))
-      *default-documentation-structure*))
-
-
-(defun pprint-documentation-structure (structure &optional (out *standard-output*))
-  (pprint (documentation-structure-structure structure) out))
 
 
 ;;;; end of file -- doc-structure.lisp --
