@@ -85,7 +85,7 @@
                (let* ((ntp (namestring (truename p)))
                       (ed (enclosing-directory (truename p)))
                       (trunc-p (make-pathname :directory ed :defaults p))
-                     )
+                      )
 		 (declare (type string ntp))
                  (when (is-white ntp)
                    (format t "~&HELAMBDAP: Considering .../~A " trunc-p)
@@ -101,7 +101,7 @@
                                   (dfs f))
                                 (dolist (sd (subdirectories p))
                                   (dfs sd)))
-                            ))
+                              ))
                          (t ; A file.
                           (format t "[F]")
                           (if (member ntp exclude-file-names :test #'equal)
@@ -145,9 +145,9 @@
                      exclude-file-names)
                )
       (labels (
-	     ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
+               ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
 
-             ;; (is-black (ntp) (eq :black (gethash ntp color-table)))
+               ;; (is-black (ntp) (eq :black (gethash ntp color-table)))
 
                (is-white (ntp) (eq :white (gethash ntp color-table :white)))
 
