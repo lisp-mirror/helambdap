@@ -2,7 +2,7 @@
 
 ;;;; html5-producer.lisp --
 ;;;; Make a file out of a DOCUMENTATION-STRUCTURE and a set (list) of
-;;;; DOC-BITs, using a (X)HTML output format.
+;;;; DOC-BITs, using a HTML5 output format.
 ;;;;
 ;;;; See file COPYING for copyright and licensing information.
 
@@ -12,7 +12,7 @@
 ;;;;===========================================================================
 ;;;; Prologue.
 
-;;;; The (X)HTML producer makes essentially two kinds framesets: the "prose"
+;;;; The HTML5 producer makes essentially two kinds framesets: the "prose"
 ;;;; and "help" ones and the "dictionary" one.
 ;;;;
 ;;;; The "prose" and "help" ones are the "index", "downloads",
@@ -98,57 +98,6 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;;===========================================================================
 ;;;; Protocol.
 
-(defgeneric produce-frame (format element out)
-  )
-
-
-(defgeneric produce-navigation-frame (format
-                                      element
-                                      frameset-stream
-                                      where
-                                      doc-bits
-                                      doc-title)
-  )
-
-
-(defgeneric produce-navigation-file (frameset
-                                     nav-element
-                                     nav-pathname
-                                     doc-bits
-                                     documentation-title))
-
-
-(defgeneric produce-header-frame (format
-                                  frameset
-                                  frameset-stream
-                                  where
-                                  doc-bits
-                                  doc-title)
-  )
-
-
-(defgeneric produce-header-file (frameset
-                                 header-pathname
-                                 documentatio-title))
-
-
-(defgeneric produce-footer-frame (format
-                                  frameset
-                                  frameset-stream
-                                  where
-                                  doc-bits
-                                  doc-title)
-  )
-
-(defgeneric produce-footer-file (frameset
-                                 footer-pathname
-                                 documentatio-title))
-
-
-(defparameter *xhtml-indent* 4) ; 4 is the actual initial value.
-
-(defparameter *formatted-section-right-margin* 256)
-
 
 ;;;;===========================================================================
 ;;;; Implementation.
@@ -179,7 +128,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable doc-bits documentation-title))
   (let ((doc-directory where)
-        (sfn (style-file-name structure))
+        (sfn (element-name structure))
         )
     (cl-fad:copy-file sfn
                       (make-pathname
@@ -200,7 +149,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable doc-bits))
   (let* ((doc-directory where)
-         (dfname (doc-file-name structure))
+         (dfname (element-name structure))
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
                          :name (pathname-name dfname)
@@ -208,6 +157,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          )
     (cond ((probe-file dfname)
            (cl-fad:copy-file dfname destination-path :overwrite nil))
+
           ((not (probe-file destination-path))
            (produce-doc-file-placeholder structure
                                          destination-path
@@ -225,11 +175,12 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable doc-bits))
   (let* ((doc-directory where)
-         (dfname (doc-file-name structure))
+         (dfname (element-name structure))
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
                          :name (pathname-name dfname)
-                         :type (or (pathname-type dfname) *default-html-extension*)))
+                         :type (or (pathname-type dfname)
+                                   *default-html-extension*)))
          )
     (cond ((probe-file dfname)
            (cl-fad:copy-file dfname destination-path :overwrite nil))
@@ -241,7 +192,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 
 (defmethod produce-documentation ((format (eql 'html5))
-                                  (fss framesets)
+                                  (mv main-view)
                                   (where pathname)
                                   doc-bits
                                   &key
@@ -249,361 +200,197 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   &allow-other-keys
                                   )
   (declare (ignorable documentation-title))
-  (dolist (fs (framesets-list fss))
-    (produce-documentation 'html5 fs where doc-bits
+  (dolist (e (elements-of mv))
+    (produce-documentation 'html5 e where doc-bits
                            :documentation-title documentation-title)))
 
 
-; index.html
+;;; produce-documentation html5 doc-area
+;;; This actually produces the 'index.html' for HTML5.
+
 (defmethod produce-documentation ((format (eql 'html5))
-                                  (structure frameset)
+                                  (da doc-area)
                                   (where pathname)
                                   doc-bits
                                   &key
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (let* ((fs-location (frameset-location structure))
-         (where (if fs-location
-                    (merge-pathnames fs-location where)
+  (let* ((da-location (element-location da))
+         (where (if da-location
+                    (merge-pathnames da-location where)
                     where))
 
-         (fs-name (frameset-name structure))
-         (fs-title (or documentation-title fs-name))
-         (fs-pathname (make-pathname :name fs-name
+         (da-name (element-name da))
+         (da-title (or documentation-title da-name))
+         (da-pathname (make-pathname :name da-name
                                      :type *default-html-extension*
                                      :defaults where))
-         (fs-header (frameset-header structure))
-         (fs-content (frameset-content structure))
-         (fs-navigation (frameset-navigation structure))
-         (fs-footer (frameset-footer structure))
+         ;; (fs-header (frameset-header structure))
+         (da-content (doc-area-content da))
+         ;; (fs-navigation (frameset-navigation structure))
+         ;; (fs-footer (frameset-footer structure))
          )
-    (declare (ignore fs-footer fs-navigation fs-header))
+    ;; (declare (ignore fs-footer fs-navigation fs-header))
 
     (ensure-directories-exist where)
 
-    (with-open-file (fs-file fs-pathname
+    (with-open-file (da-file da-pathname
                              :direction :output
                              :if-does-not-exist :create
                              :if-exists :supersede)
 
-      (when fs-content
+      (when da-content
         (produce-documentation format
-                               fs-content
-                               fs-file
+                               da-content
+                               da-file
                                doc-bits
                                :documentation-title documentation-title))
 
-      (<:with-html-syntax-output (fs-file :print-pretty t :syntax :compact)
-          (<:document 
-           (<:comment fs-name)
+      (<:with-html-syntax-output (da-file :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment da-name)
            (string #\Newline)
            +doctype-html5-control-string+
-           ;+doctype-frameset-control-string+
            (string #\Newline)
            (<:html
 	    
             (<:head
-             (<:title fs-title)
+             (<:title da-title)
 	     
-	     ;((<:script :type "text/javascript" :src "loader.js") "")
+	     ;; ((<:script :type "text/javascript" :src "loader.js") "")
 
 	     ((<:script :type "text/javascript")
-	      "var xhttp = new XMLHttpRequest();
+              "
+// -*- Mode: JavaScript -*-
 
-function set_nav_mode(mode){
-	str = '<div id=\"nav_index\"></div>';
-	if (mode === 1) {str = '<div id=\"nav_map\"></div><div id=\"nav_list\"></div>';}
-	document.getElementById(\"nav\").innerHTML = str;
-	
-	str = '<div id=\"introduction_frame\"></div>';
-	if (mode === 1) {str = '<div id=\"dictionary-entries_frame\"></div>';}
-	document.getElementById(\"main\").innerHTML = str;
-	};
+// helambdap-js-support.js --
+// Javascript support code for HELambdaP.
+//
+// See file COPYING in top level folder for licence and copying
+// information.
 
-function load_section(id, filename){
-	xhttp.open(\"GET\", filename, false); 
-	xhttp.send();
-	document.getElementById(id).innerHTML = xhttp.responseText;
-	};
+var xhttp = new XMLHttpRequest();
 
-function load_index(){
-	set_nav_mode(0);
-	load_section('nav_index','index-navigation.html');
-	load_section('introduction_frame','introduction.html');
-	};
 
-function load_dictionary(){
-	set_nav_mode(1);
-	load_section('nav_map','dictionary/dictionary-navigation.html');
-	load_section('dictionary/dictionary-entries_frame','dictionary/dictionary-entries.html')
-	};"
+function set_nav_mode(mode) {
+    str = '<div id=\"nav_index\"></div>';
+    if (mode === 1) {
+	str = '<div id=\"nav_map\"></div><div id=\"nav_list\"></div>';
+    }
+    document.getElementById('nav').innerHTML = str;
+    
+    str = '<div id=\"introduction_frame\"></div>';
+    if (mode === 1) {
+	str = '<div id=\"dictionary-entries_frame\"></div>';
+    }
+    document.getElementById('main').innerHTML = str;
+};
+
+
+function load_section(id, filename) {
+    xhttp.open('GET', filename, false); 
+    xhttp.send();
+    document.getElementById(id).innerHTML = xhttp.responseText;
+};
+
+
+function load_index() {
+    set_nav_mode(0);
+    load_section('nav_index', 'index-navigation.html');
+    load_section('introduction_frame', 'introduction.html');
+};
+
+
+function load_dictionary() {
+    set_nav_mode(1);
+
+    load_section('nav_map',
+		 'dictionary/dictionary-navigation.html');
+    
+    load_section('dictionary/dictionary-entries_frame',
+		 'dictionary/dictionary-entries.html')
+};
+
+// end of file -- helambdap-js-support.js
+"
 	      )
 	     
-             (<:link :rel "stylesheet" :href (frameset-style structure)))
+             (<:link :rel "stylesheet" :href (element-style da)))
 
 	    #|START OF HTML5 GENERATION|#
 	    (<:body
 	     
 	     (<:header
-	      ((<:div :class "header")
-	       (<:strong (or documentation-title (frameset-body-title structure))))
+              (<:strong (or documentation-title (head-title da)))
 	      ((<:div :class "navigation")
 		    ((<:a :href "#" :onclick "load_index()") "Index")
 		    "|"
 	            ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
 	     
-             (produce-navigation-frame 'html5
-                                        structure
-                                        fs-file
-                                        where
-                                        doc-bits
-                                        documentation-title) ;PRODUCE UN TAG FRAM DI TROPPO IN index.html
+             (produce-navigation 'html5
+                                 da
+                                 da-file
+                                 where
+                                 doc-bits
+                                 documentation-title) ; PRODUCE UN TAG FRAME DI TROPPO IN index.html
 
 
 	     
-	     ((<:main :id "main") "")       ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	     ((<:main :id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
 	     ((<:nav :id "nav") "")
 
 	     
 	     (<:footer
-	      ((<:div :class "footer")
-	       (<:strong (or documentation-title (frameset-body-title structure)))
-	       "documentation produced with"
-	       ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
-	       (<:br)
-	       (<:comment "hhmts start")
-	       "Last modified: " (text-timestamp)
-	       (<:comment "hhmts end")
-	       (<:br)
-	       (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
-		       (nth-value 5 (decode-universal-time (get-universal-time))))))
+              (<:strong (or documentation-title (body-title da)))
+              "HTML5 documentation produced with"
+              ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
+              (<:br)
+              (<:comment "hhmts start")
+              "Last modified: " (text-timestamp)
+              (<:comment "hhmts end")
+              (<:br)
+              (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
+                      (nth-value 5 (decode-universal-time (get-universal-time)))))
 	     (<:script "load_index()")
 
 	     )
-
-
-	    #|
-	      ;OLD FRAME GENERATION
-	    
-            ((<:frameset :rows "65px,*,65px" #| :border 0 |# :noresize "noresize")
-             ;; HEADER ROW.
-             (<:comment "HEADER ROW")
-             (produce-header-frame 'html
-                                   structure
-                                   fs-file
-                                   where
-                                   doc-bits
-                                   documentation-title)
-
-             ;; NAVIGATION/CONTENT/SIDEBAR ROW.
-             (<:comment "NAVIGATION/CONTENT/SIDEBAR ROW")
-             (
-               ;; (<:frameset :cols "*,*" :border 0)
-               ;; (<:frameset :cols "150px,*" :border 0)
-               ;; (<:frameset :cols "20%,80%" #| :border 0 |#)
-              (<:frameset :cols "25%,75%" #| :border 0 |#)
-
-              (<:comment "NAVIGATION FRAME")
-              (produce-navigation-frame 'html
-                                        structure
-                                        fs-file
-                                        where
-                                        doc-bits
-                                        documentation-title)
-                         
-              (<:comment "CONTENT " fs-content)
-              (if fs-content
-                  (progn
-                    #|(produce-documentation format
-                                           fs-content
-                                           fs-file
-                                           doc-bits
-                                           :documentation-title documentatio-title)|#
-                    (produce-frame format fs-content fs-file)
-                    )
-                  (<:frame (:name (format nil "~A_frame" (element-name structure))
-                            :frameborder 0
-                            #| :class "helambda_dict_entry" |#
-                            ))
-                  )
-              )
-
-             ;; FOOTER ROW.
-             (<:comment () "FOOTER ROW")
-             (produce-footer-frame 'html
-                                   structure
-                                   fs-file
-                                   where
-                                   doc-bits
-                                   documentation-title)
-             ;; (<:frame (:src (base-name fs-footer)))
-             )
-              
-            (<:noframes
-             (<:h2 "Frame Alert")
-             (<:p
-              "This document is designed to be viewed using the frames feature."
-              "If you see this message, you are using a non-frame-capable web client."
-              <:br
-              "Link to "
-              ((<:a :href "overview-summary.html") "Non-frame version.")))
-	    |#
-
-	    
-            ) ;HTML END
+            ) ; HTML END
            (<:comment 
-            (format nil "end of file : ~A.htm" fs-name))
-           ) ;DOCUMENT END
+            (format nil "end of file : ~A.htm" da-name))
+           ) ; DOCUMENT END
 	  )
       )))
 
-#|
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (element frame)
-                                  (where stream)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  (declare (ignorable doc-bits documentation-title))
-  (<:frame (:src (frame-source element)
-            :name (frame-name element)
-            :frameborder 0))) 
-                                  
 
-(defmethod produce-frame ((format (eql 'html5))
-                          (element doc-file)
-                          (where stream)
-                          )
-  (<:frame (:src (namestring (file-pathname element))
-            :name (concatenate 'string
-                               (pathname-name
-                                (file-pathname element))
-                               "_frame")
-            :frameborder 0
-            :class "helambdap_dict_entry"
-            )
-           (<:comment () "FRAME " (element-name element))))
-
-
-(defmethod produce-frame ((format (eql 'html5))
-                          (element file-set)
-                          (where stream)
-                          )
-  (<:frame (:src (concatenate 'string
-                              (file-set-name element) "."
-                              *default-html-extension*) 
-            :name (concatenate 'string
-                               (file-set-name element)
-                               "_frame") 
-            :frameborder 0
-            :class "helambdap_dict_entry"
-            )
-           ;; (format nil "~&~%<!-- FRAME DOC FILE-SET ~S -->~2%" (element-name structure))
-           ))
-|#
-
-#|
-(defmethod produce-header-frame ((format (eql 'html5))
-                                 (fs frameset)
-                                 (fs-file stream)
-                                 (where pathname)
-                                 doc-bits
-                                 documentation-title
-                                 )
-  (declare (ignorable doc-bits))
-  (let ((header (frameset-header fs)))
-    (unless (or (null header) (string= header ""))
-      (let ((header-pathname
-             (merge-pathnames
-              (merge-pathnames (frameset-header-name fs)
-                               (make-pathname :type *default-html-extension*))
-              where))
-            )
-             
-        (unless (and (probe-file header-pathname)
-                     (not *supersede-documentation*))
-          (produce-header-file fs header-pathname documentation-title))
-
-        (<:frame (:src (base-name header-pathname)
-                  :frameborder 0
-                  ))
-        ))))
-|#
-
-(defmethod produce-navigation-frame ((format (eql 'html5))
-                                     (element frameset)
-                                     (out stream)
-                                     (where pathname)
-                                     doc-bits
-                                     documentation-title
-                                     )
-  (let ((nav (frameset-navigation element)))
-    (unless (or (null nav) (string= nav ""))
+(defmethod produce-navigation ((format (eql 'html5))
+                               (element doc-area)
+                               (out stream)
+                               (where pathname)
+                               doc-bits
+                               documentation-title
+                               )
+  (let ((nav (doc-area-navigation element)))
+    (unless (or (null nav) (and (stringp nav) (string= nav "")))
       (let ((nav-pathname
              (merge-pathnames
-              (merge-pathnames (frameset-navigation-name element)
+              (merge-pathnames (element-name element)
                                (make-pathname :type *default-html-extension*))
               where))
             )
         (declare (type pathname nav-pathname))
         (unless (and (probe-file nav-pathname)
                      (not *supersede-documentation*))
-          (produce-navigation-file element
-                                   (frameset-content element)
-                                   nav-pathname
-                                   doc-bits
-                                   documentation-title))
+          (produce-navigation-links format
+                                    element
+                                    (doc-area-content element)
+                                    nav-pathname
+                                    doc-bits
+                                    documentation-title))
 
-	(<:main (:id "main") "")             ; ADDED "main" TAG GENERATION IN (X)HTMLambda
-	
-	#| OLD FRAME GENERATION
-        (<:frame (:src (base-name nav-pathname)
-                  ;; :marginheight "5"
-                  :frameborder "0"
-                  ))
-        |#
+	(<:main (:id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
         ))))
 
-#|
-(defmethod produce-footer-frame ((format (eql 'html5))
-                                 (fs frameset)
-                                 (fs-file stream)
-                                 (where pathname)
-                                 doc-bits
-                                 documentation-title
-                                 )
-  (declare (ignorable doc-bits))
-  (let ((footer (frameset-footer fs)))
-    (unless (or (null footer) (string= footer ""))
-      (let ((footer-pathname
-             (merge-pathnames
-              (merge-pathnames (frameset-footer-name fs)
-                               (make-pathname :type *default-html-extension*))
-              where))
-            )
-        (unless (and (probe-file footer-pathname)
-                     (not *supersede-documentation*))
-          (produce-footer-file fs footer-pathname documentation-title))
-        (<:frame (:src (base-name footer-pathname)
-                  :frameborder 0
-                  ))
-        ))))
-|#
-#|
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (structure file-set)
-                                  (where pathname)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  (declare (ignorable doc-bits documentation-title))
-  (<:frame (:src (element-name structure)
-            :frameborder 0
-            )))
-|#
 
 (defmethod produce-documentation ((format (eql 'html5))
                                   (structure file-set)
@@ -643,44 +430,20 @@ function load_dictionary(){
   (declare (type doc-file doc-file)
            (type pathname doc-file-pathname)
            )
-  (let ((dfname (doc-file-name doc-file)))
+  (let ((dfname (element-name doc-file)))
     (with-open-file (dffs doc-file-pathname
                           :direction :output
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
-	((<:div :class "innertube")
-	 (<:h1 documentation-title dfname)
-	 (<:p "This is a placeholder for information pertaining "
-	      documentation-title)
-	 (<:p (format nil
-		      "Please edit the file '~A', to complete 
-                           the documentation."
-		      doc-file-pathname)))
-          #| OLD FRAME PRODUCTION
-	(<:document
-           (<:comment dfname)
-           (<:html
-
-            +doctype-xhtml1-string-control-string+
-            (string #\Newline)
-
-            (<:head
-             (<:title dfname)
-             (<:link :rel "stylesheet" :href *helambdap-css-filename*))
-            
-            (<:body
-             (<:h1 documentation-title dfname)
-             (<:p "This is a placeholder for information pertaining "
-                  documentation-title)
-             (<:p (format nil
-                          "Please edit the file '~A', to complete 
-                           the documentation."
-                          doc-file-pathname))
-             )
-            )
-           (<:comment "end of file : " (string dfname)))
-	  |#
+          ((<:div :class "innertube")
+           (<:h1 documentation-title dfname)
+           (<:p "This is a placeholder for information pertaining "
+                documentation-title)
+           (<:p (format nil
+                        "Please edit the file '~A', to complete ~
+                         the documentation."
+                        doc-file-pathname)))
           ))
     ))
 
@@ -689,9 +452,8 @@ function load_dictionary(){
   (declare (type file-set file-set)
            (type stream where)
            )
-  (let ((fsn (file-set-name file-set))
-        (file-set-pathname
-         (make-pathname :name (file-set-name file-set)
+  (let ((file-set-pathname
+         (make-pathname :name (element-name file-set)
                         :type *default-html-extension*
                         :defaults (pathname where)))
         )
@@ -700,233 +462,16 @@ function load_dictionary(){
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (fsfs :print-pretty t :syntax :compact)
-	((<:div :class "innertube")
-	 (<:h1 "Dictionary Entries")
-	 (<:p "Click and/or scroll on the menus on the side to choose "
-	      "what information to display."))
-	#| OLD FRAME PRODUCTION
-          (<:document
-           (<:comment (file-set-name file-set))
-           (<:html
-
-            +doctype-xhtml1-string-control-string+
-            (string #\Newline)
-
-            (<:head
-             (<:title fsn)
-             (<:link :rel "stylesheet"
-                     :href (namestring *helambdap-css-filename-up*)))
-            
-            (<:body
-             (<:h1 "Dictionary Entries")
-             (<:p "Click and/or scroll on the menus on the side to choose "
-                  "what information to display.")
-             )
-            )
-           (<:comment "end of file : " (file-set-name file-set)))|#
+          ((<:div :class "innertube")
+           (<:h1 "Dictionary Entries")
+           (<:p "Click and/or scroll on the menus on the side to choose "
+                "what information to display."))
           ))
     ))
 
 
 ;;;---------------------------------------------------------------------------
 ;;; Doc bits HTML production.
-
-;;; Usual SBCL appeasement.
-
-#-sbcl
-(defconstant +lambda-list-kwds+
-  '(&optional &rest &key &allow-other-keys &whole &environment &aux))
-
-#+sbcl
-(defparameter +lambda-list-kwds+
-  '(&optional &rest &key &allow-other-keys &whole &environment &aux))
-
-
-(defun arg-name (arg)
-  (if (consp arg)
-      (let ((a1 (first arg)))
-        ;; Is it a KWD spec?
-        (if (consp a1)
-            (first a1) ; The "visible" bit.
-            a1
-            ))
-      arg))
-
-
-(defun produce-doc-bit-title-name (doc-bit)
-  (let* ((db-name (doc-bit-name doc-bit)) ; This can be a (SETF ID).
-         (dbi (doc-bit-identifier doc-bit))
-         (name (format nil "~(~A~)" db-name))
-         (kind-tag (doc-bit-kind-tag doc-bit))
-         (qualifier (if (symbolp dbi)
-                        (if (external-symbol-p dbi)
-                            ""
-                            "Internal")
-                        ""))
-         )
-    (<:h1 ()
-          (<:i () qualifier kind-tag)
-          (<:strong () name)
-          )))
-
-
-(defun paragraphize-doc-string (s)
-  (loop for par in (split-at-tex-paragraphs s)
-        when (string/= "" par)
-        collect (<:p () par)))
-
-
-(defgeneric process-doc-string (s input-syntax output-format
-                                  &optional
-                                  args-n-values-p
-                                  lambda-list
-                                  result-p
-                                  returns-decl
-                                  type-decls
-                                  skip-description-header-p
-                                  )
-  (:method ((s null) input-syntax output-format
-            &optional
-            args-n-values-p
-            lambda-list
-            result-p
-            returns-decl
-            type-decls
-            skip-description-header-p
-            )
-   (declare (ignorable input-syntax output-format)
-            (ignore args-n-values-p
-                    lambda-list
-                    result-p
-                    returns-decl
-                    type-decls
-                    skip-description-header-p
-                    ))
-   )
-  (:documentation
-   "Processes a 'doc string'.
-
-The processing is done (or rather a best effort is made to parse)
-according to a give 'input-syntax' and the result is built in a
-given 'output-format'."))
-
-
-(defun parse-doc-hyperspec-style (s)
-  (declare (type string s))
-  (let* ((syntax-header "Syntax:")
-         (shl (length syntax-header))
-         (args-n-values "Arguments and Values:")
-         (anvl (length args-n-values))
-         (description "Description:")
-         (dl (length description))
-         (examples "Examples:")
-         (el (length examples))
-         (affected-by "Affected By:")
-         (abl (length affected-by))
-         (see-also "See Also:")
-         (sal (length see-also))
-         (side-effects "Side Effects:")
-         (sel (length side-effects))
-         (notes "Notes:")
-         (nl (length notes))
-         (excepts "Exceptional Situations:")
-         (exl (length excepts))
-         (pars (split-at-tex-paragraphs s))
-         )
-    ;; Assumes that the doc string follows the Hyperspec sectioning
-    ;; conventions. However, it ignores the 'Syntax:' section and it
-    ;; assumes that - at a minimum - everything is 'Description:'.
-
-    (loop with state = 'description
-          
-          for p in pars
-          for pl = (length p)
-          
-          ;; do (format t ">>> ~A ~S~%" state p)
-          
-          if (string= p syntax-header :end1 (min pl shl))
-          do (setf state 'syntax-header)
-          else if (string= p args-n-values :end1 (min pl anvl))
-          do (setf state 'args-n-values)
-          else if (string= p description :end1 (min pl dl))
-          do (setf state 'description)
-          else if (string= p examples :end1 (min pl el))
-          do (setf state 'examples)
-          else if (string= p affected-by :end1 (min pl abl))
-          do (setf state 'affected-by)
-          else if (string= p see-also :end1 (min pl sal))
-          do (setf state 'see-also)
-          else if (string= p notes :end1 (min pl nl))
-          do (setf state 'notes)
-          else if (string= p excepts :end1 (min pl exl))
-          do (setf state 'excepts)
-          else if (string= p side-effects :end1 (min pl sel))
-          do (setf state 'side-effects)
-          
-          else
-          
-          if (eq state 'syntax-header)
-          collect p into syntax-pars
-          
-          else if (eq state 'args-n-values)
-          collect p into args-n-values-pars
-          
-          else if (eq state 'description)
-          collect p into description-pars
-          
-          else if (eq state 'examples)
-          collect p into examples-pars
-          
-          else if (eq state 'affected-by)
-          collect p into affected-by-pars
-          
-          else if (eq state 'see-also)
-          collect p into see-also-pars
-          
-          else if (eq state 'notes)
-          collect p into notes-pars
-
-          else if (eq state 'excepts)
-          collect p into excepts-pars
-
-          else if (eq state 'side-effects)
-          collect p into side-effects-pars
-
-          ;; else collect p into description-pars ; ? Should I leave this?
-          end
-
-          finally
-          (return (values syntax-pars
-                          (split-all-lines args-n-values-pars)
-                          description-pars
-                          examples-pars
-                          affected-by-pars
-                          see-also-pars
-                          notes-pars
-                          excepts-pars
-                          side-effects-pars
-                          ))
-          )))
-
-
-(defun process-arg-n-value-pars (anv-pars)
-  (let ((descrs ()))
-    (dolist (p (split-all-lines anv-pars) (nreverse descrs))
-      (unless (string= "" p)
-        (let ((sep-pos (or (search "---" p :test #'char=)
-                           (search " : " p :test #'char=))))
-          (if sep-pos
-              (let ((arg (string-right-trim '(#\Space #\Tab)
-                                            (subseq p 0 sep-pos)))
-                    (arg-desc (string-left-trim '(#\Space #\Tab)
-                                                (subseq p (+ sep-pos 3))))
-                    )
-                (push (<:li (:style "list-style-type: none")
-                            (<:i () (<:code () arg)) " : " arg-desc)
-                      descrs))
-              (push (<:p () p) descrs))
-          )))))
-
 
 (defmethod process-doc-string
            ((s string)
@@ -1036,192 +581,27 @@ given 'output-format'."))
         ))))
 
 
-(defun dump-doc-bit-html (doc-bit n str-tag doc-string out)
+(defmethod render-doc-bit ((format (eql 'html5))
+                           doc-bit
+                           out
+                           n
+                           str-tag
+                           doc-string)
   (let ((name (string-downcase n)))
+    (declare (ignore name))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
       ((<:div :class "innertube")
        (produce-doc-bit-title-name doc-bit)
        (<:h2 "Package: ")
        (<:p (package-name (symbol-package n)))
-       (process-doc-string doc-string 'text/hyperspec 'html)
-       )
-      #| OLD FRAME PRODUCTION
-        (<:document
-         (<:head
-          (<:title (format nil "~A ~A" str-tag name))
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-         (<:body
-          (produce-doc-bit-title-name doc-bit)
-          ;; (<:h1 (<:i (format nil "~A " str-tag)) (<:strong name))
-
-          (<:h2 "Package: ")
-          (<:p (package-name (symbol-package n)))
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html)
-          ))
-	|#)))
+       (process-doc-string doc-string 'text/hyperspec format)
+       ))))
 
 
+(defmethod render-lambda-list ((format (eql 'html5)) llt ll)
+  ;; FTTB.
+  (render-lambda-list 'html llt ll))
 
-(defgeneric render-lambda-list (lambda-list-type lambda-list))
-
-
-(defmethod render-lambda-list ((llt (eql :ordinary)) (ll list))
-  (render-lambda-list :ordinary (parse-ll :ordinary ll)))
-
-
-(defmethod render-lambda-list ((llt (eql :ordinary)) (ll t_lambda-list))
-  (let* ((pll ll)
-         (rvs (ll-ordinary-vars pll))
-         (ovs (ll-optional-vars pll))
-         (rv  (ll-rest-var pll))
-         (kvs (ll-keyword-vars pll))
-         ;; (avs (ll-auxiliary-vars pll))
-         (aok (ll-allow-other-keys pll))
-
-         (rendered-ll ())
-         )
-              
-    (dolist (rv rvs)
-      (push (<:i () (llv-name rv)) rendered-ll))
-
-    (when ovs
-      (push (<:span (:style "color: blue") (string '&optional))
-            rendered-ll))
-
-    (dolist (ov ovs)
-      (push (<:i () (llv-name ov)) rendered-ll))
-
-    (when rv
-      (push (<:span (:style "color: blue") (string '&rest))
-            rendered-ll))
-
-    (when rv
-      (push (<:i () (llv-name (first rv))) rendered-ll))
-
-    (when kvs
-      (push (<:span (:style "color: blue") (string '&key))
-            rendered-ll))
-
-    (dolist (kv kvs)
-      (push (<:i () (llv-name kv)) rendered-ll) ; Fix this. No need to expose
-                                                ; internal variables.
-      )
-
-    (when aok
-      (push (<:span (:style "color: blue") (string '&allow-other-keys))
-            rendered-ll))
-
-    (nreverse rendered-ll)
-    ))
-
-
-(defmethod render-lambda-list ((llt (eql :macro)) (ll list))
-  (render-lambda-list :macro (parse-ll :macro ll)))
-
-
-(defmethod render-lambda-list ((llt (eql :macro)) (ll macro-lambda-list))
-  (let* ((pll ll)
-         (wv (macro-lambda-list-whole-var pll))
-         (ev (macro-lambda-list-env-var pll))
-         (bv (macro-lambda-list-body-var pll))
-         
-         (rvs (ll-ordinary-vars pll))
-         (ovs (ll-optional-vars pll))
-         (rv  (ll-rest-var pll))
-         (kvs (ll-keyword-vars pll))
-         ;; (avs (ll-auxiliary-vars pll))
-         (aok (ll-allow-other-keys pll))
-
-         (rendered-ll ())
-         )
-
-    (when (and bv rv)
-      (warn "HELambdaP: parsing a macro lambda list that has 
-             both &rest and &body variables."))
-
-    (labels ((render-ll-item (lli)
-             (etypecase lli
-               (lambda-list-item
-                (let ((llv-n (lli-name lli)))
-                  (etypecase llv-n
-                    (symbol (push (<:i () llv-n) rendered-ll))
-                    (t_lambda-list
-                     (push (render-lambda-list :macro llv-n)
-                           rendered-ll))
-                    (list (mapc #'render-ll-item lli)
-			  rendered-ll)
-                    )))
-               (t_lambda-list
-                (push (render-lambda-list :macro lli)
-                      rendered-ll))
-               ))
-	     )
-    
-      (when wv
-        (push (<:span (:style "color: blue") (string '&whole))
-              rendered-ll)
-        (render-ll-item (first wv))
-        ;; (push (<:i () (llv-name (first wv))) rendered-ll)
-        )
-
-      (dolist (rv rvs)
-        (render-ll-item rv)
-        ;; (push (<:i () (llv-name rv)) rendered-ll)
-        )
-
-      (when ovs
-        (push (<:span (:style "color: blue") (string '&optional))
-              rendered-ll))
-
-      (dolist (ov ovs)
-        (render-ll-item ov)
-        ;; (push (<:i () (llv-name ov)) rendered-ll)
-        )
-
-      (when rv
-        (push (<:span (:style "color: blue") (string '&rest))
-              rendered-ll))
-
-      (when rv
-        (render-ll-item (first rv))
-        ;; (push (<:i () (llv-name (first rv))) rendered-ll)
-        )
-
-
-      (when bv
-        (push (<:span (:style "color: blue") (string '&body))
-              rendered-ll))
-
-      (when bv
-        (render-ll-item (first bv))
-        ;; (push (<:i () (llv-name (first rv))) rendered-ll)
-        )
-
-      (when kvs
-        (push (<:span (:style "color: blue") (string '&key))
-              rendered-ll))
-
-      (dolist (kv kvs)
-        (render-ll-item kv)
-        ;; (push (<:i () (llv-name kv)) rendered-ll) ; Fix this. No need to expose
-                                                     ; internal variables.
-        )
-
-      (when aok
-        (push (<:span (:style "color: blue") (string '&allow-other-keys))
-              rendered-ll))
-
-      (when ev
-        (push (<:span (:style "color: blue") (string '&environment))
-              rendered-ll)
-        ;; (push (<:i () (llv-name (first ev))) rendered-ll)
-        (render-ll-item (first ev))
-        )
-
-      (nreverse rendered-ll)
-      )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1233,11 +613,13 @@ given 'output-format'."))
                                   &allow-other-keys
                                   )
   (declare (ignorable doc-bits documentation-title))
-  (dump-doc-bit-html doc-bit
-                     (doc-bit-name doc-bit)
-                     (doc-bit-kind-tag doc-bit)
-                     (doc-bit-doc-string doc-bit)
-                     out))
+  (render-doc-bit format
+                  doc-bit
+                  out
+                  (doc-bit-name doc-bit)
+                  (doc-bit-kind-tag doc-bit)
+                  (doc-bit-doc-string doc-bit)
+                  ))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1264,29 +646,8 @@ given 'output-format'."))
        (<:p (mapcan (lambda (pn) (list pn (<:br)))
 		    (package-doc-bit-nicknames doc-bit)))
 
-       (process-doc-string doc-string 'text/hyperspec 'html))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:head
-          (<:title "Package " name)
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-         (<:body
-          (<:h1 (<:i "Package ") (<:strong name))
-
-          (<:h2 "Use list:")
-          (<:p (mapcan (lambda (up) (list up (<:br)))
-                       (package-doc-bit-use-list doc-bit)))
-
-          (<:h2 "Nicknames:")
-          (<:p (mapcan (lambda (pn) (list pn (<:br)))
-                       (package-doc-bit-nicknames doc-bit)))
-
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html)
-	  ))
-	|#)))
+       (process-doc-string doc-string 'text/hyperspec format))
+      )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1302,61 +663,21 @@ given 'output-format'."))
         (deps-on (system-doc-bit-depends-on doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (<:h1 (<:i "System ") (<:strong name))
-       (when deps-on
-	 (list
-	  (<:h2 () "Depends on:")
-	  (<:p () (mapcan (lambda (d) (list (<:i () d) (<:br))) deps-on))))
+        ((<:div :class "innertube")
+         (<:h1 (<:i "System ") (<:strong name))
+         (when deps-on
+           (list
+            (<:h2 () "Depends on:")
+            (<:p () (mapcan (lambda (d) (list (<:i () d) (<:br))) deps-on))))
 
-       (process-doc-string doc-string 'text/hyperspec 'html))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:head
-          (<:title "System " name)
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-         (<:body
-          (<:h1 (<:i "System ") (<:strong name))
-          (when deps-on
-            (list
-             (<:h2 () "Depends on:")
-             (<:p () (mapcan (lambda (d) (list (<:i () d) (<:br))) deps-on))))
-
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html)
-          )
-         )
-	|#)))
+         (process-doc-string doc-string 'text/hyperspec 'html))
+        )))
 
 
-
-(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
 
 #|
-(defmethod render-syntax-section
-           ((format (eql 'html))
-            (doc-bit parameterized-doc-bit)
-            &optional
-            (ll (parameterized-doc-bit-lambda-list doc-bit))
-            (values ()))
-
-  (declare (ignore values))
-
-  (let ((db-name (doc-bit-name doc-bit)))
-    (<:htmlise (:syntax :compact)
-        (<:div
-         (<:h2 "Syntax:")
-         ((<:p :class "syntax_section")
-          (<:b ((<:span :style "color: red") (<:strong () (string-downcase db-name))))
-          (render-lambda-list :ordinary ll)))
-        )))
+(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
 |#
-
-(defun bypass-pprint (s e &optional (colon-p t) at-sign-p)
-  (declare (ignore colon-p at-sign-p))
-  (let ((*print-pretty* nil))
-    (format s "~A" e)))
 
 
 (defmethod render-syntax-section
@@ -1380,7 +701,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :ordinary ll))
+                                          (render-lambda-list format :ordinary ll))
                                     )
                (write-string "  " pre-string)
                (bypass-pprint pre-string (pprint-pop) nil nil)
@@ -1426,7 +747,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :ordinary ll))
+                                          (render-lambda-list format :ordinary ll))
                                     )
                (write-string "  " pre-string)
                (bypass-pprint pre-string (pprint-pop) nil nil)
@@ -1468,7 +789,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :macro ll))
+                                          (render-lambda-list format :macro ll))
                                     )
                ;; (format t "==> ~A~%" pre-string)
                (write-string "  " pre-string)
@@ -1506,69 +827,6 @@ given 'output-format'."))
            )) ; <:/pre <:/p
          ))
     ))
-            
-
-
-#|
-(defmethod produce-documentation ((format (eql 'html))
-                                  (doc-bit parameterized-doc-bit)
-                                  (out file-stream)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  (let* ((db-name (doc-bit-name doc-bit))
-         (name (format nil "~(~A~)" db-name))
-         (kind (doc-bit-kind doc-bit))
-         (doc-string (doc-bit-doc-string doc-bit))
-         (ll (parameterized-doc-bit-lambda-list doc-bit))
-         )
-    (flet ((render-lambda-list (ll)
-             (loop for lle in ll
-                   if (member lle +lambda-list-kwds+ :test #'eq)
-                   collect (<:span (:style "color: blue") (string lle))
-                   else
-                   collect (<:i () lle))
-             )
-           )
-      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-          (<:document
-           (<:head
-            (<:title documentation-title ": " kind name)
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-           (<:body
-            (<:h1 (<:i kind) (<:strong name))
-
-            (<:h2 "Package: ")
-            (<:p (<:code (package-name (doc-bit-package doc-bit))))
-
-            (<:h2 "Syntax:")
-            (<:p
-             (<:pre
-              (format nil
-                      "~&    ~A~A~%"
-                      (<:b () (<:span (:style "color: red") (<:strong () name)))
-                      (format nil "~{ ~A~}" (render-lambda-list ll)))))
-
-            (when ll
-              (<:div ()
-                     (<:h3 () "Arguments and Values:")
-                     (loop for arg in ll
-                           unless (member arg +lambda-list-kwds+ :test #'eq)
-                           collect
-                           (<:htmlize
-                            (<:p (<:i (<:code (arg-name arg)))
-                                 "---"
-                                 "a T." ; To be FIXED.
-                                 )
-                            :syntax :compact))))
-
-            (<:h2 "Description:")
-            ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
-           ))))))
-|#
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1576,7 +834,7 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  (documentation-title "")
+                                  ;; (documentation-title "")
                                   &allow-other-keys)
   (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
@@ -1585,97 +843,20 @@ given 'output-format'."))
          (doc-string (doc-bit-doc-string doc-bit))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
+    (declare (ignore name kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package: ")
-       (<:p (package-name (doc-bit-package doc-bit)))
+         (<:h2 "Package: ")
+         (<:p (package-name (doc-bit-package doc-bit)))
        
-       (<:h2 "Syntax:")
-       (render-syntax-section format doc-bit)
+         (<:h2 "Syntax:")
+         (render-syntax-section format doc-bit)
 
-       (process-doc-string doc-string 'text/hyperspec 'html
-			   t (parse-ll :ordinary ll)))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:head
-          (<:title documentation-title ": " kind name)
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-         (<:body
-          ;; (<:h1 (<:i kind) (<:strong name))
-          (produce-doc-bit-title-name doc-bit)
-
-          (<:h2 "Package: ")
-          (<:p (package-name (doc-bit-package doc-bit)))
-
-          #|
-          (<:h2 "Syntax:")
-          (<:p
-           (<:pre
-            (format nil
-                    "~&    ~A~A~%"
-                    (<:b () (<:span (:style "color: red") (<:strong () name)))
-                    (format nil "~{ ~A~}" (render-lambda-list :ordinary ll)))))
-          |#
-          (<:h2 "Syntax:")
-          (render-syntax-section format doc-bit)
-
-          #|
-          (when ll
-            (<:div ()
-                   (<:h3 () "Arguments and Values:")
-                   (loop for arg in ll
-                         unless (member arg +lambda-list-kwds+ :test #'eq)
-                         collect
-                         (<:htmlise (:syntax :compact)
-                             (<:p (<:i (<:code (arg-name arg)))
-                                  "---"
-                                  "a T." ; To be FIXED.
-                                  )))))
-          |#
-
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html
-                              t (parse-ll :ordinary ll))
-          ))|#
+         (process-doc-string doc-string 'text/hyperspec 'html
+                             t (parse-ll :ordinary ll)))
 	)))
-
-
-(defun process-returns-declaration (returns)
-  "Munging of RETURNS declaration."
-  (declare (type list returns)
-           (returns ("A list of (X)HTMLambda 'li' elements." list))
-           ;; Money where mouth is!!!
-           )
-  
-  (loop with rl = (< 1 (list-length returns))
-        for r in returns
-        for r-i from 0
-        for is-full-syntax = (and (listp r) (stringp (first r)))
-        
-        for doc-string = (when is-full-syntax (first r))
-        
-        for type = (if is-full-syntax (second r) r)
-
-        for name = (if (and is-full-syntax (third r))
-                       (third r)
-                       (format nil "result~:[~;-~D~]" rl r-i))
-        collect (<:li (:style "list-style-type: none")
-                      (<:i () (<:code () (string name)))
-                      " : "
-                      (if doc-string
-                          doc-string
-                          (format nil "a ~A." type)))
-        into r-elements
-        finally (if r-elements
-                    (return r-elements)
-                    (return (list (<:li (:style "list-style-type: none")
-                                        (<:i () (<:code () "result"))
-                                        " : a T."))))
-        ))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1683,7 +864,7 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  (documentation-title "")
+                                  ;; (documentation-title "")
                                   &allow-other-keys)
   (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
@@ -1694,142 +875,25 @@ given 'output-format'."))
          (returns (function-doc-bit-values doc-bit))
          (type-decls (function-doc-bit-type-declarations doc-bit))
          )
-    (declare (ignorable type-decls))
+    (declare (ignorable type-decls kind name))
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package: ")
-       (<:p (package-name (doc-bit-package doc-bit)))
+         (<:h2 "Package: ")
+         (<:p (package-name (doc-bit-package doc-bit)))
 
-       (<:h2 "Syntax:")
-       (render-syntax-section format doc-bit)
+         (<:h2 "Syntax:")
+         (render-syntax-section format doc-bit)
 
-       (process-doc-string doc-string 'text/hyperspec 'html
-			   t
-			   (parse-ll :ordinary ll)
-			   t
-			   returns
-			   type-decls))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:head
-          (<:title documentation-title ": " kind name)
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-         (<:body
-          (produce-doc-bit-title-name doc-bit)
-          ;; (<:h1 (<:i kind) (<:strong name))
-
-          (<:h2 "Package: ")
-          (<:p (package-name (doc-bit-package doc-bit)))
-
-          (<:h2 "Syntax:")
-          (render-syntax-section format doc-bit)
-
-          #|
-          (when ll
-            (<:div ()
-                   (<:h2 () "Arguments and Values:")
-                   (loop for arg in ll
-                         unless (member arg +lambda-list-kwds+ :test #'eq)
-                         collect
-                         (<:htmlise (:syntax :compact)
-                             (<:p (<:i (<:code (arg-name arg)))
-                                  "---"
-                                  "a T." ; To be FIXED.
-                                  )))))
-          |#
-
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html
-                              t
-                              (parse-ll :ordinary ll)
-                              t
-                              returns
-                              type-decls)
-          ))
-	|#)))
-
-
-#| Without RENDER-LAMBDA-LIST
-(defmethod produce-documentation ((format (eql 'html))
-                                  (doc-bit macro-doc-bit)
-                                  (out file-stream)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  (let* ((db-name (doc-bit-name doc-bit))
-         (name (format nil "~(~A~)" db-name))
-         (kind (doc-bit-kind doc-bit))
-         (doc-string (doc-bit-doc-string doc-bit))
-         (ll (parameterized-doc-bit-lambda-list doc-bit))
-         )
-    (labels ((render-lambda-list (ll) ; Rather kludgy. Should dig out
-                                      ; proper lambda list parsing.
-               (loop with state = t
-                     for lle in ll
-                     if (member lle +lambda-list-kwds+ :test #'eq)
-                       collect (<:span (:style "color: blue") (string lle))
-                     else if (symbolp lle)
-                       collect (<:i () lle)
-                     else if (and (eq state t) (consp lle)) ; This is
-                                                            ; not fully correct either.
-                       collect (render-lambda-list lle)
-                     else if (consp lle)
-                       collect (format nil "(~{<i>~A</i>~^ ~})" lle)
-                     else
-                       collect (<:i () lle)
-                     end
-                     do (case lle
-                          (&optional (setf state '&optional))
-                          (&key (setf state '&key))
-                          (&aux (setf state '&aux))
-                          (&rest (setf state '&rest))
-                          ((&whole &environment) (setf state t)) ; Other kludge!
-                          )
-                     ))
-             )
-      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-          (<:document
-           (<:head
-            (<:title documentation-title ": " kind name)
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-           (<:body
-            (<:h1 (<:i kind) (<:strong name))
-
-            (<:h2 "Package: ")
-            (<:p (<:code (package-name (doc-bit-package doc-bit))))
-
-            (<:h2 "Syntax:")
-            (<:p
-             (<:pre
-              (format nil
-                      "~&    ~A~A~%"
-                      (<:b () (<:span (:style "color: red") (<:strong () name)))
-                      (format nil "~{ ~A~}" (render-lambda-list ll)))))
-
-            (when ll
-              (<:div ()
-                     (<:h3 () "Arguments and Values:")
-                     (loop for arg in ll
-                           unless (member arg +lambda-list-kwds+ :test #'eq)
-                           collect
-                           (<:p () (<:i () (<:code () (arg-name arg)))
-                                "---"
-                                "a T." ; To be FIXED.
-                                )
-                           )))
-
-            (<:h2 "Description:")
-            ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
-           ))))))
-|#
+         (process-doc-string doc-string 'text/hyperspec 'html
+                             t
+                             (parse-ll :ordinary ll)
+                             t
+                             returns
+                             type-decls))
+        )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1837,7 +901,7 @@ given 'output-format'."))
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  (documentation-title "")
+                                  ;; (documentation-title "")
                                   &allow-other-keys)
   (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
@@ -1846,70 +910,24 @@ given 'output-format'."))
          (doc-string (doc-bit-doc-string doc-bit))
          (ll (parameterized-doc-bit-lambda-list doc-bit))
          )
+    (declare (ignore name kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package: ")
-       (<:p (package-name (doc-bit-package doc-bit)))
+         (<:h2 "Package: ")
+         (<:p (package-name (doc-bit-package doc-bit)))
 
-       (<:h2 "Syntax:")
-       (render-syntax-section 'html doc-bit (macro-doc-bit-lambda-list doc-bit))
+         (<:h2 "Syntax:")
+         (render-syntax-section 'html doc-bit (macro-doc-bit-lambda-list doc-bit))
 
-       (process-doc-string doc-string 'text/hyperspec 'html
-			   t
-			   (parse-ll :macro ll)
-			   t
-			   '(form)
-			   ))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:head
-          (<:title documentation-title ": " kind name)
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-         (<:body
-          (produce-doc-bit-title-name doc-bit)
-          ;; (<:h1 (<:i kind) (<:strong name))
-
-          (<:h2 "Package: ")
-          (<:p (package-name (doc-bit-package doc-bit)))
-
-          #|
-          (<:h2 "Syntax:")
-          (<:p
-           (<:pre
-            (format nil
-                    "~&    ~A~A~%"
-                    (<:b () (<:span (:style "color: red") (<:strong () name)))
-                    (format nil "~{ ~A~}" (render-lambda-list ll)))))
-          |#
-          (<:h2 "Syntax:")
-          (render-syntax-section 'html doc-bit (macro-doc-bit-lambda-list doc-bit))
-
-          #|
-          (when ll
-            (<:div ()
-                   (<:h3 () "Arguments and Values:")
-                   (loop for arg in ll
-                         unless (member arg +lambda-list-kwds+ :test #'eq)
-                         collect
-                         (<:p () (<:i () (<:code () (arg-name arg)))
-                              "---"
-                              "a T." ; To be FIXED.
-                              )
-                         )))
-          |#
-
-          ;; (<:h2 "Description:")
-          ;; (paragraphize-doc-string doc-string)
-          (process-doc-string doc-string 'text/hyperspec 'html
-                              t
-                              (parse-ll :macro ll)
-                              t
-                              '(form)
-                              )
-          ))|#)))
+         (process-doc-string doc-string 'text/hyperspec 'html
+                             t
+                             (parse-ll :macro ll)
+                             t
+                             '(form)
+                             ))
+        )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1935,40 +953,19 @@ given 'output-format'."))
 
                               value))
          )
+    (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package:")
-       (<:p (package-name (symbol-package name)))
+         (<:h2 "Package:")
+         (<:p (package-name (symbol-package name)))
 
-       (<:h2 "Value:")
-       (<:p (<:code value-presented))
+         (<:h2 "Value:")
+         (<:p (<:code value-presented))
 
-       (process-doc-string doc-string 'text/hyperspec 'html))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:html
-          +doctype-xhtml1-string-control-string+
-          (string #\Newline)
-
-          (<:head
-           (<:title kind (string-downcase name))
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (produce-doc-bit-title-name doc-bit)
-           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
-
-           (<:h2 "Package:")
-           (<:p (package-name (symbol-package name)))
-
-           (<:h2 "Value:")
-           (<:p (<:code value-presented))
-
-           ;; (<:h2 "Description:")
-           ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
-         )))|#)))
+         (process-doc-string doc-string 'text/hyperspec 'html))
+        )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1985,90 +982,45 @@ given 'output-format'."))
          (include (struct-doc-bit-include doc-bit))
          (slots (struct-doc-bit-slots doc-bit))
          )
+    (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package: ")
-       (<:p (package-name (symbol-package name)))
+         (<:h2 "Package: ")
+         (<:p (package-name (symbol-package name)))
 
-       (<:h2 "Class Precedence List:")
-       (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
-		    name
-		    include))
+         (<:h2 "Class Precedence List:")
+         (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
+                      name
+                      include))
 
-       (<:h2 "Slots:")
-       (<:p (<:dl
-	     (loop for s in slots
-		if (symbolp s)
-		collect
-		  (<:dt () s)
-		and collect
-		  (<:dd ()
-			(format nil
-				"with initial value ~A of type ~A~@[; the slot is read-only~]."
-				nil T nil))
-		else
-		nconc
-		  (destructuring-bind (sn &optional sv &key read-only (type t))
-		      s
-		    (list
-		     (<:dt () sn)
-		     (<:dd ()
-			   (format nil
-				   "with initial value ~A of type ~A~@[; the slot is read-only~]."
-				   sv type read-only)))))
-	     ))
-       (process-doc-string doc-string 'text/hyperspec 'html))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:html
-          +doctype-xhtml1-string-control-string+
-          (string #\Newline)
-
-          (<:head
-           (<:title kind (string-downcase name))
-           (<:link :rel "stylesheet"
-                   :href (namestring *helambdap-css-filename-up*))) 
-          (<:body
-           (produce-doc-bit-title-name doc-bit)
-           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
-
-           (<:h2 "Package: ")
-           (<:p (package-name (symbol-package name)))
-
-           (<:h2 "Class Precedence List:")
-           (<:p (format nil "~A &rarr;~@[ ~A &rarr;~] ... &rarr; T"
-                        name
-                        include))
-
-           (<:h2 "Slots:")
-           (<:p (<:dl
-                 (loop for s in slots
-                       if (symbolp s)
-                       collect
-                       (<:dt () s)
-                       and collect
-                       (<:dd ()
-                             (format nil
-                                     "with initial value ~A of type ~A~@[; the slot is read-only~]."
-                                     nil T nil))
-                       else
-                       nconc
-                       (destructuring-bind (sn &optional sv &key read-only (type t))
-                           s
-                         (list
-                          (<:dt () sn)
-                          (<:dd ()
-                                (format nil
-                                        ;; "with initial value ~S of type ~A~@[; the slot is read-only~]."
-                                        "with initial value ~A of type ~A~@[; the slot is read-only~]."
-                                        sv type read-only)))))
-                 ))
-           ;; (<:h2 "Description:")
-           ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
-         )))|#)))
+         (<:h2 "Slots:")
+         (<:p (<:dl
+               (loop for s in slots
+                     if (symbolp s)
+                     collect
+                     (<:dt () s)
+                     and collect
+                     (<:dd ()
+                           (format nil
+                                   "with initial value ~A ~
+                                    of type ~A~@[; the slot is read-only~]."
+                                   nil T nil))
+                     else
+                     nconc
+                     (destructuring-bind (sn &optional sv &key read-only (type t))
+                         s
+                       (list
+                        (<:dt () sn)
+                        (<:dd ()
+                              (format nil
+                                      "with initial value ~A ~
+                                       of type ~A~@[; the slot is read-only~]."
+                                      sv type read-only)))))
+               ))
+         (process-doc-string doc-string 'text/hyperspec format))
+        )))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -2086,100 +1038,51 @@ given 'output-format'."))
          (superclasses (class-doc-bit-superclasses doc-bit))
          (slots (class-doc-bit-slots doc-bit))
          )
+    (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (produce-doc-bit-title-name doc-bit)
+        ((<:div :class "innertube")
+         (produce-doc-bit-title-name doc-bit)
 
-       (<:h2 "Package: ")
-       (<:p (package-name (symbol-package name)))
+         (<:h2 "Package: ")
+         (<:p (package-name (symbol-package name)))
 
-       (<:h2 "Class Precedence List:")
-       (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
+         (<:h2 "Class Precedence List:")
+         (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T"
+                      name
+                      superclasses))
 
-       (when slots
-	 (<:htmlize
-	  (<:div
-	   (<:h2 "Slots:")
-	   (<:p (<:dl
-		 (loop for s in slots
-		    if (symbolp s)
-		    collect (<:dt () s)
-		    else
-		    nconc
-		      (destructuring-bind (sn &key
-					      type
-					      documentation
-					      allocation
-					      initarg
-					      initform
-					      &allow-other-keys)
-			  s
-			`(
-			  ,(<:dt () sn)
-			   ,@(when type (list (<:dd () "Type: " type)))
-			   ,@(when allocation (list (<:dd () "Allocation: " allocation)))
-			   ,@(when initarg (list (<:dd () "Initarg: " initarg)))
-			   ,@(when initform (list (<:dd () "Initform: " initform)))
-			   ,@(when documentation (list (<:dd () documentation)))
-			   )
-			))
-		 )))
-	  :syntax :compact))
+         (when slots
+           (<:htmlize
+            (<:div
+             (<:h2 "Slots:")
+             (<:p (<:dl
+                   (loop for s in slots
+                         if (symbolp s)
+                         collect (<:dt () s)
+                         else
+                         nconc
+                         (destructuring-bind (sn &key
+                                                 type
+                                                 documentation
+                                                 allocation
+                                                 initarg
+                                                 initform
+                                                 &allow-other-keys)
+                             s
+                           `(
+                             ,(<:dt () sn)
+                             ,@(when type (list (<:dd () "Type: " type)))
+                             ,@(when allocation (list (<:dd () "Allocation: " allocation)))
+                             ,@(when initarg (list (<:dd () "Initarg: " initarg)))
+                             ,@(when initform (list (<:dd () "Initform: " initform)))
+                             ,@(when documentation (list (<:dd () documentation)))
+                             )
+                           ))
+                   )))
+            :syntax :compact))
 
-       (process-doc-string doc-string 'text/hyperspec 'html))
-        #| OLD FRAME PRODUCTION
-      (<:document
-         (<:html
-          +doctype-xhtml1-string-control-string+
-          (string #\Newline)
-
-          (<:head
-           (<:title kind (string-downcase name))
-           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-          (<:body
-           (produce-doc-bit-title-name doc-bit)
-           ;; (<:h1 (<:i kind) (<:strong (string-downcase name)))
-            
-           (<:h2 "Package: ")
-           (<:p (package-name (symbol-package name)))
-
-           (<:h2 "Class Precedence List:")
-           (<:p (format nil "~A &rarr;~@[~{ ~A~^&rarr;~}~] ... &rarr; T" name superclasses))
-            
-           (when slots
-             (<:htmlize
-              (<:div
-               (<:h2 "Slots:")
-               (<:p (<:dl
-                     (loop for s in slots
-                           if (symbolp s)
-                           collect (<:dt () s)
-                           else
-                           nconc
-                           (destructuring-bind (sn &key
-                                                   type
-                                                   documentation
-                                                   allocation
-                                                   initarg
-                                                   initform
-                                                   &allow-other-keys)
-                               s
-                             `(
-                               ,(<:dt () sn)
-                               ,@(when type (list (<:dd () "Type: " type)))
-                               ,@(when allocation (list (<:dd () "Allocation: " allocation)))
-                               ,@(when initarg (list (<:dd () "Initarg: " initarg)))
-                               ,@(when initform (list (<:dd () "Initform: " initform)))
-                               ,@(when documentation (list (<:dd () documentation)))
-                               )
-                             ))
-                     )))
-              :syntax :compact))
-            
-           ;; (<:h2 "Description:")
-           ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html)
-         )))|#)))
+         (process-doc-string doc-string 'text/hyperspec format))
+        )))
        
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -2196,470 +1099,26 @@ given 'output-format'."))
         )
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
-       (<:h1 (<:i "Function") (<:strong name))
-       (<:h2 "Package:")
-       (<:h2 "Description:" (<:br) doc-string))
-        #| OLD FRAME PRODUCTION
-      (<:document
-
-         (<:head
-          (<:title (format nil "DOC FOR ~A" (string-downcase name)))
-          (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-
-         (<:body
-          (<:h1 (<:i "Function") (<:strong name))
-          (<:h2 "Package:")
-          (<:h2 "Description:" (<:br) doc-string)
-          ))|#)
+        ((<:div :class "innertube")
+         (<:h1 (<:i "Function") (<:strong name))
+         (<:h2 "Package:")
+         (<:h2 "Description:" (<:br) doc-string))
+        )
     t))
 
-
-#+helambdap.version-using-MOP
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (doc-bit generic-function-doc-bit)
-                                  (out file-stream)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
-  (declare (ignorable documentation-title))
-  (labels ((method-signature (m)
-             (declare (type method m))
-             (let ((ms  (closer-mop:method-specializers m))
-                   (mll (closer-mop:method-lambda-list m))
-                   )
-               (list
-                (mapcar (lambda (s)
-                          (etypecase s
-                            (closer-mop:eql-specializer
-                             `(eql ,(closer-mop:eql-specializer-object s)))
-                            (class (class-name s))))
-                        (closer-mop:method-specializers m))
-                (subseq mll (list-length ms))))
-             )
-           (method-signatures (gf)
-             (declare (type generic-function gf))
-             (mapcar #'method-signature (closer-mop:generic-function-methods gf))
-             )
-           )
-
-    (let* ((gfname (doc-bit-name doc-bit))
-           (name (string-downcase gfname))
-           (kind (doc-bit-kind doc-bit))
-           (doc-string (doc-bit-doc-string doc-bit))
-           )
-      (declare (ignore kind))
-      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-	((<:div :class "innertube")
-	 (produce-doc-bit-title-name doc-bit)
-
-	 (<:h2 "Package:")
-	 (<:p (package-name (symbol-package gfname)))
-
-	 (<:h2 "Syntax:")
-	 (<:p (<:strong name)
-	      (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
-	 (process-doc-string doc-string 'text/hyperspec 'html
-			     t
-			     )
-
-	 (<:h3 "Known Methods:")
-	 (<:ul
-	  (loop for (specializers other) in (method-signatures (symbol-function gfname))
-	     collect (<:htmlize
-		      (<:li
-		       (<:p (<:strong name)
-			    (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-			    (format nil "~{ <i>~A</i>~}" other)
-			    )
-		       )
-		      :syntax :compact)
-	       )))
-          #| OLD FRAME DOCUMENTATION
-	(<:document
-           (<:head
-            (<:title documentation-title ": " "Generic Function" name)
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-           (<:body
-            (produce-doc-bit-title-name doc-bit)
-            ;; (<:h1 (<:i "Generic Function") (<:strong name))
-
-            (<:h2 "Package:")
-            (<:p (package-name (symbol-package gfname)))
-
-            (<:h2 "Syntax:")
-            (<:p (<:strong name)
-                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
-            ;; (<:h2 "Description:")
-            ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html
-                                t
-                                ;; (parse-ll :generic-function ll)
-                                )
-           
-            (<:h3 "Known Methods:")
-            (<:ul
-             (loop for (specializers other) in (method-signatures (symbol-function gfname))
-                   collect (<:htmlize
-                            (<:li
-                             (<:p (<:strong name)
-                                  (format nil "~{ &lt;<i>~A</i>&gt;~}" specializers)
-                                  (format nil "~{ <i>~A</i>~}" other)
-                                  )
-                             )
-                            :syntax :compact)
-                   ))
-            ))|#))))
 
 
 ;;; The next method should be reworked in order to take advantage of
 ;;; RENDER-SYNTAX-SECTION.  However, it works and I need to do other
 ;;; things now (20130618).
 
-#-helambdap.version-using-MOP
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (doc-bit generic-function-doc-bit)
-                                  (out file-stream)
-                                  doc-bits
-                                  &key
-                                  documentation-title
-                                  &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
-
-  (declare (ignorable doc-bits documentation-title))
-  (labels ((method-signature (mdb)
-             (declare (type method-doc-bit mdb))
-             (let* ((mll (method-doc-bit-lambda-list mdb))
-                    (regular-arg-pos (position-if #'symbolp mll))
-                    )
-               (list
-                (mapcar (lambda (ll-elem
-                                 &aux
-                                 ;; (ll-elem-var (first ll-elem))
-                                 (ll-elem-class (second ll-elem)))
-                          (etypecase ll-elem-class
-                            (cons ; An EQL specializer (or something else?)
-                             ll-elem-class)
-                            (symbol
-                             ll-elem-class)
-                            (class
-                             (class-name ll-elem-class))
-                            ))
-                        (subseq mll 0 regular-arg-pos))
-                (when regular-arg-pos (subseq mll regular-arg-pos)))
-               ))
-
-           (render-lambda-list (ll)
-             (loop for lle in ll
-                   if (member lle +lambda-list-kwds+ :test #'eq)
-                   collect (<:span (:style "color: blue") (string lle))
-                   else
-                   collect (<:i () lle))
-             )
-
-           (pre-format-syntax-entry (name ll)
-             (let ((*print-right-margin* 75))
-               (format nil
-                       "  ~A ~@<~@/pprint-linear/~:>~%    &rarr; <i>result</i>"
-                       (<:span (:style "color: red") (<:strong () name))
-                       (render-lambda-list ll))
-               ))
-
-           #|
-           (bypass-pprint (s e &optional (colon-p t) at-sign-p)
-             (declare (ignore colon-p at-sign-p))
-             (let ((*print-pretty* nil))
-               (format s "~A" e)))
-           |#
-
-           (quoted-exp-p (exp) (and (listp exp) (eq 'quote (first exp))))
-
-           (eql-spec-p (sp) (and (listp sp) (eq 'eql (first sp))))
-
-           (render-method-specializers (specializers)
-             (loop for sp in specializers
-                   for s = (if (eql-spec-p sp)
-                               (cond ((quoted-exp-p (second sp))
-                                      (<:i () (format nil "(EQL '~A)" (second (second sp)))))
-                                     ((keywordp (second sp))
-                                      (<:i () (format nil "(EQL :~A)" (second sp))))
-                                     (t
-                                      (<:i () sp)))
-                               (<:i () (format nil "&lt;~A&gt;" sp)))
-                   collect s))
-
-           (render-known-methods (name doc-bit)
-             (let ((*print-right-margin* *formatted-section-right-margin*))
-               (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
-                     for (specializers other) = (method-signature mdb)
-                     ;; for mdb-doc = (doc-bit-doc-string mdb)
-                     for mdb-doc = (process-doc-string (doc-bit-doc-string mdb)
-                                                       'text/hyperspec
-                                                       'html
-                                                       nil
-                                                       nil
-                                                       t
-                                                       nil
-                                                       t
-                                                       t
-                                                       )
-                     for qualfs = (method-doc-bit-qualifiers mdb)
-                     collect (<:htmlise (:syntax :compact)
-                                 (<:li
-                                  (<:p
-                                   (<:pre
-                                    (let ((*print-pretty* t))
-                                      (with-output-to-string (pre-string)
-                                        (pprint-logical-block
-                                            (pre-string
-                                             (list (<:strong () name)
-                                                   qualfs
-                                                   ;; (list :around)
-                                                   (nconc
-                                                    (render-method-specializers specializers)
-                                                    (render-lambda-list other))
-                                                   ))
-                                          (write-string " " pre-string)
-                                          (bypass-pprint pre-string (pprint-pop) nil nil)
-                                          ;; (write (pprint-pop) :stream pre-string)
-                                          (write-char #\Space pre-string)
-
-                                          (let ((qualfs (pprint-pop)))
-                                            (when qualfs
-                                              (pprint-linear pre-string qualfs nil)))
-                                          
-                                          (write-char #\Space pre-string)
-                                          (pprint-indent :block 8 pre-string)
-                                          (pprint-newline :linear pre-string)
-                                          (pprint-logical-block (pre-string (pprint-pop))
-                                            (loop (pprint-exit-if-list-exhausted)
-                                                  (bypass-pprint pre-string (pprint-pop) nil nil)
-                                                  (write-char #\Space pre-string)
-                                                  (pprint-newline :linear pre-string)
-                                                  ))
-                                          (pprint-indent :block 4 pre-string)
-                                          (pprint-newline :linear pre-string)
-                                          (write-string "&rarr; " pre-string)
-                                          (write-string "<i>result</i>" pre-string)
-                                          )))
-                                    )) ; <:/pre <:/p
-                                  (when mdb-doc
-                                    (<:p () mdb-doc))
-                                  ) ; <:li
-                                 ))))
-           )
-
-    (let* ((gfname (doc-bit-name doc-bit))
-           (name (string-downcase gfname))
-           (kind (doc-bit-kind doc-bit))
-           (doc-string (doc-bit-doc-string doc-bit))
-           (f-values (function-doc-bit-values doc-bit))
-           (ll (parameterized-doc-bit-lambda-list doc-bit))
-           )
-      (declare (ignore kind))
-      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-	((<:div :class "innertube")
-	 (produce-doc-bit-title-name doc-bit)
-
-	 (<:h2 "Package:")
-	 (<:p (package-name (symbol-package gfname)))
-
-	 (<:h2 "Syntax:")
-	 (<:p
-	  (<:pre (pre-format-syntax-entry name ll)
-		 ))
-
-	 (process-doc-string doc-string 'text/hyperspec 'html
-			     t (parse-ll :generic-function ll)
-			     t f-values
-			     )
-	 
-	 (let ((known-methods-els (render-known-methods name doc-bit))
-	       )
-	   (when known-methods-els
-	     (<:div ()
-		    (<:h2 () "Known Documented Methods:")
-		    (<:ol () known-methods-els)))
-	   ))
-          #| OLD FRAME PRODUCTION
-	(<:document
-           (<:head
-            (<:title documentation-title ": " "Generic Function" name)
-            (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
-           (<:body
-
-            (produce-doc-bit-title-name doc-bit)
-            ;; (<:h1 (<:i "Generic Function") (<:strong name))
-
-            (<:h2 "Package:")
-            (<:p (package-name (symbol-package gfname)))
-
-            (<:h2 "Syntax:")
-            (<:p
-             (<:pre (pre-format-syntax-entry name ll)
-                    ))
-
-            #|
-            (<:h3 "Arguments and Values:")
-            (loop for arg in ll
-                  unless (member arg +lambda-list-kwds+ :test #'eq)
-                  collect
-                  (<:htmlize
-                   (<:p (<:i (<:code (arg-name arg)))
-                        "---"
-                        (if (consp arg)
-                            (format nil "~A." (second arg))
-                            "T.")
-                        )
-                   :syntax :compact))
-
-            (if f-values
-                (loop for fv in f-values
-                      for i from 1
-                      collect
-                      (<:htmlize
-                       (<:p (<:i (<:code (format nil "result-~D" i))) "---" " a " (<:i fv) ".")
-                       :syntax :compact))
-                (<:p () (<:i () (<:code () "result")) "--- a T."))
-            |#
-
-            ;; (<:h2 "Description:")
-            ;; (paragraphize-doc-string doc-string)
-            (process-doc-string doc-string 'text/hyperspec 'html
-                                t (parse-ll :generic-function ll)
-                                t f-values
-                                )
-           
-
-            (let ((known-methods-els (render-known-methods name doc-bit))
-                  )
-              (when known-methods-els
-                (<:div ()
-                       (<:h2 () "Known Documented Methods:")
-                       (<:ol () known-methods-els)))
-              
-              ))
-           )|#))))
-
 
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
 
-(defgeneric frameset-head-title (fs)
-  (:method ((fs frameset)) "Frameset head placeholder title"))
-
-
-(defgeneric frameset-body-title (fs)
-  (:method ((fs frameset)) "Frameset body placeholder title"))
-
-
-(defgeneric framesets-of (e)
-  (:method ((fss framesets)) (framesets-list fss))
-  (:method ((e element)) ())
-  (:method ((e documentation-structure)) ())
-  )
-
-
-; useless in HTML5
-(defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
-  (declare (type pathname header-pathname))
-  (declare (ignorable documentation-title))
-  (let ((fs-order (frameset-order fs))
-        (fs-head-title (frameset-head-title fs))
-        (fs-body-title (frameset-body-title fs))
-        (ed-fs (element-location-depth fs))
-        )
-    (declare (ignorable fs-order))
-    (labels (
-	     #| Commented to placate SBCL.  Note commemts below of actual usage.
-	     (select-link-style (i)
-               (if (= i fs-order)
-                   "navigation-link-selected"
-                   "navigation-link"))
-	     |#
-
-             (select-link-style-1 (fs-in-p)
-               (if (eq fs fs-in-p)
-                   "navigation-link-selected"
-                   "navigation-link"))
-
-             ;; The next function is hairy because it needs to produce
-             ;; the href based on the position of the frameset in the
-             ;; hierarchy.
-
-             (produce-navigation-link (fs-in-parent)
-               (let* ((fs-path (compute-element-path fs-in-parent))
-                      (href (if (eq fs fs-in-parent)
-                                (namestring
-                                 (make-pathname :name (frameset-name fs-in-parent)
-                                                :type *default-html-extension*
-                                                :directory ()))
-                                (namestring
-                                 (merge-pathnames 
-                                  fs-path
-                                  (make-pathname
-                                   :directory (cons :relative
-                                                    (make-list ed-fs
-                                                               :initial-element :up)))))))
-                      )
-                 (<:a (:href href ; :href (namestring (compute-element-path fs-in-parent)
-                       :target "_parent"
-                       :class (select-link-style-1 fs-in-parent))
-                      (string-capitalize (frameset-name fs-in-parent)))))
-             )
-      (with-open-file (hs header-pathname
-                          :direction :output
-                          :if-exists :supersede
-                          :if-does-not-exist :create)
-        (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
-            (<:document
-             (<:comment (base-name header-pathname))
-             ;+doctypehtml5-control-string+
-             (<:html
-              (<:head
-               (<:title fs-head-title)
-               (<:link :rel "stylesheet" :href (frameset-style fs)))
-
-              ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
-               ((<:div :class "header"
-                       :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt")
-                (<:strong (or documentation-title fs-body-title))
-                ((<:div :class "navigation"
-                        :style "right: 2m")
-
-                 (when (element-parent fs)
-                   (let ((fss-in-p (framesets-of (element-parent fs))))
-                     (loop for fs-in-p in (rest fss-in-p)
-                           collect " | " into result
-                           collect (produce-navigation-link fs-in-p) into result
-                           finally (return (cons (produce-navigation-link (first fss-in-p))
-                                                 result))
-                           )))
-                 #|
-                  ((<:a :href "index.htm"
-                        :class (select-link-style 0)
-                        :target "_parent")
-                   "Home")
-                  "|"
-                  ((<:a :href "dictionary/dictionary.htm"
-                        :class (select-link-style 1)
-                        :target "_parent")
-                   "Dictionary")
-                  "|"
-                  ((<:a :href "mailing-lists.htm"
-                        :class (select-link-style 2)
-                        :target "_parent")
-                   "Mailing Lists")
-                  |#
-                 )
-                )
-               ))))
-        ))))
-
-
 ;;; NAVIGATION FILE FOR INDEX - 1 PART NAVIGATION
+
+#| Pre-cleanup
 (defmethod produce-navigation-file ((fs frameset)
                                     (nav-element doc-file)
                                     nav-pathname
@@ -2718,21 +1177,56 @@ given 'output-format'."))
              (<:comment "end of file :" (base-name nav-pathname))
              )|#)))
     ))
+|#
 
 
-;; NAVIGATION FILE FOR DICTIONARY - 2 PART NAVIGATION
-(defmethod produce-navigation-file ((fs frameset)
-                                    (nav-element file-set)
-                                    nav-pathname
-                                    doc-bits
-                                    documentation-title)
+(defmethod produce-navigation-links ((format (eql 'html5))
+                                     (da doc-area)
+                                     (nav-element doc-file)
+                                     nav-pathname
+                                     doc-bits
+                                     documentation-title)
+  (declare (type pathname nav-pathname))
+  (declare (ignorable doc-bits documentation-title))
+  
+  (let* ((doc-file-pathname (file-pathname nav-element nav-pathname))
+         (sections (extract-sections doc-file-pathname 'html))
+         (section-names (extract-section-names sections))
+        )
+
+    (flet ((make-nav-links ()
+             (loop for sn in section-names
+                   collect (<:li (:style "list-style-type: none")
+                                 (<:a (:href (format nil "#~A" sn)
+				       ;; :target (format nil "~A_frame"
+				       ;;                 (element-name nav-element))
+                                       )
+				      sn)
+                                 )))
+           )
+      (with-open-file (ns nav-pathname
+                          :direction :output
+                          :if-exists :supersede
+                          :if-does-not-exist :create)
+        (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
+	  ((<:div :class "innertube")
+	   (<:ul (make-nav-links)))
+          ))
+      )))
+
+
+;;; NAVIGATION FILE FOR DICTIONARY - 2 PART NAVIGATION
+
+(defmethod produce-navigation-links ((format (eql 'html5))
+                                     (fs doc-area)
+                                     (nav-element file-set)
+                                     nav-pathname
+                                     doc-bits
+                                     documentation-title)
   (declare (type pathname nav-pathname))
   (declare (ignorable documentation-title))
 
-  (let* ((fs-order (frameset-order fs))
-         (fs-head-title (frameset-head-title fs))
-         (fs-body-title (frameset-body-title fs))
-         (fs-name (frameset-name fs))
+  (let* ((fs-name (element-name fs))
 
          (nav-map-pathname
           (make-pathname :name (format nil
@@ -2748,284 +1242,134 @@ given 'output-format'."))
                          :defaults nav-pathname))
          )
     (declare (ignore fs-order fs-body-title nav-list-pathname))
-    #| OLD FRAME PRODUCTION - USELESS FILE IN HTML5
-    (with-open-file (ns nav-pathname
-                        :direction :output
-                        :if-exists :supersede
-                        :if-does-not-exist :create)
-      (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
-          (<:document
-           (<:comment (base-name nav-pathname))
-           (string #\Newline)
-
-           ;+doctype-frameset-control-string+
-           (string #\Newline)
-           (string #\Newline)
-           (<:html
-            (<:head
-             (<:title fs-head-title)
-             (<:link :rel "stylesheet" :href (frameset-style fs)))
-            
-            ((<:frameset :rows "25%,75%"
-                         #| :frameborder 0 |#
-                         :noresize "noresize")
-             ((<:frame :name (format nil
-                                     "~A_navigation_map"
-                                     fs-name)
-                       :src (base-name nav-map-pathname)
-                       :frameborder 0
-                       :scrolling :auto
-                       :class "helambdap_navmap"
-                       ))
-             ((<:frame :name (format nil
-                                     "~A_navigation_lists"
-                                     fs-name)
-                       ;; :src (namestring nav-list-pathname)
-                       :frameborder 0
-                       :scrolling :auto
-                       ))
-             ))
-           (<:comment (format nil "end of file : ~A"
-                              (base-name nav-pathname))) 
-           (string #\newline)))) ; WITH-OPEN-FILE...    
-    |#
-
-    (produce-navigation-map fs nav-element nav-map-pathname doc-bits)
+    (produce-navigation-map format
+                            fs
+                            nav-element
+                            nav-map-pathname
+                            doc-bits
+                            documentation-title)
     ))
 
 
-(defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
-  (declare (type frameset fs))
-  (format t "~&HELAMBDAP: producing NAV MAP file~%
-           ~S~%
-           ~S~%
+#| Made into a generic function (see protocol and xhtml-lambda-producer) |#
+
+(defmethod produce-navigation-map ((format (eql 'html5))
+                                   (da doc-area)
+                                   (nav-element file-set)
+                                   nm-pathname
+                                   doc-bits
+                                   documentation-title)
+  (format t "~&HELAMBDAP: producing HTML5 NAV MAP file~%~:
+           ~S~%~:
+           ~S~%~:
            ~S~2%"
-          fs nav-element nm-pathname)
+          da nav-element nm-pathname)
   (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
     (with-open-file (nm nm-pathname
                         :direction :output
                         :if-exists :supersede
                         :if-does-not-exist :create)
       (<:with-html-syntax-output (nm :print-pretty t :syntax :compact)
-	((<:div :class "innertube")
-	 ((<:div ;; :class "helambdap_navmap"
-	   ;; :style "border-bottom-style: dotted"
-	   )
-	  (<:h3 "Systems and Packages")
+          ((<:div :class "innertube")
+           ((<:div :class "helambdap_navmap"
+                   :style "border-bottom-style: dotted"
+                   )
+            (<:h3 "Systems and Packages")
 
-	  (let ((syss (remove-if (complement #'system-doc-bit-p)
-				 doc-bits))
-		(pkgs (remove-if (complement #'package-doc-bit-p)
-				 doc-bits))
-		)
-	    (list
-	     (<:h4 () "Systems")
-	     (<:div ()
-		    (loop for s in (remove-duplicates
-				    syss
-				    :test
-				    (lambda (s1 s2)
-				      (and (not (eq (type-of s1)
-						    (type-of s2)))
-					   (string-equal (doc-bit-name s1)
-							 (doc-bit-name s2)))))
-		       ;; The above is kludgy!  It is meant to
-		       ;; remove duplicate systems assuming
-		       ;; that different kinds of systems are
-		       ;; mutually exclusive.
-		       ;; In practice it will not affect most people.
-		       for s-doc-pathname
-			 = (make-doc-bit-pathname s
-						  *default-html-extension*
-						  nm-pathname)
-			 
-			 #|FRAME TO BE LINKED --- DONE|#
-		       for s-filename = (base-name s-doc-pathname)
-		       collect (<:p ()
-				    (<:a (:href "#"
-						:onclick
-						(format nil
-							"load_section('~A','~A')"
-							nav-element-target
-							s-filename))
-					 ;(:href s-filename
-					;	:target nav-element-target
-					;	)
-					 (doc-bit-name s))
-				    )))
-
-	     (<:h4 () "Packages")
-	     (<:div ()
-		    (loop for p in pkgs
-
-		       for p-doc-pathname =
-			 (make-doc-bit-pathname p
-						*default-html-extension*
-						nm-pathname)
-		       for p-filename = (base-name p-doc-pathname)
-
-		       for p-list-pathname =
-			 (make-pathname :name (format nil "~A-list"
-						      (pathname-name p-doc-pathname))
-					:type *default-html-extension*
-					:defaults nm-pathname)
-		       for p-list-filename = (base-name p-list-pathname)
-
-			 #|FRAME TO BE LINKED --- DONE|#
-		       do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
-		       collect (<:p ()
-				    (<:a (:href "#"
-						:onclick
-						(format nil
-							"load_section('~A','~A');
-                                                         load_section('nav_list','~A');"
-							nav-element-target
-							p-filename
-							p-list-filename)
-						)
-				     ;(:href p-filename
-				;		:target nav-element-target
-				;		:onclick
-				;		(format nil
-				;			"parent.frames[1].location.href = '~A'"
-				;			p-list-filename
-				;			)
-				;		)
-					 (doc-bit-name p)))))
-	     ))))
-          #| OLD FRAME GENERATION
-	(<:document
-           (<:comment (base-name nm-pathname))
-           (string #\Newline)
-           (string #\Newline)
-
-           +doctype-xhtml1-string-control-string+
-           (string #\Newline)
-
-           (<:html
-            (<:head
-             (<:title "Navigation Map")
-             (<:link :rel "stylesheet"
-                     :href (namestring *helambdap-css-filename-up*)) ; TESTING!
-             (<:style (format nil
-                              ".helambdap_navmap li {
-                                  display: inline;
-                              }"))
-             )
-
-            (<:body
-             ((<:div ;; :class "helambdap_navmap"
-                     ;; :style "border-bottom-style: dotted"
-                     )
-              (<:h3 "Systems and Packages")
-
-	      #| ;; Why did I need this?
-
-              (<:p
-               (<:strong ((<:script :type "text/javascript")
-                          (format nil
-                                  "document.write('<i>' ~
-                                                   + document.getElementByName('~A').src ~
-                                                   + '</i>' + Date())"
-                                  (format nil "~A_navigation_list" (element-name fs))
-                                  ))))
-	      |#
-
-              (let ((syss (remove-if (complement #'system-doc-bit-p)
-                                     doc-bits))
-                    (pkgs (remove-if (complement #'package-doc-bit-p)
-                                     doc-bits))
-                    )
-                (list
-                 (<:h4 () "Systems")
-                 (<:div ()
-                        (loop for s in (remove-duplicates
-                                        syss
-                                        :test
-                                        (lambda (s1 s2)
-                                          (and (not (eq (type-of s1)
-                                                        (type-of s2)))
-                                               (string-equal (doc-bit-name s1)
-                                                             (doc-bit-name s2)))))
-                              ;; The above is kludgy!  It is meant to
-                              ;; remove duplicate systems assuming
-                              ;; that different kinds of systems are
-                              ;; mutually exclusive.
-                              ;; In practice it will not affect most people.
-                              for s-doc-pathname
-                              = (make-doc-bit-pathname s
-                                                       *default-html-extension*
-                                                       nm-pathname)
-
-                              for s-filename = (base-name s-doc-pathname)
-                              collect (<:p ()
-                                           (<:a (:href s-filename
-                                                 :target nav-element-target
-                                                 #|
-                                                  :onclick
-                                                  (format nil
-                                                          "parent.frames[1].location.href = '~A'"
-                                                          s-filename
-                                                          )
-                                                  #|
-                                                  (format nil
-                                                          "document.getElementByName('~A').src = '~A'"
-                                                          (format nil "~A_navigation_list" (element-name fs)) 
-                                                          s-filename
-                                                          )
-                                                  |#
-                                                  |#
-                                                 )
-                                                (doc-bit-name s))
-                                           ;; (type-of s)
-                                           )))
-
-                 (<:h4 () "Packages")
-                 (<:div ()
-                        (loop for p in pkgs
-
-                              for p-doc-pathname =
-                              (make-doc-bit-pathname p
+            (let ((syss (remove-if (complement #'system-doc-bit-p)
+                                   doc-bits))
+                  (pkgs (remove-if (complement #'package-doc-bit-p)
+                                   doc-bits))
+                  )
+              (list
+               (<:h4 () "Systems")
+               (<:div ()
+                      (loop for s in (remove-duplicates
+                                      syss
+                                      :test
+                                      (lambda (s1 s2)
+                                        (and (not (eq (type-of s1)
+                                                      (type-of s2)))
+                                             (string-equal (doc-bit-name s1)
+                                                           (doc-bit-name s2)))))
+                            ;; The above is kludgy!  It is meant to
+                            ;; remove duplicate systems assuming
+                            ;; that different kinds of systems are
+                            ;; mutually exclusive.
+                            ;; In practice it will not affect most people.
+                            for s-doc-pathname
+                            = (make-doc-bit-pathname s
                                                      *default-html-extension*
                                                      nm-pathname)
-                              for p-filename = (base-name p-doc-pathname)
+			 
+                            #|FRAME TO BE LINKED --- DONE|#
+                            for s-filename = (base-name s-doc-pathname)
+                            collect (<:p ()
+                                         (<:a (:href "#"
+                                               :onclick
+                                               (format nil
+                                                       "load_section('~A', '~A')"
+                                                       nav-element-target
+                                                       s-filename))
+                                              ;; (:href s-filename
+                                              ;;	:target nav-element-target
+                                              ;;	)
+                                              (doc-bit-name s))
+                                         )))
 
-                              for p-list-pathname =
-                              (make-pathname :name (format nil "~A-list"
-                                                           (pathname-name p-doc-pathname))
-                                             :type *default-html-extension*
-                                             :defaults nm-pathname)
-                              for p-list-filename = (base-name p-list-pathname)
-                                                           
-                              do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
-                              collect (<:p ()
-                                           (<:a (:href p-filename
-                                                 :target nav-element-target
-                                                 :onclick
-                                                 (format nil
-                                                         "parent.frames[1].location.href = '~A'"
-                                                         p-list-filename
-                                                         )
-                                                 #|(format nil
-                                                           "document.getElementByName('~A').src = '~A'"
-                                                           (format nil "~A_navigation_list" (element-name fs))
-                                                           p-list-filename
-                                                           )|#
-                                                 )
-                                                (doc-bit-name p)))))
-                 )))
-             ) ; </body>
-            (<:comment (format nil "end of file : ~A"
-                               (base-name nm-pathname)))
-            (string #\newline)
-            ))|#))))
+               (<:h4 () "Packages")
+               (<:div ()
+                      (loop for p in pkgs
+
+                            for p-doc-pathname =
+                            (make-doc-bit-pathname p
+                                                   *default-html-extension*
+                                                   nm-pathname)
+                            for p-filename = (base-name p-doc-pathname)
+
+                            for p-list-pathname =
+                            (make-pathname :name (format nil "~A-list"
+                                                         (pathname-name p-doc-pathname))
+                                           :type *default-html-extension*
+                                           :defaults nm-pathname)
+                            for p-list-filename = (base-name p-list-pathname)
+
+                            #|FRAME TO BE LINKED --- DONE|#
+                            do (produce-package-navigation-list format
+                                                                da
+                                                                nav-element
+                                                                p
+                                                                p-list-pathname
+                                                                doc-bits)
+                            collect (<:p ()
+                                         (<:a (:href "#"
+                                               :onclick
+                                               (format nil
+                                                       "load_section('~A', '~A');
+                                                        load_section('nav_list', '~A');"
+                                                       nav-element-target
+                                                       p-filename
+                                                       p-list-filename)
+                                               )
+                                              ;; (:href p-filename
+                                              ;;		:target nav-element-target
+                                              ;;		:onclick
+                                              ;;		(format nil
+                                              ;;			"parent.frames[1].location.href = '~A'"
+                                              ;;			p-list-filename
+                                              ;;			)
+                                              ;;		)
+                                              (doc-bit-name p)))))
+               ))))
+          ))))
 
 
-(defun produce-package-navigation-list (fs
-                                        nav-element
-                                        pkg-doc-bit
-                                        pkg-list-pathname
-                                        doc-bits)
+(defmethod produce-package-navigation-list ((format (eql 'html5))
+                                            fs
+                                            nav-element
+                                            pkg-doc-bit
+                                            pkg-list-pathname
+                                            doc-bits)
   (declare (type frameset fs))
   (let* ((pkg (find-package (package-doc-bit-name pkg-doc-bit)))
          (target (format nil "~A_frame"
@@ -3042,14 +1386,14 @@ given 'output-format'."))
                                           (not (eq pkg (symbol-package (second dbn)))))
                                          )))
                                 doc-bits))
-          ;; This is an horrendous kludge. Alas, I FTTB I will not
+          ;; This is an horrendous kludge. Alas, I FTTB will not
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&HELAMBDAP: produce-package-navigation-list~%
-           ~S~%
-           ~S~%
-           ~S~%
+    (format t "~&HELAMBDAP: produce-package-navigation-list HTML5 ~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~%~:
            ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
@@ -3092,11 +1436,11 @@ given 'output-format'."))
                                            (<:a (:href "#"
 						 :onclick
 						 (format nil
-							 "load_section('~A','~A')"
+							 "load_section('~A', '~A')"
 							 target
 							 db-filename))
-					       ;(:href db-filename
-                                               ; :target target)
+					       ;; (:href db-filename
+                                               ;;  :target target)
                                                 (format nil
                                                         "~(~A~)"
                                                         (doc-bit-name db)))))
@@ -3108,328 +1452,41 @@ given 'output-format'."))
                             :direction :output)
 
           (<:with-html-syntax-output (ps :print-pretty t :syntax :compact)
-	     (if pkg-doc-bits
-		 (<:htmlise (:syntax :compact)
-			    ((<:div :class "innertube")
-			     (<:h3 "Package interface" <:br
-				   (package-name pkg))
+              (if pkg-doc-bits
+                  (<:htmlise (:syntax :compact)
+                      ((<:div :class "innertube")
+                       (<:h3 "Package interface" <:br
+                             (package-name pkg))
 
-			     ((<:div #| :class "helambdap_navmap" |#)
-			      ;; systems
-			      ;; packages
-			      (build-list "Constants" constants)
-			      (build-list "Parameters" parameters)
-			      (build-list "Variables" variables)
-			      (build-list "Types" types)
-			      (build-list "Classes" classes)
-			      (build-list "Structures" structs)
-			      (build-list "Conditions" conditions)
-			      (build-list "Generic Functions" generic-functions)
-			      (build-list "Functions" functions)
-			      (build-list "Macros" macros)
-			      (build-list "Method Combinations" method-combinations)
-			      (build-list "Setf expanders" setf-expanders)
-			      (build-list "Modify Macros" modify-macros)
-			      )
-			     ))
-
-		 (<:htmlise (:syntax :compact)
-			    ((<:div :class "innertube")
-			     (<:h3 "Package interface" <:br
-				   (package-name pkg))
-
-			     (<:p (<:i "No published interface."))
-			     ))
-		 )
-              #| OLD FRAME PRODUCTION
-	    (<:document
-               (<:comment (base-name pkg-list-pathname))
-
-               +doctype-xhtml1-string-control-string+
-
-               (<:html
-                (<:head
-                 (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
-                 (<:link :rel "stylesheet" :href (frameset-style fs))
-                 (<:style (format nil
-                                  ".helambdap_navmap li {
-                                      display: inline;
-                                  }")))
-
-                (if pkg-doc-bits
-                    (<:htmlise (:syntax :compact)
-                        (<:body
-                         (<:h3 "Package interface" <:br
-                               (package-name pkg))
-
-                         ((<:div #| :class "helambdap_navmap" |#)
-                          ;; systems
-                          ;; packages
-                          (build-list "Constants" constants)
-                          (build-list "Parameters" parameters)
-                          (build-list "Variables" variables)
-                          (build-list "Types" types)
-                          (build-list "Classes" classes)
-                          (build-list "Structures" structs)
-                          (build-list "Conditions" conditions)
-                          (build-list "Generic Functions" generic-functions)
-                          ;; (build-list "Methods" methods)
-                          (build-list "Functions" functions)
-                          (build-list "Macros" macros)
-                          (build-list "Method Combinations" method-combinations)
-                          (build-list "Setf expanders" setf-expanders)
-                          (build-list "Modify Macros" modify-macros)
-                          ;; others
-                          )) ; body
+                       ((<:div #| :class "helambdap_navmap" |#)
+                        ;; systems
+                        ;; packages
+                        (build-list "Constants" constants)
+                        (build-list "Parameters" parameters)
+                        (build-list "Variables" variables)
+                        (build-list "Types" types)
+                        (build-list "Classes" classes)
+                        (build-list "Structures" structs)
+                        (build-list "Conditions" conditions)
+                        (build-list "Generic Functions" generic-functions)
+                        (build-list "Functions" functions)
+                        (build-list "Macros" macros)
+                        (build-list "Method Combinations" method-combinations)
+                        (build-list "Setf expanders" setf-expanders)
+                        (build-list "Modify Macros" modify-macros)
                         )
+                       ))
 
-                    (<:htmlise (:syntax :compact)
-                        (<:body
-                         (<:h3 "Package interface" <:br
-                               (package-name pkg))
+                  (<:htmlise (:syntax :compact)
+                      ((<:div :class "innertube")
+                       (<:h3 "Package interface" <:br
+                             (package-name pkg))
 
-                         (<:p (<:i "No published interface."))
-                         ) ; body
-                        )
-                    )
-                ) ; html
-               )|# ; document
+                       (<:p (<:i "No published interface."))
+                       ))
+                  )
               )))
       )))
 
-; useless in HTML5
-(defmethod produce-footer-file ((fs frameset) footer-pathname documentation-title)
-  (declare (type pathname footer-pathname))
-  (declare (ignorable documentation-title))
-  (let ((fs-order (frameset-order fs))
-        (fs-head-title (frameset-head-title fs))
-        (fs-body-title (frameset-body-title fs))
-        )
-    (declare (ignore fs-order))
 
-    (with-open-file (hs footer-pathname
-                        :direction :output
-                        :if-exists :supersede
-                        :if-does-not-exist :create)
-      (<:with-html-syntax-output (hs :print-pretty t :syntax :compact)
-          (<:document
-           (<:comment (base-name footer-pathname))
-           ;+doctype-html5-control-string+
-           (<:html
-            (<:head
-             (<:title fs-head-title)
-             (<:link :rel "stylesheet" :href (frameset-style fs)))
-
-            ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
-             ((<:div :class "copyright"
-                     #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
-              (<:strong (or documentation-title fs-body-title))
-              "documentation produced with"
-              ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
-              (<:br)
-              (<:comment "hhmts start")
-              "Last modified: " (text-timestamp)
-              (<:comment "hhmts end")
-              (<:br)
-
-              (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
-                      (nth-value 5 (decode-universal-time (get-universal-time)))))
-             )))))
-    ))
-
-
-
-
-;;;;===========================================================================
-;;;; Utilities.
-
-(defgeneric extract-sections (source format)
-  (:documentation "Quick and dirty 'section' finding in (X)HTML(5) source.
-
-The EXTRACT-SECTIONS function looks at an (X)HTML(5) source looking
-for top level <H1>...</H1> 'section'.  More specifically, it looks for
-sectioning markup of the form:
-
-     <H1><A name=\"Section Name\">....</A></H1>
-
-The \"Section Name\" is what is eventually saved in the result, which
-is then used to produce a file navigation bar.
-"))
-
-
-(defmethod extract-sections ((p pathname) format)
-  (with-open-file (in p :direction :input)
-    (extract-sections in format)))
-
-
-(defmethod extract-sections ((s string) format)
-  (with-input-from-string (in s)
-    (extract-sections in format)))
-
-
-(defmethod extract-sections ((in stream) (format (eql 'html5)))
-  ;; Poor man's parsing of HTML's files.
-  ;; I just look for <H1>...</H1> sections.
-  ;;
-  ;; Each H1 section is supposed to look like:
-  ;;
-  ;;   <H1><A name=....>....</A></H1>
-  ;;
-  ;; The name and the actual section title are what is saved.
-
-  (let ((section (make-array 256 ; This should be made easier!
-                             :element-type 'character
-                             :fill-pointer 0
-                             :adjustable t
-                             :initial-element (code-char 0)))
-        (sections ())
-        (collecting nil)
-        )
-    (declare (type (vector character) section)
-             (type list sections)
-             (type boolean collecting))
-
-    (labels ((start ()
-               (handler-case
-                   (process-char (read-char in))
-                 (end-of-file (eof)
-                   (declare (ignore eof))
-                   (finish))))
-
-             (maybe-collect (c)
-               (when collecting
-                 (vector-push-extend c section)))
-
-             (process-char (c)
-               (maybe-collect c)
-               (if (char= c #\<)
-                   (process-< (read-char in))
-                   (process-char (read-char in))
-                   ))
-        
-             (process-< (c)
-               (cond ((char-equal c #\H)
-                      (process-h (read-char in)))
-                     ((char= c #\/)
-                      (maybe-collect #\/)
-                      (process-/ (read-char in)))
-                     (t
-                      (process-char c))
-                     ))
-
-             (process-h (c)
-               (if (char= c #\1)
-                   (process-h1 (read-char in))
-                   (process-char (read-char in))))
-
-             (process-h1 (c)
-               ;; (format t "HELAMBDA: Collecting H1 Section.~%")
-               (setf (fill-pointer section) 0
-                     collecting t)
-               (vector-push-extend #\< section)
-               (vector-push-extend #\H section)
-               (vector-push-extend #\1 section)
-               (process-char c))
-
-             (process-/ (c)
-               (if (char-equal #\h c)
-                   (process-/h (read-char in))
-                   (process-char c)))
-              
-             (process-/h (c)
-               (when (char= #\1 c)
-                 (vector-push-extend #\H section)
-                 (vector-push-extend #\1 section)
-                 (assert (char= (read-char in) #\>))
-                 (vector-push-extend #\> section)
-                 (push (copy-seq section) sections)
-                 
-                 ;; (format t "HELAMBDA: Collected  H1 Section ~S.~%" section)
-               
-                 (setf collecting nil))
-               (process-char (read-char in))
-               )
-
-             (finish ()
-               (nreverse sections))
-             )
-      (start)
-      )))
-
-
-(defun extract-section-name (sect)
-  (declare (type string sect))
-  (let ((name-search (or (search "<a name=" sect)
-                         (search "<A name=" sect)
-                         ))
-        (end-char #\')
-        )
-    (if name-search
-        (let* ((n-start (+ name-search (length "<a name=")))
-               (n-start-plus (1+ n-start))
-               )
-          (declare (type fixnum n-start n-start-plus))
-          (cond ((char= #\' (aref sect n-start))
-                 (setf end-char #\'))
-                ((char= #\" (aref sect n-start))
-                 (setf end-char #\"))
-                )
-          (subseq sect
-                  n-start-plus
-                  (position end-char sect :start n-start-plus)))
-        "")))
-
-
-(defun extract-section-names (sects)
-  (delete "" (mapcar #'extract-section-name sects) :test #'equal))
-        
-
-;;;;===========================================================================
-
-#| Example...
-<!-- header.html -->
-
-<!DOCTYPE HTML PUBLIC
-"-//W3C//DTD XHTML 1.0 Strict//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
-<html>
-<head>
-<title>HE&Lambda;P: The Common Lisp Help and Documentation Center</title>
-<link rel="stylesheet" href="clstyle.css">
-</head>
-
-<body style="margin: 0pt 0pt 0pt 0pt;">
-
-<div class="header"
-  style="padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt">
-<!-- <div class="text"> -->
-  <strong><i>HE&Lambda;P</i></strong><br/>
-<!-- </div> -->
-
-
-<div class="navigation" style="right: 2m">
-  <a href="index.html" class="navigation-link-selected" target=_parent>Home</a>
-  | <a href="dictionary/dictionary-frame.html" class="navigation-link" target=_parent>Dictionary</a>
-  | <a href="downloads-frame.html" class="navigation-link" target=_parent>Downloads</a>
-  | <a href="mailing-lists-frame.html" class="navigation-link" target=_parent>Mailing Lists</a>
-  | <a href="links-frame.html" class="navigation-link" target=_parent>Links</a>
-</div>
-
-<!--
-<div class="black-line"><img src="images/shim.gif" height="1" width="1"></div>
-<div class="middle-bar"><img src="images/shim.gif" height="5" width="1"></div>
-<div class="black-line"><img src="images/shim.gif" height="1" width="1"></div>
--->
-
-</div>
-
-</body>
-</html>
-
-<!-- end of file : header.html -->
-
-|#
-
-
-;;;; end of file -- html5-producer.lisp --
+;;;; end of file -- html5-lambda-producer.lisp --
