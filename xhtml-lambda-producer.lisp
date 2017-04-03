@@ -98,6 +98,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;;===========================================================================
 ;;;; Protocol.
 
+#| Moved in separate file.
 (defgeneric produce-frame (format element out)
   )
 
@@ -148,6 +149,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 (defparameter *xhtml-indent* 4) ; 4 is the actual initial value.
 
 (defparameter *formatted-section-right-margin* 256)
+|#
 
 
 ;;;;===========================================================================
@@ -209,9 +211,10 @@ Each FRAMESET and FRAME is contained in a separate file.
     (cond ((probe-file dfname)
            (cl-fad:copy-file dfname destination-path :overwrite nil))
           ((not (probe-file destination-path))
-           (produce-doc-file-placeholder structure
-                                         destination-path
-                                         documentation-title))
+           (produce-info-area-placeholder format
+                                          structure
+                                          destination-path
+                                          documentation-title))
           )))
 
 
@@ -234,9 +237,10 @@ Each FRAMESET and FRAME is contained in a separate file.
     (cond ((probe-file dfname)
            (cl-fad:copy-file dfname destination-path :overwrite nil))
           ((not (probe-file destination-path))
-           (produce-doc-file-placeholder structure
-                                         destination-path
-                                         documentation-title))
+           (produce-info-area-placeholder format
+                                          structure
+                                          destination-path
+                                          documentation-title))
           )))
 
 
@@ -465,7 +469,8 @@ Each FRAMESET and FRAME is contained in a separate file.
         (declare (type pathname nav-pathname))
         (unless (and (probe-file nav-pathname)
                      (not *supersede-documentation*))
-          (produce-navigation-file element
+          (produce-navigation-file format
+                                   element
                                    (frameset-content element)
                                    nav-pathname
                                    doc-bits
@@ -525,7 +530,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   )
   (declare (ignorable documentation-title))
 
-  (produce-file-set-placeholder structure where)
+  (produce-info-area-placeholder format structure where)
 
   ;; Produce the documentation for the doc-bits.
   (dolist (doc-bit doc-bits)
@@ -547,6 +552,7 @@ Each FRAMESET and FRAME is contained in a separate file.
   )
 
 
+#| Old: substitute by PRODUCE-INFO-AREA-PLACEHOLDER
 (defun produce-doc-file-placeholder (doc-file
                                      doc-file-pathname
                                      &optional (documentation-title ""))
@@ -575,7 +581,45 @@ Each FRAMESET and FRAME is contained in a separate file.
              (<:p "This is a placeholder for information pertaining "
                   documentation-title)
              (<:p (format nil
-                          "Please edit the file '~A', to complete 
+                          "Please edit the file '~A', to complete ~
+                           the documentation."
+                          doc-file-pathname))
+             )
+            )
+           (<:comment "end of file : " (string dfname)))
+          ))
+    ))
+|#
+
+
+(defmethod produce-info-area-placeholder ((format (eql 'html))
+                                          (doc-file doc-file)
+                                          doc-file-pathname 
+                                          &optional (documentation-title ""))
+  (declare (type pathname doc-file-pathname))
+  (let ((dfname (doc-file-name doc-file)))
+    (with-open-file (dffs doc-file-pathname
+                          :direction :output
+                          :if-does-not-exist :create
+                          :if-exists :supersede)
+      (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment dfname)
+           (<:html
+
+            +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+
+            (<:head
+             (<:title dfname)
+             (<:link :rel "stylesheet" :href *helambdap-css-filename*))
+            
+            (<:body
+             (<:h1 documentation-title dfname)
+             (<:p "This is a placeholder for information pertaining "
+                  documentation-title)
+             (<:p (format nil
+                          "Please edit the file '~A', to complete ~
                            the documentation."
                           doc-file-pathname))
              )
@@ -585,9 +629,53 @@ Each FRAMESET and FRAME is contained in a separate file.
     ))
 
 
+#| Old.  Replaced by PRODUCE-INFO-AREA-PLACEHOLDER
 (defun produce-file-set-placeholder (file-set where)
   (declare (type file-set file-set)
            (type stream where)
+           )
+  (let ((fsn (file-set-name file-set))
+        (file-set-pathname
+         (make-pathname :name (file-set-name file-set)
+                        :type *default-html-extension*
+                        :defaults (pathname where)))
+        )
+    (with-open-file (fsfs file-set-pathname
+                          :direction :output
+                          :if-does-not-exist :create
+                          :if-exists :supersede)
+      (<:with-html-syntax-output (fsfs :print-pretty t :syntax :compact)
+          (<:document
+           (<:comment (file-set-name file-set))
+           (<:html
+
+            +doctype-xhtml1-string-control-string+
+            (string #\Newline)
+
+            (<:head
+             (<:title fsn)
+             (<:link :rel "stylesheet"
+                     :href (namestring *helambdap-css-filename-up*)))
+            
+            (<:body
+             (<:h1 "Dictionary Entries")
+             (<:p "Click and/or scroll on the menus on the side to choose "
+                  "what information to display.")
+             )
+            )
+           (<:comment "end of file : " (file-set-name file-set)))
+          ))
+    ))
+|#
+
+
+(defmethod produce-info-area-placeholder ((format (eql 'html))
+                                          (file-set file-set)
+                                          where
+                                          &optional
+                                          documentation-title)
+  (declare (ignore documentation-title)
+           (type (or stream pathname) where)
            )
   (let ((fsn (file-set-name file-set))
         (file-set-pathname
@@ -628,6 +716,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 ;;; Usual SBCL appeasement.
 
+#|
 #-sbcl
 (defconstant +lambda-list-kwds+
   '(&optional &rest &key &allow-other-keys &whole &environment &aux))
@@ -821,6 +910,7 @@ given 'output-format'."))
                       descrs))
               (push (<:p () p) descrs))
           )))))
+|#
 
 
 (defmethod process-doc-string
@@ -951,14 +1041,20 @@ given 'output-format'."))
 
 
 
+#| Moved to 'protocol' file
 (defgeneric render-lambda-list (lambda-list-type lambda-list))
+|#
 
 
-(defmethod render-lambda-list ((llt (eql :ordinary)) (ll list))
-  (render-lambda-list :ordinary (parse-ll :ordinary ll)))
+(defmethod render-lambda-list ((format (eql 'html))
+                               (llt (eql :ordinary))
+                               (ll list))
+  (render-lambda-list format :ordinary (parse-ll :ordinary ll)))
 
 
-(defmethod render-lambda-list ((llt (eql :ordinary)) (ll t_lambda-list))
+(defmethod render-lambda-list ((format (eql 'html))
+                               (llt (eql :ordinary))
+                               (ll t_lambda-list))
   (let* ((pll ll)
          (rvs (ll-ordinary-vars pll))
          (ovs (ll-optional-vars pll))
@@ -1004,11 +1100,15 @@ given 'output-format'."))
     ))
 
 
-(defmethod render-lambda-list ((llt (eql :macro)) (ll list))
-  (render-lambda-list :macro (parse-ll :macro ll)))
+(defmethod render-lambda-list ((format (eql 'html))
+                               (llt (eql :macro))
+                               (ll list))
+  (render-lambda-list format :macro (parse-ll :macro ll)))
 
 
-(defmethod render-lambda-list ((llt (eql :macro)) (ll macro-lambda-list))
+(defmethod render-lambda-list ((format (eql 'html))
+                               (llt (eql :macro))
+                               (ll macro-lambda-list))
   (let* ((pll ll)
          (wv (macro-lambda-list-whole-var pll))
          (ev (macro-lambda-list-env-var pll))
@@ -1035,13 +1135,13 @@ given 'output-format'."))
                   (etypecase llv-n
                     (symbol (push (<:i () llv-n) rendered-ll))
                     (t_lambda-list
-                     (push (render-lambda-list :macro llv-n)
+                     (push (render-lambda-list format :macro llv-n)
                            rendered-ll))
                     (list (mapc #'render-ll-item lli)
 			  rendered-ll)
                     )))
                (t_lambda-list
-                (push (render-lambda-list :macro lli)
+                (push (render-lambda-list format :macro lli)
                       rendered-ll))
                ))
 	     )
@@ -1195,7 +1295,10 @@ given 'output-format'."))
 
 
 
+#|
 (defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
+|#
+
 
 #|
 (defmethod render-syntax-section
@@ -1217,11 +1320,12 @@ given 'output-format'."))
         )))
 |#
 
+#|
 (defun bypass-pprint (s e &optional (colon-p t) at-sign-p)
   (declare (ignore colon-p at-sign-p))
   (let ((*print-pretty* nil))
     (format s "~A" e)))
-
+|#
 
 (defmethod render-syntax-section
            ((format (eql 'html))
@@ -1244,7 +1348,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :ordinary ll))
+                                          (render-lambda-list format :ordinary ll))
                                     )
                (write-string "  " pre-string)
                (bypass-pprint pre-string (pprint-pop) nil nil)
@@ -1290,7 +1394,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :ordinary ll))
+                                          (render-lambda-list format :ordinary ll))
                                     )
                (write-string "  " pre-string)
                (bypass-pprint pre-string (pprint-pop) nil nil)
@@ -1332,7 +1436,7 @@ given 'output-format'."))
              (pprint-logical-block (pre-string
                                     (list (<:strong (:style "color: red")
                                                     (format nil "~(~A~)" db-name))
-                                          (render-lambda-list :macro ll))
+                                          (render-lambda-list format :macro ll))
                                     )
                ;; (format t "==> ~A~%" pre-string)
                (write-string "  " pre-string)
@@ -1495,6 +1599,7 @@ given 'output-format'."))
           )))))
 
 
+#| Moved to "doc-string-handling"
 (defun process-returns-declaration (returns)
   "Munging of RETURNS declaration."
   (declare (type list returns)
@@ -1527,6 +1632,7 @@ given 'output-format'."))
                                         (<:i () (<:code () "result"))
                                         " : a T."))))
         ))
+|#
 
 
 (defmethod produce-documentation ((format (eql 'html))
@@ -1823,7 +1929,8 @@ given 'output-format'."))
                        and collect
                        (<:dd ()
                              (format nil
-                                     "with initial value ~A of type ~A~@[; the slot is read-only~]."
+                                     "with initial value ~A of type ~
+                                      ~A~@[; the slot is read-only~]."
                                      nil T nil))
                        else
                        nconc
@@ -1833,8 +1940,10 @@ given 'output-format'."))
                           (<:dt () sn)
                           (<:dd ()
                                 (format nil
-                                        ;; "with initial value ~S of type ~A~@[; the slot is read-only~]."
-                                        "with initial value ~A of type ~A~@[; the slot is read-only~]."
+                                        ;; "with initial value ~S ~
+                                        ;;  of type ~A~@[; the slot is read-only~]."
+                                        "with initial value ~A ~
+                                         of type ~A~@[; the slot is read-only~]."
                                         sv type read-only)))))
                  ))
            ;; (<:h2 "Description:")
@@ -1991,7 +2100,8 @@ given 'output-format'."))
 
             (<:h2 "Syntax:")
             (<:p (<:strong name)
-                 (format nil "~{ <i>~A</i>~}" (parameterized-doc-bit-lambda-list doc-bit)))
+                 (format nil "~{ <i>~A</i>~}"
+                         (parameterized-doc-bit-lambda-list doc-bit)))
             ;; (<:h2 "Description:")
             ;; (paragraphize-doc-string doc-string)
             (process-doc-string doc-string 'text/hyperspec 'html
@@ -2223,6 +2333,7 @@ given 'output-format'."))
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
 
+#| Moved to 'xhtml-lambda-producer-protocol'
 (defgeneric frameset-head-title (fs)
   (:method ((fs frameset)) "Frameset head placeholder title"))
 
@@ -2236,6 +2347,7 @@ given 'output-format'."))
   (:method ((e element)) ())
   (:method ((e documentation-structure)) ())
   )
+|#
 
 
 (defmethod produce-header-file ((fs frameset) header-pathname documentation-title)
@@ -2248,7 +2360,7 @@ given 'output-format'."))
         )
     (declare (ignorable fs-order))
     (labels (
-	     #| Commented to placate SBCL.  Note commemts below of actual usage.
+	     #| Commented to placate SBCL.  Note comments underneath the actual usage.
 	     (select-link-style (i)
                (if (= i fs-order)
                    "navigation-link-selected"
@@ -2334,7 +2446,8 @@ given 'output-format'."))
         ))))
 
 
-(defmethod produce-navigation-file ((fs frameset)
+(defmethod produce-navigation-file ((format (eql 'html))
+                                    (fs frameset)
                                     (nav-element doc-file)
                                     nav-pathname
                                     doc-bits
@@ -2388,7 +2501,8 @@ given 'output-format'."))
     ))
 
 
-(defmethod produce-navigation-file ((fs frameset)
+(defmethod produce-navigation-file ((format (eql 'html))
+                                    (fs frameset)
                                     (nav-element file-set)
                                     nav-pathname
                                     doc-bits
@@ -2456,18 +2570,29 @@ given 'output-format'."))
                               (base-name nav-pathname))) 
            (string #\newline)))) ; WITH-OPEN-FILE...
 
-    (produce-navigation-map fs nav-element nav-map-pathname doc-bits)
+    (produce-navigation-map format
+                            fs
+                            nav-element
+                            nav-map-pathname
+                            doc-bits
+                            documentation-title)
     ))
 
 
-(defun produce-navigation-map (fs nav-element nm-pathname doc-bits)
-  (declare (type frameset fs))
-  (format t "~&HELAMBDAP: producing NAV MAP file~%:
-           ~S~%:
-           ~S~%:
+(defmethod produce-navigation-map ((format (eql 'html))
+                                   (fs frameset)
+                                   (nav-element file-set)
+                                   nm-pathname
+                                   doc-bits
+                                   doc-title)
+  (declare (ignore doc-title))
+  (format t "~&HELAMBDAP: producing NAV MAP file~%~:
+           ~S~%~:
+           ~S~%~:
            ~S~2%"
           fs nav-element nm-pathname)
-  (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
+  (let ((nav-element-target
+         (format nil "~A_frame" (element-name nav-element))))
     (with-open-file (nm nm-pathname
                         :direction :output
                         :if-exists :supersede
@@ -2493,8 +2618,8 @@ given 'output-format'."))
              )
 
             (<:body
-             ((<:div ;; :class "helambdap_navmap"
-                     ;; :style "border-bottom-style: dotted"
+             ((<:div :class "helambdap_navmap"
+                     :style "border-bottom-style: dotted"
                      )
               (<:h3 "Systems and Packages")
 
@@ -2576,7 +2701,12 @@ given 'output-format'."))
                                              :defaults nm-pathname)
                               for p-list-filename = (base-name p-list-pathname)
                                                            
-                              do (produce-package-navigation-list fs nav-element p p-list-pathname doc-bits)
+                              do (produce-package-navigation-list format
+                                                                  fs
+                                                                  nav-element
+                                                                  p
+                                                                  p-list-pathname
+                                                                  doc-bits)
                               collect (<:p ()
                                            (<:a (:href p-filename
                                                  :target nav-element-target
@@ -2600,12 +2730,12 @@ given 'output-format'."))
             ))))))
 
 
-(defun produce-package-navigation-list (fs
-                                        nav-element
-                                        pkg-doc-bit
-                                        pkg-list-pathname
-                                        doc-bits)
-  (declare (type frameset fs))
+(defmethod produce-package-navigation-list ((format (eql 'html))
+                                            (fs frameset)
+                                            nav-element
+                                            pkg-doc-bit
+                                            pkg-list-pathname
+                                            doc-bits)
   (let* ((pkg (find-package (package-doc-bit-name pkg-doc-bit)))
          (target (format nil "~A_frame"
                          (element-name nav-element)))
@@ -2625,10 +2755,10 @@ given 'output-format'."))
           ;; chase down instances of people defining systems with symbols.
           )
          )
-    (format t "~&HELAMBDAP: produce-package-navigation-list~%:
-           ~S~%:
-           ~S~%:
-           ~S~%:
+    (format t "~&HELAMBDAP: produce-package-navigation-list HTML~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~%~:
            ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
@@ -2700,7 +2830,7 @@ given 'output-format'."))
                          (<:h3 "Package interface" <:br
                                (package-name pkg))
 
-                         ((<:div #| :class "helambdap_navmap" |#)
+                         ((<:div :class "helambdap_navmap")
                           ;; systems
                           ;; packages
                           (build-list "Constants" constants)
@@ -2762,7 +2892,7 @@ given 'output-format'."))
              ((<:div :class "copyright"
                      #| :style "padding-left: 2em; padding-top: 5pt; color: #41286f; font-size: 14pt"|#)
               (<:strong (or documentation-title fs-body-title))
-              "documentation produced with"
+              "(X)HTML documentation produced with"
               ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
               (<:br)
               (<:comment "hhmts start")
@@ -2779,6 +2909,7 @@ given 'output-format'."))
 ;;;;===========================================================================
 ;;;; Utilities.
 
+#| Moved to 'html-source-handling'
 (defgeneric extract-sections (source format)
   (:documentation "Quick and dirty 'section' finding in (X)HTML(5) source.
 
@@ -2918,6 +3049,7 @@ is then used to produce a file navigation bar.
 
 (defun extract-section-names (sects)
   (delete "" (mapcar #'extract-section-name sects) :test #'equal))
+|#
         
 
 ;;;;===========================================================================
