@@ -63,14 +63,35 @@ can be used as building blocks for the final documentation."))
 ;;;;===========================================================================
 ;;;; Implementation.
 
+(defvar *default-docs-destination-html*
+  (make-pathname :directory '(:relative "docs" "html")))
+
+
+(defvar *default-docs-destination-html5*
+  (make-pathname :directory '(:relative "docs" "html5")))
+
+
+(defvar *default-docs-destination-texinfo*
+  (make-pathname :directory '(:relative "docs" "texinfo")))
+
+
+(defvar *default-docs-destination-temp*
+  (make-pathname :directory '(:relative "temp" "docs" "xhtmlx")))
+
+
+(defgeneric select-doc-destination (format)
+  (:method ((format (eql 'html))) *default-docs-destination-html*)
+  (:method ((format (eql 'html5))) *default-docs-destination-html5*)
+  )
+
+
 (defun document (for-what
                  &key
-                 (documentation-title)
+                 (documentation-title "HE&Lambda;P Untitled Documentation")
                  (format 'html)
                  (layout *default-documentation-structure*)
                  (source #P"")
-                 (destination 
-                  (make-pathname :directory '(:relative "docs" "html")))
+                 (destination (select-doc-destination format))
 
                  ((:supersede *supersede-documentation*)
                   *supersede-documentation*)
@@ -181,7 +202,7 @@ hamper the documentation procedure.
 
 
 (defmethod build-documentation ((p pathname)
-                                (format (eql 'html))
+                                (format t)
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
@@ -189,7 +210,7 @@ hamper the documentation procedure.
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  "Builds the documentation given a PATHNAME in a (X)HTML format.
+  "Builds the documentation given a PATHNAME in a given FORMAT.
 
 The pathname P can either denote a file or a folder.  If it is a folder
 then it is recursively traversed.
@@ -203,34 +224,6 @@ collect-documentation.
     (produce-documentation format
                            layout
                            destination
-                           doc-bits
-                           :documentation-title documentation-title))
-  )
-
-
-(defmethod build-documentation ((p pathname)
-                                (format (eql 'html5))
-                                &key
-                                (documentation-title)
-                                (layout *html5-documentation-structure*)
-                                (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
-                                &allow-other-keys
-                                )
-  "Builds the documentation given a PATHNAME in HTML5 format.
-
-The pathname P can either denote a file or a folder.  If i is a folder
-then it is recursively traversed.
-
-See Also:
-
-collect-documentation.
-"
-
-  (let ((doc-bits (collect-documentation p)))
-    (produce-documentation format
-                           layout
-                           (pathname destination)
                            doc-bits
                            :documentation-title documentation-title))
   )
@@ -259,7 +252,7 @@ collect-documentation.
 
 #+asdf
 (defmethod build-documentation ((s asdf:system)
-                                (format (eql 'html))
+                                (format t)
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
@@ -267,28 +260,7 @@ collect-documentation.
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  "Builds the documentation for a ASDF system in the (X)HTML format."
-
-  (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
-    (produce-documentation format
-                           layout
-                           (pathname destination)
-                           doc-bits
-                           :documentation-title documentation-title))
-  )
-
-
-#+asdf
-(defmethod build-documentation ((s asdf:system)
-                                (format (eql 'html5))
-                                &key
-                                (documentation-title)
-                                (layout *default-documentation-structure*)
-                                (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
-                                &allow-other-keys
-                                )
-  "Builds the documentation for a ASDF system in the HTM5 format."
+  "Builds the documentation for a ASDF system in a given FORMAT."
 
   (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
     (produce-documentation format
@@ -319,7 +291,7 @@ collect-documentation.
 
 #+mk-defsystem
 (defmethod build-documentation ((s mk::component)
-                                (format (eql 'html))
+                                (format t)
                                 &key
                                 (documentation-title)
                                 (layout *default-documentation-structure*)
@@ -327,30 +299,7 @@ collect-documentation.
                                  (make-pathname :directory '(:relative "docs" "html")))
                                 &allow-other-keys
                                 )
-  "Builds the documentation for a MK-DEFSYSTEM system in the (X)HTML format."
-
-  (assert (eq :defsystem (mk::component-type s)))
-
-  (let ((doc-bits (collect-documentation (mapcar #'pathname (mk:files-in-system s)))))
-    (produce-documentation format
-                           layout
-                           (pathname destination)
-                           doc-bits
-                           :documentation-title documentation-title))
-  )
-
-
-#+mk-defsystem
-(defmethod build-documentation ((s mk::component)
-                                (format (eql 'html5))
-                                &key
-                                (documentation-title)
-                                (layout *default-documentation-structure*)
-                                (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
-                                &allow-other-keys
-                                )
-  "Builds the documentation for a MK-DEFSYSTEM system in the HTML5 format."
+  "Builds the documentation for a MK-DEFSYSTEM system in a given FORMAT."
 
   (assert (eq :defsystem (mk::component-type s)))
 
@@ -382,5 +331,6 @@ collect-documentation.
     (declare (special *exclude-directories* *exclude-files*))
     (call-next-method)
     ))
+
 
 ;;;; end of file -- documentation-production.lisp --
