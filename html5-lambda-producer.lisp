@@ -12,11 +12,11 @@
 ;;;;===========================================================================
 ;;;; Prologue.
 
-;;;; The HTML5 producer makes essentially two kinds framesets: the "prose"
+;;;; The HTML5 producer makes essentially two kinds of "documents": the "prose"
 ;;;; and "help" ones and the "dictionary" one.
 ;;;;
-;;;; The "prose" and "help" ones are the "index", "downloads",
-;;;; "mailing-lists"/"contact" and "links" framesets, which have the
+;;;; The "prose" and "help" ones are the "index", and possibly the "downloads",
+;;;; "mailing-lists"/"contact" and "links" documents, which have the
 ;;;; following layout:
 #|
 
@@ -40,11 +40,11 @@
 +=============================================+
 
 MAIN and DOC-AREA (with other names in the code, depending on the
-DOCUMENTATION-STRUCTURE) are HTML FRAMESETS, HEADER, NAV, INFO-AREA
-and FOOTER are HTML FRAMES.  There should also be a Sidebar, but you
-get the idea.
+DOCUMENTATION-STRUCTURE) are HTML5 MAIN and ARTICLE elements; HEADER,
+NAV, INFO-AREA and FOOTER are similar HTML5 elements.  There should
+also be a Sidebar, but you get the idea.
 
-Each FRAMESET and FRAME is contained in a separate file.
+Each ARTICLE and NAV is contained in a separate file.
 |#
 ;;;; The "dictionary" frameset is essentially the same, but it
 ;;;; requires a more complex navigation scheme, reflected in the shape

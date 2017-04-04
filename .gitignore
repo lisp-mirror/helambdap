@@ -19,3 +19,4 @@ docs/*html*/*/*
 tmp/*
 
 doc-structure-saved.lisp
+*-saved.lisp
