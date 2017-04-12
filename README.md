@@ -53,6 +53,16 @@ Otherwise, installation should be simple if you have quicklisp, ASDF,
 or MK-DEFSYSTEM set up.  You will need also XHTMΛ and a few other
 libraries.  Check out the system files for the current list.
 
+
+A NOTE ON FORKING
+-----------------
+
+Of course you are free to fork the project subject to the current
+licensing scheme.  However, before you do so, I ask you to consider
+plain old "cooperation" by becoming asking me to become a developer.
+It helps keeping the entropy level at an acceptable level.
+
+
 Enjoy
 
 Marco Antoniotti 2017-03-29
