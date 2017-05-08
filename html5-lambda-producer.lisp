@@ -206,7 +206,8 @@ Each ARTICLE and NAV is contained in a separate file.
 
 
 ;;; produce-documentation html5 doc-area
-;;; This actually produces the 'index.html' for HTML5.
+;;; This actually produces the 'index.html' and the 'dictionary.html'
+;;; for HTML5.
 
 (defmethod produce-documentation ((format (eql 'html5))
                                   (da doc-area)
@@ -228,6 +229,7 @@ Each ARTICLE and NAV is contained in a separate file.
                                      :defaults where))
          ;; (fs-header (frameset-header structure))
          (da-content (doc-area-content da))
+         (da-navigation (doc-area-navigation da))
          ;; (fs-navigation (frameset-navigation structure))
          ;; (fs-footer (frameset-footer structure))
          )
@@ -297,8 +299,8 @@ function load_section(id, filename) {
 
 function load_index() {
     set_nav_mode(0);
-    load_section('nav_index', 'index-navigation.html');
-    load_section('introduction_frame', 'introduction.html');
+    load_section('nav_index', 'introduction-navigation.html');
+    load_section('main', 'introduction.html');
 };
 
 
@@ -321,38 +323,38 @@ function load_dictionary() {
 	    #|START OF HTML5 GENERATION|#
 	    (<:body
 	     
-	     (<:header
-              (<:strong (or documentation-title (head-title da)))
-	      ((<:div :class "navigation")
-		    ((<:a :href "#" :onclick "load_index()") "Index")
-		    "|"
-	            ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
+             ; ((<:main :id "top_level_body")
+              (<:header
+               (<:strong (or documentation-title (head-title da)))
+               ((<:div :class "navigation")
+                ((<:a :href "#" :onclick "load_index()") "Index")
+                "|"
+                ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
 	     
-             (produce-navigation 'html5
-                                 da
-                                 da-file
-                                 where
-                                 doc-bits
-                                 documentation-title) ; PRODUCE UN TAG FRAME DI TROPPO IN index.html
-
+              (produce-navigation 'html5
+                                  da
+                                  da-file
+                                  where
+                                  doc-bits
+                                  documentation-title)
+	     
+              ((<:main :id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+              ((<:nav :id "nav") "")
 
 	     
-	     ((<:main :id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
-	     ((<:nav :id "nav") "")
-
-	     
-	     (<:footer
-              (<:strong (or documentation-title (body-title da)))
-              "HTML5 documentation produced with"
-              ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
-              (<:br)
-              (<:comment "hhmts start")
-              "Last modified: " (text-timestamp)
-              (<:comment "hhmts end")
-              (<:br)
-              (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
-                      (nth-value 5 (decode-universal-time (get-universal-time)))))
-	     (<:script "load_index()")
+              (<:footer
+               (<:strong (or documentation-title (body-title da)))
+               "HTML5 documentation produced with"
+               ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
+               (<:br)
+               (<:comment "hhmts start")
+               "Last modified: " (text-timestamp)
+               (<:comment "hhmts end")
+               (<:br)
+               (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
+                       (nth-value 5 (decode-universal-time (get-universal-time)))))
+              (<:script "load_index()")
+              ; ) ; MAIN END
 
 	     )
             ) ; HTML END
@@ -374,7 +376,7 @@ function load_dictionary() {
     (unless (or (null nav) (and (stringp nav) (string= nav "")))
       (let ((nav-pathname
              (merge-pathnames
-              (merge-pathnames (element-name element)
+              (merge-pathnames (element-name nav)
                                (make-pathname :type *default-html-extension*))
               where))
             )
@@ -388,7 +390,7 @@ function load_dictionary() {
                                     doc-bits
                                     documentation-title))
 
-	(<:main (:id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
+	;; (<:main (:id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
         ))))
 
 
