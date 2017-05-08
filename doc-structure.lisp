@@ -855,7 +855,7 @@ that include ELEMENT."))
 
 (defparameter *xhtml-frame-documentation-structure*
   (make-documentation-structure
-   "standard"
+   "standard-xhtml"
    "index"
    (style-file)
    (framesets "doc-framesets"
@@ -876,7 +876,7 @@ that include ELEMENT."))
 
 (defparameter *xhtml-simple-frame-documentation-structure*
   (make-documentation-structure
-   "standard"
+   "standard-xhtml-simple"
    "index"
    (style-file)
    (framesets "doc-framesets"
@@ -885,7 +885,7 @@ that include ELEMENT."))
                         :content (doc-file "introduction"))
               (frameset "dictionary"
                         :location #P"dictionary/"
-                        :style (namestring *helambdap-css-filename-up*)
+                        :style (namestring *helambdap5-css-filename-up*)
                         :content (file-set "dictionary-entries"))
               ;; (frameset "downloads")
               ;; (frameset "mailing-lists")
@@ -905,20 +905,20 @@ A minimal documentation structure that contains only the main index
 
 (defparameter *html5-documentation-structure*
   (make-documentation-structure
-   "html5"
+   "standard-html5"
    "index"
    (style-file (pathname *helambdap5-css-pathname*))
    (main-view "doc-framesets"
               *helambdap5-css-filename*
               (doc-area "index"
-                        :navigation (navigation "intro-nav")
+                        :navigation (navigation "introduction-navigation")
                         :content (doc-file "introduction")
                         :style (namestring *helambdap5-css-filename*)
                         )
               (doc-area "dictionary"
                         :location #P"dictionary/"
                         :style (namestring *helambdap5-css-filename*)
-                        :navigation (navigation "dictionaty-nav")
+                        :navigation (navigation "dictionaty-navigation")
                         :content (file-set "dictionary-entries"))
               )
    )
