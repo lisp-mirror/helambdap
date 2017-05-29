@@ -10,7 +10,7 @@
                                                ;; #+helambdap.with-cxml "CXML"
                                                ;; #+helambdap.with-xhtmlambda "XHTMLAMBDA"
                                                )
-  (:nicknames "HELAMBDAP" "HELambdaP")
+  (:nicknames "HELAMBDAP" "HELambdaP" "HLP")
   (:shadow "DOCUMENTATION")
   (:shadow "FRAMESET" "FRAME")
   ;; (:shadowing-import-from "XHTMLAMBDA" "MAP" "TIME")
@@ -55,6 +55,12 @@
    "+DOCTYPE-HTML5-CONTROL-STRING+"
    "+FRAMESET-DOCTYPE-PUBLIC-ID+"
    "+FRAMESET-DOCTYPE-SYSTEM-ID+"
+   )
+
+  (:export
+   "HTML"
+   "HTML5"
+   "TEXINFO"
    )
 
   (:documentation "The HELambdaP Package.
