@@ -78,6 +78,40 @@ The default directory is set to the location of the source file.")
 
 
 ;;;---------------------------------------------------------------------------
+;;; Known output formats.
+
+(defparameter *known-output-formats*
+  (list 'html
+        'html5
+        ;; 'texinfo
+        )
+  "A list of known output formats.")
+
+
+(defgeneric output-format-tag (x)
+  (:documentation
+   "Translates from a 'user' tag to the canonical internal one.
+
+The internal tags are symbols in the HELambdaP implementation packages
+(which may, or may not be exported).
+
+Examples:
+
+(output-format-tag :html) ==> HLP:HTML
+
+")
+  (:method ((x (eql :html))) 'html)
+  (:method ((x (eql 'html))) 'html)
+
+  (:method ((x (eql :html5))) 'html5)
+  (:method ((x (eql 'html5))) 'html5)
+
+  ;;   (:method ((x (eql :texinfo))) 'texinfo)
+  ;;   (:method ((x (eql 'texinfo))) 'texinfo)
+  )
+
+
+;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
 
 ;;; documentation-structure --
@@ -908,26 +942,27 @@ A minimal documentation structure that contains only the main index
    "standard-html5"
    "index"
    (style-file (pathname *helambdap5-css-pathname*))
-   (main-view "doc-framesets"
+   (main-view "main-view"
               *helambdap5-css-filename*
               (doc-area "index"
+                        :style (namestring *helambdap5-css-filename*)
                         :navigation (navigation "introduction-navigation")
                         :content (doc-file "introduction")
-                        :style (namestring *helambdap5-css-filename*)
                         )
               (doc-area "dictionary"
                         :location #P"dictionary/"
-                        :style (namestring *helambdap5-css-filename*)
+                        :style (namestring *helambdap5-css-filename-up*)
                         :navigation (navigation "dictionaty-navigation")
-                        :content (file-set "dictionary-entries"))
+                        :content (file-set "dictionary-entries")
+                        )
               )
    )
   "The HTML5 documentation structure.
 
 A minimal documentation structure that contains only the main index
-(and introduction and the dictionary of of the system/package/library.")
+(and introduction and the dictionary of the system/package/library).")
 
-;;;;WIP
+;;;; WIP
 
 
 
