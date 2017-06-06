@@ -10,7 +10,10 @@
  * Permission is hereby granted to use this style, etc etc etc.
  */
 
+
+
 /* body styles. */
+
 body {
     background: #ffffff;
     font-family: Verdana, Arial, Helvetica;
@@ -19,52 +22,92 @@ body {
     color: black;
 }
 
-.innertube {
-    padding-left: 5px;
-    padding-top: 5px;
+
+.helambdap_doc {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 90%;
+    /* margin-left: 0px; */
+    /* border: dashed; */
+    outline: 1px solid green;
 }
 
+
+header {
+    display: block; 		/* Just to be sure. */
+    position: absolute;
+
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 65px;
+    box-sizing: border-box;	/* Absolutely necessary!  Tells
+				 * renderer to compute width by
+				 * including padding, border, etc etc.
+				 */
+    /* overflow-x: hidden; */
+    background: #9ebcb4;
+    /* border: dashed; */
+    outline: 1px solid red;
+}
+
+
+nav {
+    display: block; 		/* Just to be sure. */
+    position: absolute;
+    top: 65px;
+    bottom: 65px;
+    left: 0;
+    width: 25%;
+
+    padding: 5px;
+    box-sizing: border-box;	/* Absolutely necessary!  Tells
+				 * renderer to compute width by
+				 * including padding, border, etc etc.
+				 */
+    background: #ffffff;
+}
+
+
 main {
-    position: fixed;   
-    top: 65px;         /*set to height of the header*/
-    bottom: 65px;      /*set to height of the footer*/
-    left: 25%;         /*set to width of the navbar */
-    right: 0%;         /*to let the scroll lie on the far right*/
+    display: block; 		/* Just to be sure. */
+    position: absolute;
+    top: 65px;         /* set to height of the header */
+    bottom: 65px;      /* set to height of the footer */
+    left: 25%;         /* set to width of the navbar */
+    right: 0%;         /* to let the scroll lie on the far right */
+
+    box-sizing: border-box;	/* Absolutely necessary!  Tells
+				 * renderer to compute width by
+				 * including padding, border, etc etc.
+				 */
+
+    
     overflow: auto;
     background: #ffffff;
     border-color: #808080;
     border-width: 1px;
     border-style: none none none dotted;
+
+    padding: 10px;
 }
 
-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 65px;
-    overflow: hidden;
-    background: #9ebcb4;
-}
 
 footer {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 10px;
-    color: #808080;
-    font-weight: normal;
-    /* padding: 5px; */
-    margin-right: 5px;
-    text-align: right;
-    border-color: #808080;
-    border-width: 0px;
-    border-style: dotted;
-    border-top-width: 1px;
-    
+    display: block; 		/* Just to be sure. */
     position: absolute;
     left: 0;
     bottom: 0;
     width: 100%;
     height: 65px;
+    box-sizing: border-box;	/* Absolutely necessary!  Tells
+				 * renderer to compute width by
+				 * including padding, border, etc etc.
+				 */
+    
+    clear: both;		/* Just to be sure. */
 
     /*
     overflow: hidden;
@@ -73,18 +116,25 @@ footer {
     border-width: 1px;
     border-style: dotted none none none;
    */
+
+    font-family: Verdana, Arial, Helvetica;
+    font-size: 10px;
+    color: #808080;
+    font-weight: normal;
+
+    padding: 5px;
+    /* margin-top: 20pt; */
+    /* margin-right: 20pt; */
+    
+    text-align: right;
+    border-color: #808080;
+    border-width: 0px;
+    border-style: dotted;
+    border-top-width: 1px;
 }
 
-nav{
-    position: absolute;
-    top: 65px;
-    bottom: 65px;
-    left: 0;
-    width: 25%;
-    background: #ffffff;
-}
 
-#nav_index{
+#nav_index {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -93,7 +143,7 @@ nav{
     background: #ffffff;
 }
 
-#nav_map{
+#nav_map {
     position: absolute;
     top: 0;
     bottom: 75%;    /*complement of #nav_list top*/
@@ -105,7 +155,7 @@ nav{
     border-style: none none dotted none;
 }
 
-#nav_list{
+#nav_list {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -115,24 +165,48 @@ nav{
     background: #ffffff;
 }
 
-.header{
-    padding-left: 2em;
-    padding-top: 5pt;
-    color: #41286f;
-    font-size: 14pt;
+
+.hlpdoctitle {
+    font-size: 24pt;
+    padding-left: 5mm;
+    /* padding-top: 1mm; */
+    /* width: 100%; */
 }
 
-.footer {
-    font-family: Verdana, Arial, Helvetica;
-    font-size: 10px;
-    color: #808080;
-    font-weight: normal;
-    padding: 5px;
+
+header > nav { /* .topnavigation { */
+    display: block; 		/* Just to be sure. */
+    position: static;
+
+    /* left: 10px; */
+    /* bottom: 0px; */
+    
     text-align: right;
+    padding-right: 5px;
+    padding-bottom: 5px;
+
+
+    /* border: dotted; */
+    width: 100%;
+    box-sizing: border-box;	/* Absolutely necessary!  Tells
+				 * renderer to compute width by
+				 * including padding, border, etc etc.
+				 */
+
+    font-size: 9pt;
+    color: black;
+    background: transparent;
+    /*
+    background: yellow;
+    border-color: cyan;
+    */
+
+    /* float: right; */
+    /* clear: left; */
 }
 
-/*.navigation as of old CSS - should work with no problem*/
-.navigation {
+
+navigation {
     word-spacing: 5px;
     position: absolute;
     top: 35px;
@@ -143,4 +217,13 @@ nav{
     color: #ffffff;
     font-weight: normal;
     word-spacing: 0px;
- }
+}
+
+
+/* Catch all. */
+
+section, aside, article, figure {
+  display: block;
+}
+
+/* end of file -- helambdap5.css */

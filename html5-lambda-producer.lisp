@@ -140,56 +140,29 @@ Each ARTICLE and NAV is contained in a separate file.
 
 
 (defmethod produce-documentation ((format (eql 'html5))
-                                  (structure doc-file)
+                                  (structure js-file)
                                   (where pathname)
                                   doc-bits
                                   &key
-                                  (documentation-title "")
+                                  (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable doc-bits))
-  (let* ((doc-directory where)
-         (dfname (element-name structure))
-         (destination-path
-          (make-pathname :directory (pathname-directory doc-directory)
-                         :name (pathname-name dfname)
-                         :type (pathname-type dfname)))
-         )
-    (cond ((probe-file dfname)
-           (cl-fad:copy-file dfname destination-path :overwrite nil))
-
-          ((not (probe-file destination-path))
-           (produce-doc-file-placeholder structure
-                                         destination-path
-                                         documentation-title))
-          )))
+  (declare (ignorable doc-bits documentation-title))
+  (let ((doc-directory where)
+        (jsfn (element-name structure))
+        )
+    (cl-fad:copy-file jsfn
+                      (make-pathname
+                       :directory (pathname-directory doc-directory)
+                       :name (pathname-name jsfn)
+                       :type (pathname-type jsfn))
+                      :overwrite t)
+    ))
 
 
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (structure doc-file)
-                                  (where file-stream)
-                                  doc-bits
-                                  &key
-                                  (documentation-title "")
-                                  &allow-other-keys
-                                  )
-  (declare (ignorable doc-bits))
-  (let* ((doc-directory where)
-         (dfname (element-name structure))
-         (destination-path
-          (make-pathname :directory (pathname-directory doc-directory)
-                         :name (pathname-name dfname)
-                         :type (or (pathname-type dfname)
-                                   *default-html-extension*)))
-         )
-    (cond ((probe-file dfname)
-           (cl-fad:copy-file dfname destination-path :overwrite nil))
-          ((not (probe-file destination-path))
-           (produce-doc-file-placeholder structure
-                                         destination-path
-                                         documentation-title))
-          )))
-
+;;; produce-documentation html5 doc-area
+;;; This actually produces the 'index.html' and the 'dictionary.html'
+;;; for HTML5.
 
 (defmethod produce-documentation ((format (eql 'html5))
                                   (mv main-view)
@@ -199,70 +172,35 @@ Each ARTICLE and NAV is contained in a separate file.
                                   (documentation-title)
                                   &allow-other-keys
                                   )
-  (declare (ignorable documentation-title))
-  (dolist (e (elements-of mv))
-    (produce-documentation 'html5 e where doc-bits
-                           :documentation-title documentation-title)))
 
-
-;;; produce-documentation html5 doc-area
-;;; This actually produces the 'index.html' and the 'dictionary.html'
-;;; for HTML5.
-
-(defmethod produce-documentation ((format (eql 'html5))
-                                  (da doc-area)
-                                  (where pathname)
-                                  doc-bits
-                                  &key
-                                  (documentation-title)
-                                  &allow-other-keys
-                                  )
-  (let* ((da-location (element-location da))
-         (where (if da-location
-                    (merge-pathnames da-location where)
-                    where))
-
-         (da-name (element-name da))
-         (da-title (or documentation-title da-name))
-         (da-pathname (make-pathname :name da-name
-                                     :type *default-html-extension*
-                                     :defaults where))
-         ;; (fs-header (frameset-header structure))
-         (da-content (doc-area-content da))
-         (da-navigation (doc-area-navigation da))
-         ;; (fs-navigation (frameset-navigation structure))
-         ;; (fs-footer (frameset-footer structure))
+  (let* ((index-name (element-name mv))
+         (index-title (or documentation-title index-name))
+         (index-pathname (make-pathname :name "index" ; (element-name mv)
+                                        :type *default-html-extension*
+                                        :defaults where))
+         (<:*html5-no-self-closing-tag* t) ; Just testing.
          )
-    ;; (declare (ignore fs-footer fs-navigation fs-header))
 
-    (ensure-directories-exist where)
-
-    (with-open-file (da-file da-pathname
-                             :direction :output
-                             :if-does-not-exist :create
-                             :if-exists :supersede)
-
-      (when da-content
-        (produce-documentation format
-                               da-content
-                               da-file
-                               doc-bits
-                               :documentation-title documentation-title))
-
-      (<:with-html-syntax-output (da-file :print-pretty t :syntax :compact)
+    (with-open-file (index-file index-pathname
+                                :direction :output
+                                :if-does-not-exist :create
+                                :if-exists :supersede)
+      (<:with-html-syntax-output (index-file :print-pretty t :syntax :compact)
           (<:document
-           (<:comment da-name)
-           (string #\Newline)
            +doctype-html5-control-string+
            (string #\Newline)
+
+           (<:comment index-name)
+           (string #\Newline)
+
            (<:html
 	    
             (<:head
-             (<:title da-title)
+             (<:title index-title)
 	     
-	     ;; ((<:script :type "text/javascript" :src "loader.js") "")
+             ((<:script :type "text/javascript" :src "helambdap-support.js"))
 
-	     ((<:script :type "text/javascript")
+             #|	     ((<:script :type "text/javascript")
               "
 // -*- Mode: JavaScript -*-
 
@@ -317,33 +255,43 @@ function load_dictionary() {
 // end of file -- helambdap-js-support.js
 "
 	      )
+|#
 	     
-             (<:link :rel "stylesheet" :href (element-style da)))
+             (<:link :rel "stylesheet" :href (element-style mv))
+             ) ; HEAD
 
 	    #|START OF HTML5 GENERATION|#
 	    (<:body
-	     
-             ; ((<:main :id "top_level_body")
+             ((<:div :class "helambdap_doc")
               (<:header
-               (<:strong (or documentation-title (head-title da)))
-               ((<:div :class "navigation")
-                ((<:a :href "#" :onclick "load_index()") "Index")
+               ((<:div :class "hlpdoctitle")
+                (<:strong (or documentation-title (head-title mv))))
+               ((<:nav :class "topnavigation" :id "topnavigation")
+
+                ;; !!!!! ADD "topnavigation" and "mainnav" to helambdap5.css.
+
+                ((<:a :href "#" :onclick "hlp_load_introduction()") "Index")
                 "|"
-                ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")))
-	     
+                ;; ((<:a :href "#" :onclick "load_dictionary()") "Dictionary")
+                ((<:a :href "#" :onclick "hlp_load_dictionary()") "Dictionary")
+                )) ; HEADER
+              	     
+              #|
               (produce-navigation 'html5
                                   da
                                   da-file
                                   where
                                   doc-bits
                                   documentation-title)
+              |#
+
+              ((<:nav :class "mainnav" :id "mainnav") "")
 	     
               ((<:main :id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
-              ((<:nav :id "nav") "")
 
-	     
+              
               (<:footer
-               (<:strong (or documentation-title (body-title da)))
+               (<:strong (or documentation-title (body-title mv)))
                "HTML5 documentation produced with"
                ((<:a :href *helambdap-site* :target "_blank") "HE&Lambda;P")
                (<:br)
@@ -352,22 +300,73 @@ function load_dictionary() {
                (<:comment "hhmts end")
                (<:br)
                (format nil "&copy; ~D, Marco Antoniotti, all rights reserved."
-                       (nth-value 5 (decode-universal-time (get-universal-time)))))
-              (<:script "load_index()")
-              ; ) ; MAIN END
+                       (nth-value 5 (decode-universal-time (get-universal-time))))
+               ) ; FOOTER
 
-	     )
+              ;; Do load the 'introduction'.
+              (<:script "hlp_load_introduction()")
+              )
+             )
             ) ; HTML END
+
+           (string #\Newline)
+
            (<:comment 
-            (format nil "end of file : ~A.htm" da-name))
+            (format nil "end of file : ~A.html" index-name))
            ) ; DOCUMENT END
-	  )
+          )
+      )
+
+    (dolist (e (elements-of mv))
+      (format t "~&>>> HLP: producing doc for ~S.~%" (element-name e))
+      (produce-documentation 'html5 e where doc-bits
+                             :documentation-title documentation-title)
       )))
+
+
+(defmethod produce-documentation ((format (eql 'html5))
+                                  (da doc-area)
+                                  (where pathname)
+                                  doc-bits
+                                  &key
+                                  (documentation-title)
+                                  &allow-other-keys
+                                  )
+  (let* ((da-location (element-location da))
+         (where (if da-location
+                    (merge-pathnames da-location where)
+                    where))
+
+         (da-name (element-name da))
+         (da-title (or documentation-title da-name))
+         (da-pathname (make-pathname :name da-name
+                                     :type *default-html-extension*
+                                     :defaults where))
+         (da-content (doc-area-content da))
+         (da-navigation (doc-area-navigation da))
+         )
+
+    (ensure-directories-exist where)
+
+    (when da-content
+      (produce-documentation format
+                             da-content
+                             where
+                             doc-bits
+                             :documentation-title documentation-title)
+
+      (produce-navigation 'html5
+                          da
+                          ;; da-file
+                          where
+                          doc-bits
+                          documentation-title))
+    ))
 
 
 (defmethod produce-navigation ((format (eql 'html5))
                                (element doc-area)
-                               (out stream)
+                               ;; (out stream)
                                (where pathname)
                                doc-bits
                                documentation-title
@@ -389,14 +388,65 @@ function load_dictionary() {
                                     nav-pathname
                                     doc-bits
                                     documentation-title))
-
-	;; (<:main (:id "main") "") ; ADDED "main" TAG GENERATION IN (X)HTMLambda
         ))))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
-                                  (structure file-set)
+                                  (structure doc-file)
+                                  (where pathname)
+                                  doc-bits
+                                  &key
+                                  (documentation-title "")
+                                  &allow-other-keys
+                                  )
+  (declare (ignorable doc-bits))
+  (let* ((doc-directory where)
+         (dfname (element-name structure))
+         (destination-path
+          (make-pathname :directory (pathname-directory doc-directory)
+                         :name (pathname-name dfname)
+                         :type (pathname-type dfname)))
+         )
+    (cond ((probe-file dfname)
+           (cl-fad:copy-file dfname destination-path :overwrite nil))
+
+          ((not (probe-file destination-path))
+           (produce-doc-file-placeholder structure
+                                         destination-path
+                                         documentation-title))
+          )))
+
+
+(defmethod produce-documentation ((format (eql 'html5))
+                                  (structure doc-file)
                                   (where file-stream)
+                                  doc-bits
+                                  &key
+                                  (documentation-title "")
+                                  &allow-other-keys
+                                  )
+  (declare (ignorable doc-bits))
+  (let* ((doc-directory where)
+         (dfname (element-name structure))
+         (destination-path
+          (make-pathname :directory (pathname-directory doc-directory)
+                         :name (pathname-name dfname)
+                         :type (or (pathname-type dfname)
+                                   *default-html-extension*)))
+         )
+    (cond ((probe-file dfname)
+           (cl-fad:copy-file dfname destination-path :overwrite nil))
+          ((not (probe-file destination-path))
+           (produce-doc-file-placeholder structure
+                                         destination-path
+                                         documentation-title))
+          )))
+
+
+(defmethod produce-documentation ((format (eql 'html5))
+                                  (structure file-set)
+                                  ;; (where file-stream)
+                                  (where pathname)
                                   doc-bits
                                   &key
                                   (documentation-title)
@@ -903,9 +953,9 @@ function load_dictionary() {
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  ;; (documentation-title "")
+                                  (documentation-title "")
                                   &allow-other-keys)
-  (declare (ignorable doc-bits))
+  (declare (ignorable doc-bits documentation-title))
   (let* ((db-name (doc-bit-name doc-bit))
          (name (format nil "~(~A~)" db-name))
          (kind (doc-bit-kind doc-bit))
@@ -1194,7 +1244,7 @@ function load_dictionary() {
   (let* ((doc-file-pathname (file-pathname nav-element nav-pathname))
          (sections (extract-sections doc-file-pathname 'html))
          (section-names (extract-section-names sections))
-        )
+         )
 
     (flet ((make-nav-links ()
              (loop for sn in section-names
@@ -1211,16 +1261,19 @@ function load_dictionary() {
                           :if-exists :supersede
                           :if-does-not-exist :create)
         (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
-	  ((<:div :class "innertube")
-	   (<:ul (make-nav-links)))
-          ))
+            (<:document
+             (<:comment (base-name nav-pathname))
+             ((<:div :class "nav_doc_file_links")
+              (<:ul (make-nav-links)))
+             (<:comment "end of file -- " (base-name nav-pathname))
+             )))
       )))
 
 
 ;;; NAVIGATION FILE FOR DICTIONARY - 2 PART NAVIGATION
 
 (defmethod produce-navigation-links ((format (eql 'html5))
-                                     (fs doc-area)
+                                     (da doc-area)
                                      (nav-element file-set)
                                      nav-pathname
                                      doc-bits
@@ -1228,24 +1281,24 @@ function load_dictionary() {
   (declare (type pathname nav-pathname))
   (declare (ignorable documentation-title))
 
-  (let* ((fs-name (element-name fs))
+  (let* ((da-name (element-name da))
 
          (nav-map-pathname
           (make-pathname :name (format nil
                                        "~A-navigation-map"
-                                       fs-name)
+                                       da-name)
                          :type *default-html-extension*
                          :defaults nav-pathname))
          (nav-list-pathname
           (make-pathname :name (format nil
                                        "~A-navigation-lists"
-                                       fs-name)
+                                       da-name)
                          :type *default-html-extension*
                          :defaults nav-pathname))
          )
-    (declare (ignore fs-order fs-body-title nav-list-pathname))
+    (declare (ignore nav-list-pathname))
     (produce-navigation-map format
-                            fs
+                            da
                             nav-element
                             nav-map-pathname
                             doc-bits
@@ -1272,97 +1325,100 @@ function load_dictionary() {
                         :if-exists :supersede
                         :if-does-not-exist :create)
       (<:with-html-syntax-output (nm :print-pretty t :syntax :compact)
-          ((<:div :class "innertube")
-           ((<:div :class "helambdap_navmap"
-                   :style "border-bottom-style: dotted"
+          (<:document
+           (<:comment (base-name nm-pathname))
+           ((<:div :class "nav_file_set_links")
+            ((<:div :class "nav_menu"
+                    :style "border-bottom-style: dotted"
+                    )
+             (<:h3 "Systems and Packages")
+
+             (let ((syss (remove-if (complement #'system-doc-bit-p)
+                                    doc-bits))
+                   (pkgs (remove-if (complement #'package-doc-bit-p)
+                                    doc-bits))
                    )
-            (<:h3 "Systems and Packages")
-
-            (let ((syss (remove-if (complement #'system-doc-bit-p)
-                                   doc-bits))
-                  (pkgs (remove-if (complement #'package-doc-bit-p)
-                                   doc-bits))
-                  )
-              (list
-               (<:h4 () "Systems")
-               (<:div ()
-                      (loop for s in (remove-duplicates
-                                      syss
-                                      :test
-                                      (lambda (s1 s2)
-                                        (and (not (eq (type-of s1)
-                                                      (type-of s2)))
-                                             (string-equal (doc-bit-name s1)
-                                                           (doc-bit-name s2)))))
-                            ;; The above is kludgy!  It is meant to
-                            ;; remove duplicate systems assuming
-                            ;; that different kinds of systems are
-                            ;; mutually exclusive.
-                            ;; In practice it will not affect most people.
-                            for s-doc-pathname
-                            = (make-doc-bit-pathname s
-                                                     *default-html-extension*
-                                                     nm-pathname)
+               (list
+                (<:h4 () "Systems")
+                (<:div ()
+                       (loop for s in (remove-duplicates
+                                       syss
+                                       :test
+                                       (lambda (s1 s2)
+                                         (and (not (eq (type-of s1)
+                                                       (type-of s2)))
+                                              (string-equal (doc-bit-name s1)
+                                                            (doc-bit-name s2)))))
+                             ;; The above is kludgy!  It is meant to
+                             ;; remove duplicate systems assuming
+                             ;; that different kinds of systems are
+                             ;; mutually exclusive.
+                             ;; In practice it will not affect most people.
+                             for s-doc-pathname
+                             = (make-doc-bit-pathname s
+                                                      *default-html-extension*
+                                                      nm-pathname)
 			 
-                            #|FRAME TO BE LINKED --- DONE|#
-                            for s-filename = (base-name s-doc-pathname)
-                            collect (<:p ()
-                                         (<:a (:href "#"
-                                               :onclick
-                                               (format nil
-                                                       "load_section('~A', '~A')"
-                                                       nav-element-target
-                                                       s-filename))
-                                              ;; (:href s-filename
-                                              ;;	:target nav-element-target
-                                              ;;	)
-                                              (doc-bit-name s))
-                                         )))
+                             #|FRAME TO BE LINKED --- DONE|#
+                             for s-filename = (base-name s-doc-pathname)
+                             collect (<:p ()
+                                          (<:a (:href "#"
+                                                :onclick
+                                                (format nil
+                                                        "load_section('~A', '~A')"
+                                                        nav-element-target
+                                                        s-filename))
+                                               ;; (:href s-filename
+                                               ;;	:target nav-element-target
+                                               ;;	)
+                                               (doc-bit-name s))
+                                          )))
 
-               (<:h4 () "Packages")
-               (<:div ()
-                      (loop for p in pkgs
+                (<:h4 () "Packages")
+                (<:div ()
+                       (loop for p in pkgs
 
-                            for p-doc-pathname =
-                            (make-doc-bit-pathname p
-                                                   *default-html-extension*
-                                                   nm-pathname)
-                            for p-filename = (base-name p-doc-pathname)
+                             for p-doc-pathname =
+                             (make-doc-bit-pathname p
+                                                    *default-html-extension*
+                                                    nm-pathname)
+                             for p-filename = (base-name p-doc-pathname)
 
-                            for p-list-pathname =
-                            (make-pathname :name (format nil "~A-list"
-                                                         (pathname-name p-doc-pathname))
-                                           :type *default-html-extension*
-                                           :defaults nm-pathname)
-                            for p-list-filename = (base-name p-list-pathname)
+                             for p-list-pathname =
+                             (make-pathname :name (format nil "~A-list"
+                                                          (pathname-name p-doc-pathname))
+                                            :type *default-html-extension*
+                                            :defaults nm-pathname)
+                             for p-list-filename = (base-name p-list-pathname)
 
-                            #|FRAME TO BE LINKED --- DONE|#
-                            do (produce-package-navigation-list format
-                                                                da
-                                                                nav-element
-                                                                p
-                                                                p-list-pathname
-                                                                doc-bits)
-                            collect (<:p ()
-                                         (<:a (:href "#"
-                                               :onclick
-                                               (format nil
-                                                       "load_section('~A', '~A');
+                             #|FRAME TO BE LINKED --- DONE|#
+                             do (produce-package-navigation-list format
+                                                                 da
+                                                                 nav-element
+                                                                 p
+                                                                 p-list-pathname
+                                                                 doc-bits)
+                             collect (<:p ()
+                                          (<:a (:href "#"
+                                                :onclick
+                                                (format nil
+                                                        "load_section('~A', '~A');
                                                         load_section('nav_list', '~A');"
-                                                       nav-element-target
-                                                       p-filename
-                                                       p-list-filename)
-                                               )
-                                              ;; (:href p-filename
-                                              ;;		:target nav-element-target
-                                              ;;		:onclick
-                                              ;;		(format nil
-                                              ;;			"parent.frames[1].location.href = '~A'"
-                                              ;;			p-list-filename
-                                              ;;			)
-                                              ;;		)
-                                              (doc-bit-name p)))))
-               ))))
+                                                        nav-element-target
+                                                        p-filename
+                                                        p-list-filename)
+                                                )
+                                               ;; (:href p-filename
+                                               ;;		:target nav-element-target
+                                               ;;		:onclick
+                                               ;;		(format nil
+                                               ;;			"parent.frames[1].location.href = '~A'"
+                                               ;;			p-list-filename
+                                               ;;			)
+                                               ;;		)
+                                               (doc-bit-name p)))))
+                ))))
+           (<:comment "end of file -- " (base-name nm-pathname)))
           ))))
 
 

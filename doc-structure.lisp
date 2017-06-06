@@ -60,6 +60,13 @@ The default directory is set to the location of the source file.")
 (defparameter *default-html-extension* "html")
 
 
+(defparameter *helambdap-js-pathname*
+  (merge-pathnames (make-pathname :name "helambdap-support"
+                                  :type "js"
+                                  :directory (list :relative "js"))
+                   *load-pathname*))
+
+
 ;;; Useful macro
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -470,6 +477,22 @@ that include ELEMENT."))
 
 (defun style-file (&optional (name (pathname *helambdap-css-pathname*)))
   (make-instance 'style-file :name name))
+
+
+;;; js-file --
+
+(defclass js-file (file)
+  ((name :initform (pathname *helambdap-js-pathname*)
+         :accessor jf-file-name)))
+
+
+(defgeneric js-file-p (x)
+  (:method ((x js-file)) t)
+  (:method ((x t)) nil))
+
+
+(defun js-file (&optional (name (pathname *helambdap-js-pathname*)))
+  (make-instance 'js-file :name name))
 
 
 ;;; doc-file --
@@ -942,9 +965,10 @@ A minimal documentation structure that contains only the main index
    "standard-html5"
    "index"
    (style-file (pathname *helambdap5-css-pathname*))
-   (main-view "main-view"
+   (js-file)
+   (main-view "index"
               *helambdap5-css-filename*
-              (doc-area "index"
+              (doc-area "intro"
                         :style (namestring *helambdap5-css-filename*)
                         :navigation (navigation "introduction-navigation")
                         :content (doc-file "introduction")

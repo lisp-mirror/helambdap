@@ -120,7 +120,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 
 (defgeneric produce-navigation (format
                                 element
-                                out
+                                ;; out
                                 where
                                 doc-bits
                                 doc-title))
