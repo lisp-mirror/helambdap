@@ -488,7 +488,7 @@ function load_dictionary() {
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (dffs :print-pretty t :syntax :compact)
-          ((<:div :class "innertube")
+          (<:div
            (<:h1 documentation-title dfname)
            (<:p "This is a placeholder for information pertaining "
                 documentation-title)
@@ -504,17 +504,25 @@ function load_dictionary() {
   (declare (type file-set file-set)
            (type stream where)
            )
+
+
+
   (let ((file-set-pathname
          (make-pathname :name (element-name file-set)
                         :type *default-html-extension*
                         :defaults (pathname where)))
         )
+    (format t "HELAMBDAP: producing HTML5 file set placeholder~%~:
+               ~S~%~:
+               ~S~%~:
+               ~S~2%"
+            file-set where file-set-pathname)
     (with-open-file (fsfs file-set-pathname
                           :direction :output
                           :if-does-not-exist :create
                           :if-exists :supersede)
       (<:with-html-syntax-output (fsfs :print-pretty t :syntax :compact)
-          ((<:div :class "innertube")
+          (<:div
            (<:h1 "Dictionary Entries")
            (<:p "Click and/or scroll on the menus on the side to choose "
                 "what information to display."))
@@ -1281,6 +1289,12 @@ function load_dictionary() {
   (declare (type pathname nav-pathname))
   (declare (ignorable documentation-title))
 
+  (format t "~&HELAMBDAP: producing HTML5 NAV LINKS file~%~:
+           ~S~%~:
+           ~S~%~:
+           ~S~2%"
+          da nav-element nav-pathname)
+
   (let* ((da-name (element-name da))
 
          (nav-map-pathname
@@ -1297,6 +1311,7 @@ function load_dictionary() {
                          :defaults nav-pathname))
          )
     (declare (ignore nav-list-pathname))
+    
     (produce-navigation-map format
                             da
                             nav-element
@@ -1328,9 +1343,7 @@ function load_dictionary() {
           (<:document
            (<:comment (base-name nm-pathname))
            ((<:div :class "nav_file_set_links")
-            ((<:div :class "nav_menu"
-                    :style "border-bottom-style: dotted"
-                    )
+            ((<:div :class "nav_menu")
              (<:h3 "Systems and Packages")
 
              (let ((syss (remove-if (complement #'system-doc-bit-p)
@@ -1403,7 +1416,7 @@ function load_dictionary() {
                                                 :onclick
                                                 (format nil
                                                         "load_section('~A', '~A');
-                                                        load_section('nav_list', '~A');"
+                                                         load_section('nav_list', '~A');"
                                                         nav-element-target
                                                         p-filename
                                                         p-list-filename)

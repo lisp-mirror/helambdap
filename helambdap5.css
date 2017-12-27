@@ -28,10 +28,11 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 90%;
-    /* margin-left: 0px; */
+    height: 100%;
+
     /* border: dashed; */
-    outline: 1px solid green;
+    
+    outline: 1px solid green;	/* Should always be invisible. */
 }
 
 
@@ -47,9 +48,8 @@ header {
 				 * renderer to compute width by
 				 * including padding, border, etc etc.
 				 */
-    /* overflow-x: hidden; */
-    background: #9ebcb4;
-    /* border: dashed; */
+    background: #9ebcb4;	/* CLtL2 almost cover color; more greenish. */
+
     outline: 1px solid red;
 }
 
@@ -62,7 +62,7 @@ nav {
     left: 0;
     width: 25%;
 
-    padding: 5px;
+    /* padding: 5px; */
     box-sizing: border-box;	/* Absolutely necessary!  Tells
 				 * renderer to compute width by
 				 * including padding, border, etc etc.
@@ -91,7 +91,7 @@ main {
     border-width: 1px;
     border-style: none none none dotted;
 
-    padding: 10px;
+    padding: 15px;
 }
 
 
@@ -109,30 +109,27 @@ footer {
     
     clear: both;		/* Just to be sure. */
 
-    /*
-    overflow: hidden;
-    background: #ffffff;
-    border-color: #808080;
-    border-width: 1px;
-    border-style: dotted none none none;
-   */
-
     font-family: Verdana, Arial, Helvetica;
     font-size: 10px;
-    color: #808080;
     font-weight: normal;
+    text-align: right;
 
     padding: 5px;
-    /* margin-top: 20pt; */
-    /* margin-right: 20pt; */
-    
-    text-align: right;
+
+    color: #808080;
+
     border-color: #808080;
     border-width: 0px;
     border-style: dotted;
     border-top-width: 1px;
 }
 
+
+.nav_menu {
+    padding: 10px;
+    border-bottom-style: dotted;
+    border-bottom-width: 1px;
+}
 
 #nav_index {
     position: absolute;
@@ -143,10 +140,11 @@ footer {
     background: #ffffff;
 }
 
+
 #nav_map {
     position: absolute;
     top: 0;
-    bottom: 75%;    /*complement of #nav_list top*/
+    bottom: 75%;		/* Complement of #nav_list top. */
     width: 100%;
     overflow: auto;
     background: #ffffff;
@@ -155,11 +153,12 @@ footer {
     border-style: none none dotted none;
 }
 
+
 #nav_list {
     position: absolute;
     bottom: 0;
     left: 0;
-    top: 25%;    /*complement of #nav_map bottom*/
+    top: 25%;			/* Complement of #nav_map bottom. */
     width: 100%;
     overflow: auto;
     background: #ffffff;
@@ -169,17 +168,13 @@ footer {
 .hlpdoctitle {
     font-size: 24pt;
     padding-left: 5mm;
-    /* padding-top: 1mm; */
-    /* width: 100%; */
+    color: #41286f;
 }
 
 
 header > nav { /* .topnavigation { */
     display: block; 		/* Just to be sure. */
     position: static;
-
-    /* left: 10px; */
-    /* bottom: 0px; */
     
     text-align: right;
     padding-right: 5px;
@@ -196,13 +191,6 @@ header > nav { /* .topnavigation { */
     font-size: 9pt;
     color: black;
     background: transparent;
-    /*
-    background: yellow;
-    border-color: cyan;
-    */
-
-    /* float: right; */
-    /* clear: left; */
 }
 
 

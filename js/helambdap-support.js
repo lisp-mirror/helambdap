@@ -45,7 +45,9 @@ function hlp_load_introduction() {
 
 function hlp_load_dictionary() {
     hlp_load_section('mainnav',
-		     'dictionary/dictionary-navigation.html');
+		     // 'dictionary/dictionary-navigation.html'
+		     'dictionary/dictionary-navigation-map.html'
+		    );
     
     hlp_load_section('main',
 		     'dictionary/dictionary-entries.html')
