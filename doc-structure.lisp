@@ -715,9 +715,11 @@ that include ELEMENT."))
 (defmethod print-object ((fs frameset) stream)
   (declare (type stream stream))
   (print-unreadable-object (fs stream :identity t)
-    (format stream "FRAMESET ~S ~S"
+    (format stream "FRAMESET ~S ~S ~S"
             (frameset-name fs)
-            (frameset-location fs))))
+            (frameset-location fs)
+            (frameset-style fs)
+            )))
 
 
 (defmethod pprint-element ((o stream) (fs frameset))
@@ -942,7 +944,7 @@ that include ELEMENT."))
                         :content (doc-file "introduction"))
               (frameset "dictionary"
                         :location #P"dictionary/"
-                        :style (namestring *helambdap5-css-filename-up*)
+                        :style (namestring *helambdap-css-filename-up*)
                         :content (file-set "dictionary-entries"))
               ;; (frameset "downloads")
               ;; (frameset "mailing-lists")

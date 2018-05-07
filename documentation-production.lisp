@@ -81,14 +81,16 @@ can be used as building blocks for the final documentation."))
 
 (defgeneric select-doc-destination (format)
   (:method ((format (eql 'html))) *default-docs-destination-html*)
+  (:method ((format (eql :html))) *default-docs-destination-html*)
   (:method ((format (eql 'html5))) *default-docs-destination-html5*)
+  (:method ((format (eql :html5))) *default-docs-destination-html5*)
   )
 
 
 (defun document (for-what
                  &key
                  (documentation-title "HE&Lambda;P Untitled Documentation")
-                 (format 'html)
+                 (format :html)
                  (layout *default-documentation-structure*)
                  (source #P"")
                  (destination (select-doc-destination format))

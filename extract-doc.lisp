@@ -898,8 +898,8 @@ there exist a package named by one of the defpackage form nicknames."
 
 
 (defmethod extract-form-documentation :around ((fk symbol) form)  ; Catch all that fixes all problems.
-  (declare (ignorable form))
-  (let ((r (call-next-method)))
+  ;; (declare (ignorable form))
+  (let ((r (call-next-method fk form)))
     (etypecase r
       (doc-bit r)
       (null nil)
