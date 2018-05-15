@@ -7,6 +7,27 @@
 (in-package "HELAMBDAP")
 
 
+;;; RETURNS special declaration.
+;;; The RETURNS declaration can be used to declare (and document) the
+;;; values returned by a 'function'.
+;;; The syntax is
+;;;
+;;;    results-decl ::= '('RETURNS rdecls')'
+;;;    rdecls       ::= ()
+;;;                 |   rdecl rdecls
+;;;    rdecl        ::= type
+;;;                 |   '(' doc-string type optname ')'
+;;;    type         ::= a CL type
+;;;    doc-string   ::= a string
+;;;    optname      ::= a symbol
+;;;
+;;; Only the first declaration is considered.  The others are ignored.
+
+(eval-when (:load-toplevel :compile-toplevel :execute)
+  (proclaim '(declaration returns))
+  )
+
+
 ;;;;---------------------------------------------------------------------------
 ;;;; Doc bits data base.
 
