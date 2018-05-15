@@ -20,6 +20,7 @@
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ((:file "text-utilities")
+                             (:file "package-utilities")
                              (:file "filename-utilities")
                              (:file "time-utilities")
                              (:file "streams-utilities")
@@ -31,9 +32,14 @@
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
-               (:file "doc-structure" :depends-on ("helambdap-pkg" "utilities"))
+               (:file "doc-structure"
+                :depends-on ("helambdap-pkg"
+                             "utilities"
+                             "collect-documentation"))
                (:file "documentation-production"
-                :depends-on ("impl-dependent" "doc-structure"))
+                :depends-on ("impl-dependent"
+                             "helambdap"
+                             "doc-structure"))
 
                (:file "xhtml-common-definitions"
                 :depends-on ("helambdap-pkg"))
@@ -111,6 +117,7 @@
 			     ))
                )
   :depends-on ("cl-fad"
+               "CLAD"
                "split-sequence"
                #+helambdap.version-using-MOP "closer-mop"
                #+helambdap.with-cxml "cxml"

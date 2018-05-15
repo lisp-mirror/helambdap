@@ -26,6 +26,7 @@
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ("text-utilities"
+                             "package-utilities"
                              "filename-utilities"
                              "time-utilities"
                              "streams-utilities"
@@ -37,9 +38,14 @@
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
-               (:file "doc-structure" :depends-on ("helambdap-pkg" "utilities"))
+               (:file "doc-structure"
+                :depends-on ("helambdap-pkg"
+                             "collect-documentation"
+                             "utilities"))
                (:file "documentation-production"
-                :depends-on ("impl-dependent" "doc-structure"))
+                :depends-on ("impl-dependent"
+                             "helambdap"
+                             "doc-structure"))
                
                (:file "xhtml-common-definitions"
                 :depends-on ("helambdap-pkg"))
@@ -117,6 +123,7 @@
 			     ))
                )
   :depends-on ("CL-FAD"
+               "CLAD"
                "SPLIT-SEQUENCE"
                #+helambdap.version-using-MOP "CLOSER-MOP"
                #+helambdap.with-cxml "CXML"
@@ -124,7 +131,10 @@
                #+healpmbda.with-ediware "HTML-TEMPLATE"
                #+helambdap.with-xhtmlambda "XHTMLAMBDA"
                )
-  :finally-do (pushnew :helambdap *features*)
+  :finally-do (progn
+                (pushnew :helambdap *features*)
+                ;; (format t ">>> HELAMBDAP Found ~S~2%" (find-package "CL-FAD"))
+                )
   )
 
 ;;;; end of file -- helambdap.system --
