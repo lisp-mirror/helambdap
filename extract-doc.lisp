@@ -7,27 +7,6 @@
 (in-package "HELAMBDAP")
 
 
-;;; RETURNS special declaration.
-;;; The RETURNS declaration can be used to declare (and document) the
-;;; values returned by a 'function'.
-;;; The syntax is
-;;;
-;;;    results-decl ::= '('RETURNS rdecls')'
-;;;    rdecls       ::= ()
-;;;                 |   rdecl rdecls
-;;;    rdecl        ::= type
-;;;                 |   '(' doc-string type optname ')'
-;;;    type         ::= a CL type
-;;;    doc-string   ::= a string
-;;;    optname      ::= a symbol
-;;;
-;;; Only the first declaration is considered.  The others are ignored.
-
-(eval-when (:load-toplevel :compile-toplevel :execute)
-  (proclaim '(declaration returns))
-  )
-
-
 ;;; extract-documentation --
 
 (defgeneric extract-documentation (where-from)
@@ -81,7 +60,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 (defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
   (handler-case
       (let ((*package* *current-package*))
-        (read forms-stream nil eof))
+        (read forms-stream nil eof t))
     (simple-error (e)
       (format *error-output*
               "~%HELambdaP form reader: trying to read a form caused errors.
@@ -199,7 +178,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 
 ;;; extract-form-documentation --
 
+;;; Kitchen sink methods.
+
 (defmethod extract-form-documentation ((fk symbol) (form cons))
+  ;; (format t "~%>>> EFD: ~S ~S~2%" fk form)
   (let ((doc-bit
          (extract-named-form-documentation fk
                                            (intern (string fk) "HELAMBDAP")
@@ -209,6 +191,16 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
       (warn "Operator ~A not handled." fk))
     doc-bit))
 
+
+(defmethod extract-form-documentation ((fk cons) (form cons))
+  (warn "HELambdaP: trying to extract documentation from a form without a SYMBOL header.~:
+           ~S."
+        fk
+        )
+  nil)
+
+
+;;; Specialized methods.
 
 (defmethod extract-form-documentation ((fk (eql 'deftype)) (form cons))
   (destructuring-bind (deftype name ll &rest forms)
