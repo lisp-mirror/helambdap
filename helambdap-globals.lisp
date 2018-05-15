@@ -17,6 +17,13 @@
   "The site where HELambdaP currently resides.")
 
 
+;;;; *helambdap-data-folder*
+
+(defparameter *helambdap-data-folder*
+  (clad:ensure-app-or-library-data-folder "HELambdaP")
+  "The user HELambdaP data folder.")
+
+
 ;;;; *supersede-documentation* --
 
 (defparameter *supersede-documentation* t)
@@ -86,8 +93,8 @@ See Also:
 ;;;; *source-extensions* --
 
 (defparameter *source-extensions*
-  (list "lisp" "lsp" "l" "asd" "system" "cl")
-  "List of possible 'source extensions' where Lisp code is contained.")
+  (list "lisp" "lsp" "l" #+asdf "asd" #+mk-defsystem "system" "cl")
+  "List of possible 'source extensions' of files where Lisp code may be found.")
 
 
 ;;;; end of file -- helambdap-globals.lisp --
