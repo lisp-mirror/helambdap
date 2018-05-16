@@ -10,6 +10,9 @@
 ;;;; Global special parameters controlling the documentation production.
 
 
+;;;; Filesystem parameters.
+;;;; ----------------------
+
 ;;;; *helambdap-site* --
 
 (defparameter *helambdap-site*
@@ -17,12 +20,95 @@
   "The site where HELambdaP currently resides.")
 
 
+;;;; *helambdap-source-location*
+
+(defparameter *helambdap-source-location*
+  nil
+  "The location where HELambdaP source resides.
+
+This parameter is set during HELambdaP installation.  If not it is NIL
+and it indicates that HELambdaP is not properly installed.")
+
+
 ;;;; *helambdap-data-folder*
 
 (defparameter *helambdap-data-folder*
   (clad:ensure-app-or-library-data-folder "HELambdaP")
-  "The user HELambdaP data folder.")
+  ;; CLAD dependency.
+  "The user HELambdaP data folder.
 
+Notes:
+
+You are advised to handle this parameter with care.  If you change
+this parameter you should be prepared to change most other HELambdaP
+pathnames.
+
+See Also:
+
+*HELAMBDAP-CSS-PATHNAME*, *HELAMBDAP5-CSS-PATHNAME*, *HELAMBDAP-JS-PATHNAME*")
+
+
+;;;; *helambdap-css-filename*
+
+(defparameter *helambdap-css-filename* "helambdap.css"
+  "The default name for the (x)html .css file.")
+
+
+;;;; *helambdap-css-pathname*
+
+(defparameter *helambdap-css-pathname*
+  (make-pathname :name "helambdap"
+                 :type "css"
+                 :defaults *helambdap-data-folder*)
+    "The default pathname for the (X)HTML .css file.
+
+The default directory is set to the location of the source file.")
+
+
+;;;; *helambdap5-css-filename*
+
+(defparameter *helambdap5-css-filename* "helambdap5.css"
+  "The default name for the HTML5 .css file.")
+
+
+;;;; *helambdap5-css-pathname*
+
+(defparameter *helambdap5-css-pathname*
+  (make-pathname :name "helambdap5"
+		 :type "css"
+		 :defaults *helambdap-data-folder*)
+  "The default pathname for the (X)HTML .css file.
+
+The default directory is set to the location of the source file.")
+
+
+;;;; *default-html-extension*
+
+(defparameter *default-html-extension* "html")
+
+
+;;;; *helambdap-js-relative-pathname*
+
+(defparameter *helambdap-js-relative-pathname*
+  (make-pathname :name "helambdap-support"
+                 :type "js"
+                 :directory (list :relative "js")))
+
+
+;;;; *helambdap-js-pathname*
+
+(defparameter *helambdap-js-pathname*
+  (merge-pathnames *helambdap-js-relative-pathname*
+                   *helambdap-data-folder*))
+
+
+(defparameter *helambdap-js-data-folder*
+  (merge-pathnames (make-pathname :directory (list :relative "js"))
+                   *helambdap-data-folder*))
+
+
+;;;; Execution parameters.
+;;;; ---------------------
 
 ;;;; *supersede-documentation* --
 
@@ -95,6 +181,32 @@ See Also:
 (defparameter *source-extensions*
   (list "lisp" "lsp" "l" #+asdf "asd" #+mk-defsystem "system" "cl")
   "List of possible 'source extensions' of files where Lisp code may be found.")
+
+
+;;;; *helambdap-configation-parameters*
+
+(defvar *helambdap-configuration-parameters*
+  '(
+    *helambdap-source-location*
+    *helambdap-data-folder*
+    *helambdap-css-filename*
+    *helambdap-css-pathname*
+    *helambdap5-css-filename*
+    *helambdap5-css-pathname*
+    *helambdap-js-pathname*
+    *helambdap-js-data-folder*
+
+    *default-html-extension*
+
+    *supersede-documentation*
+    *everything*
+    *only-exported*
+    *only-documented*
+    *exclude-files*
+    *exclude-directories*
+    *source-extensions*
+    )
+  "A list of HELambdaP most important parameters.")
 
 
 ;;;; end of file -- helambdap-globals.lisp --
