@@ -32,6 +32,8 @@
 ;;;---------------------------------------------------------------------------
 ;;; Global definitions.
 
+#| Moved to 'helambdap-globals.lisp'
+
 (defparameter *helambdap-css-filename* "helambdap.css"
   "The default name for the (x)html .css file.")
 
@@ -65,7 +67,7 @@ The default directory is set to the location of the source file.")
                                   :type "js"
                                   :directory (list :relative "js"))
                    *load-pathname*))
-
+|#
 
 ;;; Useful macro
 
