@@ -17,6 +17,7 @@
   :components (
 	       (:file "helambdap-pkg")
                (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
+               (:file "setup" :depends-on ("helambdap-globals"))
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ((:file "text-utilities")
@@ -27,13 +28,13 @@
                              (:file "symbols-utilities")
                              (:file "lambda-list-parsing")
                              ))
-               (:file "naming" :depends-on ("helambdap-pkg"))
-               (:file "doc-bit" :depends-on ("naming" "helambdap-globals"))
+               (:file "naming" :depends-on ("setup"))
+               (:file "doc-bit" :depends-on ("naming" "setup"))
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
                (:file "doc-structure"
-                :depends-on ("helambdap-pkg"
+                :depends-on ("setup"
                              "utilities"
                              "collect-documentation"))
                (:file "documentation-production"
@@ -42,7 +43,7 @@
                              "doc-structure"))
 
                (:file "xhtml-common-definitions"
-                :depends-on ("helambdap-pkg"))
+                :depends-on ("setup"))
 
                (:file "doc-string-handling"
                 :depends-on ("xhtml-common-definitions"))
@@ -110,6 +111,9 @@
 			     (:file "lispworks")
 			     #+sbcl
                              (:file "sbcl")
+                             #+ccl
+                             (:file "ccl")
+
                              #+asdf
                              (:file "asdf-deps")
                              #+mk-defsystem
