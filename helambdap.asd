@@ -121,7 +121,7 @@
 			     ))
                )
   :depends-on ("cl-fad"
-               "CLAD"
+               "clad"
                "split-sequence"
                #+helambdap.version-using-MOP "closer-mop"
                #+helambdap.with-cxml "cxml"
