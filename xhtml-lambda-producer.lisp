@@ -2378,7 +2378,18 @@ given 'output-format'."))
 
              (produce-navigation-link (fs-in-parent)
                (let* ((fs-path (compute-element-path fs-in-parent))
-                      (href (if (eq fs fs-in-parent)
+                      (href (progn
+                              #+helambdap-debugging
+                              (format t ">>>> Producing NAV link.~@
+                                         >>>> FS-in-p ~S~@
+                                         >>>> EQ ~A~@
+                                         >>>> ED-FS ~A~@
+                                         >>>> FS Path ~S~%"
+                                      fs-in-parent
+                                      (eq fs fs-in-parent)
+                                      ed-fs
+                                      fs-path)
+                              (if (eq fs fs-in-parent)
                                 (namestring
                                  (make-pathname :name (frameset-name fs-in-parent)
                                                 :type *default-html-extension*
@@ -2389,8 +2400,10 @@ given 'output-format'."))
                                   (make-pathname
                                    :directory (cons :relative
                                                     (make-list ed-fs
-                                                               :initial-element :up)))))))
+                                                               :initial-element :up))))))
+                              ))
                       )
+                 #+helambdap-debugging (format t ">>>> HREF ~S~2%" href)
                  (<:a (:href href ; :href (namestring (compute-element-path fs-in-parent)
                        :target "_parent"
                        :class (select-link-style-1 fs-in-parent))
@@ -2418,6 +2431,17 @@ given 'output-format'."))
 
                  (when (element-parent fs)
                    (let ((fss-in-p (framesets-of (element-parent fs))))
+                     #+helambdap-debugging
+                     (format t ">>> Producing NAV links.~@
+                                >>> Header pathname ~S~@
+                                >>> Frameset ~S~@
+                                >>> FS Parent ~S~@
+                                >>> FSs of parent ~S~2%"
+                             header-pathname
+                             fs
+                             (element-parent fs)
+                             (framesets-of (element-parent fs))
+                             )
                      (loop for fs-in-p in (rest fss-in-p)
                            collect " | " into result
                            collect (produce-navigation-link fs-in-p) into result
