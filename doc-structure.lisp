@@ -752,10 +752,23 @@ that include ELEMENT."))
         source)))
 
 
+#| Current directory tags "." throw off the computation, e.g., on CCL.
 (defun element-location-depth (e)
   (let* ((path (parse-namestring (element-location-path e)))
          ;; Bad assumption, but WTH. The path could be URL.
          (d (pathname-directory path))
+         )
+    (assert (or (null d) (eq :relative (first d))))
+    (if (null d)
+        0
+        (list-length (rest d)))
+    ))
+|#
+
+(defun element-location-depth (e)
+  (let* ((path (parse-namestring (element-location-path e)))
+         ;; Bad assumption, but WTH. The path could be URL.
+         (d (remove "." (pathname-directory path) :test #'string=))
          )
     (assert (or (null d) (eq :relative (first d))))
     (if (null d)
