@@ -60,7 +60,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 (defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
   (handler-case
       (let ((*package* *current-package*))
-        (read forms-stream nil eof t))
+        (read forms-stream nil eof))
     (simple-error (e)
       (format *error-output*
               "~%HELambdaP form reader: trying to read a form caused errors.
