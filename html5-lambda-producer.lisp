@@ -102,6 +102,31 @@ Each ARTICLE and NAV is contained in a separate file.
 ;;;;===========================================================================
 ;;;; Implementation.
 
+
+(defmethod produce-documentation ((format (eql :html5))
+                                  element
+                                  out
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys
+                                  )
+  (produce-documentation 'html5 element out doc-bits
+                         :documentation-title documentation-title))
+
+
+(defmethod produce-documentation :before ((format (eql 'html5))
+                                          element
+                                          out
+                                          doc-bits
+                                          &key
+                                          documentation-title
+                                          &allow-other-keys)
+  (declare (ignorable element out doc-bits documentation-title))
+  (warn "HELAMBDAP: HTML5 documentation production is still experimental.
+           THe results may not be completely satisfactory."))
+
+
 (defmethod produce-documentation ((format (eql 'html5))
                                   (structure documentation-structure)
                                   (where pathname)
