@@ -184,8 +184,13 @@ hamper the documentation procedure.
                                 (format t)
                                 &key
                                 &allow-other-keys)
-  (error "HELAMBDAP: unknown resulting documentation format ~A."
-         format))
+  (error "HELAMBDAP: cannot produce documentation for a ~S (~S) and/or format ~S.
+          The first argument can be a system object or a pathname, the second
+          can be one of, for the time being, ~S."
+         (type-of for-what)
+         for-what
+         format
+         (list :html 'html)))
 
 
 ;;; The :before method is used to do some common preprocessing
@@ -219,7 +224,7 @@ then it is recursively traversed.
 
 See Also:
 
-collect-documentation.
+COLLECT-DOCUMENTATION.
 "
 
   (let ((doc-bits (collect-documentation p)))
