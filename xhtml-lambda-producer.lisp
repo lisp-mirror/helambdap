@@ -155,6 +155,18 @@ Each FRAMESET and FRAME is contained in a separate file.
 ;;;;===========================================================================
 ;;;; Implementation.
 
+(defmethod produce-documentation ((format (eql :html))
+                                  element
+                                  out
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys
+                                  )
+  (produce-documentation 'html element out doc-bits
+                         :documentation-title documentation-title))
+
+
 (defmethod produce-documentation ((format (eql 'html))
                                   (structure documentation-structure)
                                   (where pathname)
