@@ -370,6 +370,7 @@ function load_dictionary() {
          (da-content (doc-area-content da))
          (da-navigation (doc-area-navigation da))
          )
+    (declare (ignore da-title da-pathname da-navigation)) ; Come back later to fix this.
 
     (ensure-directories-exist where)
 
