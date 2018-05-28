@@ -2592,7 +2592,12 @@ given 'output-format'."))
                        :src (base-name nav-map-pathname)
                        :frameborder 0
                        :scrolling :auto
-                       :class "helambdap_navmap"
+                       :style "border-bottom-style: dotted;
+                               border-bottom-width: 1px;
+                               border-right-style: dotted;
+                               border-right-width: 1px
+                               "
+                       ;; :class "helambdap_navmap"
                        ))
              ((<:frame :name (format nil
                                      "~A_navigation_lists"
@@ -2600,6 +2605,9 @@ given 'output-format'."))
                        ;; :src (namestring nav-list-pathname)
                        :frameborder 0
                        :scrolling :auto
+                       :style "border-right-style: dotted;
+                               border-right-width: 1px
+                               "
                        ))
              ))
            (<:comment (format nil "end of file : ~A"
