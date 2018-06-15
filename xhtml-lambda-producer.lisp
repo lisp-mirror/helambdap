@@ -163,6 +163,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys
                                   )
+  "This specialized method produces the (X)HTML documentation for an ELEMENT."
   (produce-documentation 'html element out doc-bits
                          :documentation-title documentation-title))
 
@@ -1246,7 +1247,7 @@ given 'output-format'."))
                                   &key
                                   (documentation-title "")
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a package."
+  ;; "This specialized method produces the documentation for a package."
   (declare (ignorable doc-bits documentation-title))
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
@@ -2070,7 +2071,7 @@ given 'output-format'."))
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
+  ;; "This specialized method produces the documentation for a generic function."
   (declare (ignorable documentation-title))
   (labels ((method-signature (m)
              (declare (type method m))
@@ -2148,7 +2149,7 @@ given 'output-format'."))
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
+  ;; "This specialized method produces the documentation for a generic function."
 
   (declare (ignorable doc-bits documentation-title))
   (labels ((method-signature (mdb)
@@ -2592,11 +2593,14 @@ given 'output-format'."))
                        :src (base-name nav-map-pathname)
                        :frameborder 0
                        :scrolling :auto
+                       :style "border-bottom-style: dotted; border-bottom-width: 1px"
+                       #|
                        :style "border-bottom-style: dotted;
                                border-bottom-width: 1px;
                                border-right-style: dotted;
                                border-right-width: 1px
                                "
+                       |#
                        ;; :class "helambdap_navmap"
                        ))
              ((<:frame :name (format nil
@@ -2605,9 +2609,11 @@ given 'output-format'."))
                        ;; :src (namestring nav-list-pathname)
                        :frameborder 0
                        :scrolling :auto
+                       #|
                        :style "border-right-style: dotted;
                                border-right-width: 1px
                                "
+                       |#
                        ))
              ))
            (<:comment (format nil "end of file : ~A"
@@ -2663,7 +2669,7 @@ given 'output-format'."))
 
             (<:body
              ((<:div :class "helambdap_navmap"
-                     :style "border-bottom-style: dotted"
+                     ;; :style "border-bottom-style: dotted"
                      )
               (<:h3 "Systems and Packages")
 

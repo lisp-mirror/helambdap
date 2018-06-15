@@ -111,6 +111,12 @@ Each ARTICLE and NAV is contained in a separate file.
                                   documentation-title
                                   &allow-other-keys
                                   )
+  "This specialized method produces the HTML5 documentation for an ELEMENT.
+
+Notes:
+
+The HTML5 documentation production is still very experimental and buggy.
+"
   (produce-documentation 'html5 element out doc-bits
                          :documentation-title documentation-title))
 
@@ -715,7 +721,7 @@ function load_dictionary() {
                                   &key
                                   (documentation-title "")
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a package."
+  ;; "This specialized method produces the documentation for a package."
   (declare (ignorable doc-bits documentation-title))
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))

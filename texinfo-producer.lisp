@@ -69,6 +69,24 @@
 ;;;;===========================================================================
 ;;;; Implementation.
 
+(defmethod produce-documentation ((format (eql :texinfo))
+                                  element
+                                  out
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys
+                                  )
+  "This specialized method produces the Texinfo documentation for an ELEMENT.
+
+Notes:
+
+The Texinfo documentation production is non working at this time.
+"
+  (produce-documentation 'texinfo element out doc-bits
+                         :documentation-title documentation-title))
+
+
 (defmethod produce-documentation ((format (eql 'texinfo))
                                   (structure documentation-structure)
                                   (where pathname)
@@ -424,7 +442,7 @@ given 'output-format'."))
                                   &key
                                   ;; documentation-title
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a package."
+  ;; "This specialized method produces the documentation for a package."
   (let ((name (doc-bit-name doc-bit))
         (doc-string (doc-bit-doc-string doc-bit))
         )
@@ -833,7 +851,7 @@ given 'output-format'."))
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
+  ;; "This specialized method produces the documentation for a generic function."
   (declare (ignorable documentation-title))
   (labels ((method-signature (m)
              (declare (type method m))
@@ -900,7 +918,7 @@ given 'output-format'."))
                                   &key
                                   documentation-title
                                   &allow-other-keys)
-  "This specialized method produces the documentation for a generic function."
+  ;; "This specialized method produces the documentation for a generic function."
   (declare (ignorable documentation-title))
   (labels ((method-signature (mdb)
              (declare (type method-doc-bit mdb))
