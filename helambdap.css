@@ -329,7 +329,7 @@ h5 {
     border-color: #808080;
     border-width: 0px;
     border-style: dotted;
-    border-bottom-width: 1px;
+    /* border-bottom-width: 1px; */
 }
 
 .helambdap_dict_entry {
