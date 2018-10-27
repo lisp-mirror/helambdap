@@ -1,5 +1,12 @@
 ;;;; -*- Mode: Lisp -*-
 
+;;;; helambdap.asd --
+;;;;
+;;;; Main ASDF spec for HELambdaP.
+;;;;
+;;;; See file COPYING for copyright and licensing information.
+
+
 (eval-when (:load-toplevel :compile-toplevel :execute)
   ;; (pushnew :helambdap.with-cxml *features*)
   ;; (pushnew :helambdap.with-ediware *features*)

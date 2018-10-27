@@ -130,7 +130,7 @@ The HTML5 documentation production is still very experimental and buggy.
                                           &allow-other-keys)
   (declare (ignorable element out doc-bits documentation-title))
   (warn "HELAMBDAP: HTML5 documentation production is still experimental.
-           THe results may not be completely satisfactory."))
+         The results may not be completely satisfactory."))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
