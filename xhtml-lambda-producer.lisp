@@ -1266,9 +1266,10 @@ given 'output-format'."))
                        (package-doc-bit-use-list doc-bit)))
 
           (when (package-doc-bit-nicknames doc-bit)
-            (<:h2 () "Nicknames:")
-            (<:p () (mapcan (lambda (pn) (list pn (<:br)))
-                         (package-doc-bit-nicknames doc-bit))))
+            (list
+             (<:h2 () "Nicknames:")
+             (<:p () (mapcan (lambda (pn) (list pn (<:br)))
+                         (package-doc-bit-nicknames doc-bit)))))
 
           ;; (<:h2 "Description:")
           ;; (paragraphize-doc-string doc-string)
