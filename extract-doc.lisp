@@ -293,13 +293,25 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
     (let* ((decls (collect-declarations options-and-methods))
            ;; This is essentially wrong.  It should return NIL (almost) always.
            (values-decl (find 'returns (mapcan #'rest decls) :key #'first))
+           (doc-string (second (find :documentation options-and-methods
+                                     :key #'first)))
+           (methods (mapcan (lambda (dg-form)
+                              (when (eq (first dg-form) :method)
+                                (list dg-form)))
+                            options-and-methods))
+           (m-doc-bits
+            (mapcar (lambda (m)
+                      (let ((dm-form (list* 'defmethod name (rest m))))
+                        (extract-form-documentation 'defmethod dm-form)))
+                    methods))
            )
       (make-generic-function-doc-bit :name name
                                      :kind 'function
                                      :lambda-list ll
                                      :values (rest values-decl)
-                                     :doc-string (second (find :documentation options-and-methods
-                                                               :key #'first))))))
+                                     :doc-string doc-string
+                                     :methods (delete nil m-doc-bits)
+                                     ))))
 
 
 (defmethod extract-form-documentation ((fk (eql 'defpackage)) (form cons))
