@@ -91,7 +91,7 @@ can be used as building blocks for the final documentation."))
                  &key
                  (documentation-title "HE&Lambda;P Untitled Documentation")
                  (format :html)
-                 (layout *default-documentation-structure*)
+                 (layout (select-doc-structure format))
                  (source #P"")
                  (destination (select-doc-destination format))
 
@@ -242,6 +242,7 @@ COLLECT-DOCUMENTATION.
 (defmethod build-documentation :around ((p pathname)
                                         (format t)
                                         &key
+                                        (layout *default-documentation-structure*)
                                         &allow-other-keys
                                         )
   (declare (special *exclude-directories* *exclude-files*))
@@ -282,6 +283,7 @@ COLLECT-DOCUMENTATION.
 (defmethod build-documentation :around ((s asdf:system)
                                         (format t)
                                         &key
+                                        (layout *default-documentation-structure*)
                                         &allow-other-keys
                                         )
   (declare (special *exclude-directories* *exclude-files*))

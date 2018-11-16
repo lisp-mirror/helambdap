@@ -115,8 +115,8 @@ Examples:
   (:method ((x (eql :html5))) 'html5)
   (:method ((x (eql 'html5))) 'html5)
 
-  ;;   (:method ((x (eql :texinfo))) 'texinfo)
-  ;;   (:method ((x (eql 'texinfo))) 'texinfo)
+  (:method ((x (eql :texinfo))) 'texinfo)
+  (:method ((x (eql 'texinfo))) 'texinfo)
   )
 
 
@@ -357,6 +357,11 @@ that include ELEMENT."))
   (:method ((x t)) nil))
 
 
+(defmethod print-object ((da doc-area) stream)
+  (print-unreadable-object (da stream)
+    (format stream "DOC-AREA ~S" (element-name da))))
+
+
 (defun doc-area (name &rest keys &key &allow-other-keys)
   (apply #'make-instance 'doc-area :name name keys))
 
@@ -370,6 +375,11 @@ that include ELEMENT."))
 (defgeneric navigation-p (x)
   (:method ((x navigation)) t)
   (:method ((x t)) nil))
+
+
+(defmethod print-object ((nav navigation) stream)
+  (print-unreadable-object (nav stream)
+    (format stream "NAVIGATION ~S" (element-name nav))))
 
 
 (defun navigation (name &rest keys &key &allow-other-keys)
@@ -1021,6 +1031,13 @@ A minimal documentation structure that contains only the main index
 (defparameter *default-documentation-structure* 
   *xhtml-simple-frame-documentation-structure*
   "The variable containing the default documentation structure.")
+
+
+(defun select-doc-structure (format-tag)
+  (ecase (output-format-tag format-tag)
+    (html *xhtml-simple-frame-documentation-structure*)
+    (html5 *html5-documentation-structure*)
+    (texinfo *texinfo-documentation-structure*)))
 
 
 ;;;; end of file -- doc-structure.lisp --
