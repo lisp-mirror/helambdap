@@ -349,7 +349,9 @@ function load_dictionary() {
       )
 
     (dolist (e (elements-of mv))
-      (format t "~&>>> HLP: producing doc for ~S.~%" (element-name e))
+      (format t "~&>>> HLP: producing doc for ~A ~S.~%"
+              (class-name (class-of e))
+              (element-name e))
       (produce-documentation 'html5 e where doc-bits
                              :documentation-title documentation-title)
       )))
@@ -437,7 +439,8 @@ function load_dictionary() {
          (destination-path
           (make-pathname :directory (pathname-directory doc-directory)
                          :name (pathname-name dfname)
-                         :type (pathname-type dfname)))
+                         :type (or (pathname-type dfname)
+                                   *default-html-extension*)))
          )
     (cond ((probe-file dfname)
            (cl-fad:copy-file dfname destination-path :overwrite nil))
@@ -536,8 +539,6 @@ function load_dictionary() {
   (declare (type file-set file-set)
            (type stream where)
            )
-
-
 
   (let ((file-set-pathname
          (make-pathname :name (element-name file-set)
