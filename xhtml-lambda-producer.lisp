@@ -92,7 +92,7 @@ Each FRAMESET and FRAME is contained in a separate file.
 |#
 
 ;;;; Notes:
-;;;; The layout already reflects HTML5 elements.
+;;;; The layout already somewhat reflects HTML5 elements.
 
 
 ;;;;===========================================================================
