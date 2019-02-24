@@ -242,7 +242,6 @@ COLLECT-DOCUMENTATION.
 (defmethod build-documentation :around ((p pathname)
                                         (format t)
                                         &key
-                                        (layout *default-documentation-structure*)
                                         &allow-other-keys
                                         )
   (declare (special *exclude-directories* *exclude-files*))
@@ -283,7 +282,6 @@ COLLECT-DOCUMENTATION.
 (defmethod build-documentation :around ((s asdf:system)
                                         (format t)
                                         &key
-                                        (layout *default-documentation-structure*)
                                         &allow-other-keys
                                         )
   (declare (special *exclude-directories* *exclude-files*))
