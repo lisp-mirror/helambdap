@@ -129,8 +129,8 @@ The HTML5 documentation production is still very experimental and buggy.
                                           documentation-title
                                           &allow-other-keys)
   (declare (ignorable element out doc-bits documentation-title))
-  (warn "HELAMBDAP: HTML5 documentation production is still experimental.
-         The results may not be completely satisfactory."))
+  #|(warn "HELAMBDAP: HTML5 documentation production is still experimental.
+         The results may not be completely satisfactory.") |#)
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -182,6 +182,9 @@ The HTML5 documentation production is still very experimental and buggy.
   (let ((doc-directory where)
         (jsfn (element-name structure))
         )
+    (format t "~&>>> HLP: copying JS file ~A to ~A.~%"
+            jsfn
+            doc-directory)
     (cl-fad:copy-file jsfn
                       (make-pathname
                        :directory (pathname-directory doc-directory)
@@ -1310,7 +1313,47 @@ The HTML5 documentation production is still very experimental and buggy.
            ~S~%~:
            ~S~2%"
           da nav-element nm-pathname)
-  (let ((nav-element-target (format nil "~A_frame" (element-name nav-element))))
+  (let ((nav-element-target (format nil "~A_frame" (element-name nav-element)))
+        (syss (remove-if (complement #'system-doc-bit-p)
+                         doc-bits))
+        (pkgs (remove-if (complement #'package-doc-bit-p)
+                         doc-bits))
+        (da-location (element-location da))
+        )
+    (flet ((remove-duplicate-syss ()
+             (remove-duplicates
+              syss
+              :test #'(lambda (s1 s2)
+                        (and (not (eq (type-of s1) (type-of s2)))
+                             (string-equal (doc-bit-name s1)
+                                           (doc-bit-name s2)))))
+             ;; The above is kludgy!  It is meant to
+             ;; remove duplicate systems assuming
+             ;; that different kinds of systems are
+             ;; mutually exclusive.
+             ;; In practice it will not affect most people.
+             )
+
+           (href-doc-bit-path (doc-bit)
+             ;; The 'doc-bit-path' to be inserted in the HTML/JS is
+             ;; not the same w.r.t., the docunetation generation.
+             (make-doc-bit-pathname doc-bit
+                                    *default-html-extension*
+                                    da-location)
+             )
+           )
+      (format t "~&HELAMBDAP: producing HTML5 NAV MAP file 2~%~:
+                 ~S~%~:
+                 ~S~%~:
+                 ~S~2%"
+              da-location
+              nm-pathname
+              (conc-paths da-location
+                          (pathname
+                           (base-name
+                            (make-doc-bit-pathname (first doc-bits)
+                                                   *default-html-extension*
+                                                   nm-pathname)))))
     (with-open-file (nm nm-pathname
                         :direction :output
                         :if-exists :supersede
@@ -1318,97 +1361,74 @@ The HTML5 documentation production is still very experimental and buggy.
       (<:with-html-syntax-output (nm :print-pretty t :syntax :compact)
           (<:document
            (<:comment (base-name nm-pathname))
+           
            ((<:div :class "nav_file_set_links")
             ((<:div :class "nav_menu")
              (<:h3 "Systems and Packages")
 
-             (let ((syss (remove-if (complement #'system-doc-bit-p)
-                                    doc-bits))
-                   (pkgs (remove-if (complement #'package-doc-bit-p)
-                                    doc-bits))
-                   )
-               (list
-                (<:h4 () "Systems")
-                (<:div ()
-                       (loop for s in (remove-duplicates
-                                       syss
-                                       :test
-                                       (lambda (s1 s2)
-                                         (and (not (eq (type-of s1)
-                                                       (type-of s2)))
-                                              (string-equal (doc-bit-name s1)
-                                                            (doc-bit-name s2)))))
-                             ;; The above is kludgy!  It is meant to
-                             ;; remove duplicate systems assuming
-                             ;; that different kinds of systems are
-                             ;; mutually exclusive.
-                             ;; In practice it will not affect most people.
-                             for s-doc-pathname
-                             = (make-doc-bit-pathname s
-                                                      *default-html-extension*
-                                                      nm-pathname)
+             (<:h4 () "Systems")
+             (<:div ()
+                    (loop for s in (remove-duplicate-syss)
+                          for s-doc-pathname
+                          = (make-doc-bit-pathname s
+                                                   *default-html-extension*
+                                                   nm-pathname)
 			 
-                             #|FRAME TO BE LINKED --- DONE|#
-                             for s-filename = (base-name s-doc-pathname)
-                             collect (<:p ()
-                                          (<:a (:href "#"
-                                                :onclick
-                                                (format nil
-                                                        "load_section('~A', '~A')"
-                                                        nav-element-target
-                                                        s-filename))
-                                               ;; (:href s-filename
-                                               ;;	:target nav-element-target
-                                               ;;	)
-                                               (doc-bit-name s))
-                                          )))
+                          #|FRAME TO BE LINKED --- DONE|#
+                          for s-filename = (base-name s-doc-pathname)
+                          collect (<:p ()
+                                       (<:a (:href "#"
+                                             :onclick
+                                             (format nil
+                                                     "hlp_get_section('~A', '~A')"
+                                                     nav-element-target
+                                                     s-filename))
+                                            ;; (:href s-filename
+                                            ;;	:target nav-element-target
+                                            ;;	)
+                                            (doc-bit-name s))
+                                       )))
 
-                (<:h4 () "Packages")
-                (<:div ()
-                       (loop for p in pkgs
+             (<:h4 () "Packages")
+             (<:div ()
+                    (loop for p in pkgs
 
-                             for p-doc-pathname =
-                             (make-doc-bit-pathname p
-                                                    *default-html-extension*
-                                                    nm-pathname)
-                             for p-filename = (base-name p-doc-pathname)
+                          for p-doc-pathname =
+                          (make-doc-bit-pathname p
+                                                 *default-html-extension*
+                                                 nm-pathname)
+                          for p-filename = (base-name p-doc-pathname)
 
-                             for p-list-pathname =
-                             (make-pathname :name (format nil "~A-list"
-                                                          (pathname-name p-doc-pathname))
-                                            :type *default-html-extension*
-                                            :defaults nm-pathname)
-                             for p-list-filename = (base-name p-list-pathname)
+                          for p-list-pathname =
+                          (make-pathname :name (format nil "~A-list"
+                                                       (pathname-name p-doc-pathname))
+                                         :type *default-html-extension*
+                                         :defaults nm-pathname)
+                          for p-list-filename = (base-name p-list-pathname)
 
-                             #|FRAME TO BE LINKED --- DONE|#
-                             do (produce-package-navigation-list format
-                                                                 da
-                                                                 nav-element
-                                                                 p
-                                                                 p-list-pathname
-                                                                 doc-bits)
-                             collect (<:p ()
-                                          (<:a (:href "#"
-                                                :onclick
-                                                (format nil
-                                                        "load_section('~A', '~A');
-                                                         load_section('nav_list', '~A');"
-                                                        nav-element-target
-                                                        p-filename
-                                                        p-list-filename)
-                                                )
-                                               ;; (:href p-filename
-                                               ;;		:target nav-element-target
-                                               ;;		:onclick
-                                               ;;		(format nil
-                                               ;;			"parent.frames[1].location.href = '~A'"
-                                               ;;			p-list-filename
-                                               ;;			)
-                                               ;;		)
-                                               (doc-bit-name p)))))
-                ))))
+                          #|FRAME TO BE LINKED --- DONE|#
+                          do (produce-package-navigation-list format
+                                                              da
+                                                              nav-element
+                                                              p
+                                                              p-list-pathname
+                                                              doc-bits)
+                          collect (<:p ()
+                                       (<:a (:href "#"
+                                             :onclick
+                                             (format nil
+                                                     "hlp_get_section('~A', '~A');
+                                                         hlp_get_section('nav_list', '~A');"
+                                                     nav-element-target
+                                                     p-filename
+                                                     p-list-filename)
+                                             )
+                                            (doc-bit-name p)))))
+             )
+            ((<:div :class "nav_list")))
+
            (<:comment "end of file -- " (base-name nm-pathname)))
-          ))))
+          )))))
 
 
 (defmethod produce-package-navigation-list ((format (eql 'html5))
@@ -1438,10 +1458,10 @@ The HTML5 documentation production is still very experimental and buggy.
           )
          )
     (format t "~&HELAMBDAP: produce-package-navigation-list HTML5 ~%~:
-           ~S~%~:
-           ~S~%~:
-           ~S~%~:
-           ~S~2%"
+               ~S~%~:
+               ~S~%~:
+               ~S~%~:
+               ~S~2%"
             fs
             (if pkg (package-name pkg) "#<not-yet-defined package>")
             (package-doc-bit-name pkg-doc-bit)
@@ -1483,7 +1503,7 @@ The HTML5 documentation production is still very experimental and buggy.
                                            (<:a (:href "#"
 						 :onclick
 						 (format nil
-							 "load_section('~A', '~A')"
+							 "hlp_get_section('~A', '~A')"
 							 target
 							 db-filename))
 					       ;; (:href db-filename
