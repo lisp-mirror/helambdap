@@ -91,4 +91,46 @@
     ))
 
 
+;;;; Fooling around.
+
+(defun path-full (host device directory name type version)
+  (make-pathname :host host
+                 :device device
+                 :directory directory
+                 :name name
+                 :type type
+                 :version version))
+
+
+(defgeneric path (x &key)
+  (:method ((x string) &key) (pathname x))
+  (:method ((x pathname) &key) x)
+  (:method ((x list) &key (defaults *default-pathname-defaults*) (relative t))
+   (if (null x)
+       (if relative
+           (setf x (cons :relative x))
+           (setf x (cons :absolute x)))
+       (let ((x1 (first x)))
+         (unless (or (eq x1 :relative) (eq x1 :absolute))
+           (if relative
+               (setf x (cons :relative x))
+               (setf x (cons :absolute x))))))
+   (make-pathname :directory x
+                  :defaults defaults))
+  )
+
+(defgeneric conc-paths (p1 p2 &optional warn)
+  (:method ((p1 pathname) (p2 pathname) &optional warn)
+   (when (and warn (pathname-name p1))
+     (warn "Pathname ~S is not a pure folder pathname." p1))
+   (when (and (pathname-directory p2)
+              (eq :absolute (first (pathname-directory p2))))
+     (error "Pathname ~S is an absolute pathname." p2))
+   (merge-pathnames p2 p1)))
+
+
+(defun conc-pathnames (p1 p2 &rest more-paths)
+  (reduce #'conc-paths more-paths
+          :initial-value (conc-paths p1 p2)))
+
 ;;;; end of file -- filename-utilities.lisp --
