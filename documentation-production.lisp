@@ -193,7 +193,7 @@ hamper the documentation procedure.
          (list :html 'html)))
 
 
-;;; The :before method is used to do some common preprocessing
+;;; The :before methods are used to do some common preprocessing
 ;;; (factored out from previous versions of the code).
 
 (defmethod build-documentation :before ((for-what t)
@@ -205,6 +205,17 @@ hamper the documentation procedure.
                                         )
   (when documentation-title
     (setf (property layout :documentation-title) documentation-title))
+  )
+
+
+(defmethod build-documentation :before ((for-what t)
+                                        (format (eql 'html5))
+                                        &key
+                                        &allow-other-keys
+                                        )
+  (warn "HELambdaP: note that, due to the presence of Javascript and CORS, ~@
+         the pages generated with the HTML5 format must be served by an HTTP server ~@
+         (use your favourite one).")
   )
 
 
