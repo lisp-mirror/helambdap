@@ -23,6 +23,18 @@ The structure of a documentation bit."
 
   )
 
+
+(defmethod print-object ((d doc-bit) stream)
+  (print-unreadable-object (d stream :identity t)
+    (format stream "~A ~A ~S ~S"
+            (doc-bit-name d)
+            (doc-bit-kind-tag d)
+            (subseq (doc-bit-doc-string d)
+                    0
+                    (min 10 (length (doc-bit-doc-string d))))
+            (doc-bit-timestamp d))))
+
+
 (defun doc-bit-identifier (db &aux (dbn (doc-bit-name db)))
   (declare (type doc-bit))
   (etypecase dbn

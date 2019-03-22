@@ -83,6 +83,16 @@ The doc bits db is indexed on the NAME of a DOC-BIT.")
   dbdb)
 
 
+;;; list-doc-bits-db --
+
+(defun print-doc-bits-db (&optional (dbdb *doc-bits-db*)
+                                    (stream *standard-output*))
+  "Prints the content of the curret Doc Bits DB."
+  (maphash #'(lambda (k v)
+               (format stream "~A~,8T~S~%" k v))
+           dbdb))
+
+
 ;;; insert-doc-bit --
 
 (defun insert-doc-bit (doc-bit &optional (dbdb *doc-bits-db*))
