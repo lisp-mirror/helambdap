@@ -629,7 +629,7 @@ The HTML5 documentation production is still very experimental and buggy.
   (let ((name (string-downcase n)))
     (declare (ignore name))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
+      ((<:div #| :class "innertube" |#)
        (produce-doc-bit-title-name doc-bit)
        (<:h2 "Package: ")
        (<:p (package-name (symbol-package n)))
@@ -674,7 +674,7 @@ The HTML5 documentation production is still very experimental and buggy.
         (doc-string (doc-bit-doc-string doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-      ((<:div :class "innertube")
+      ((<:div #| :class "innertube" |#)
        (<:h1 (<:i "Package ") (<:strong name))
 
        (<:h2 "Use list:")
@@ -702,7 +702,7 @@ The HTML5 documentation production is still very experimental and buggy.
         (deps-on (system-doc-bit-depends-on doc-bit))
         )
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (<:h1 (<:i "System ") (<:strong name))
          (when deps-on
            (list
@@ -718,7 +718,16 @@ The HTML5 documentation production is still very experimental and buggy.
 (defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
 |#
 
+(defmethod render-syntax-section
+           ((format (eql 'html5))
+            (doc-bit parameterized-doc-bit)
+            &optional
+            (ll (parameterized-doc-bit-lambda-list doc-bit))
+            (values ()))
+  (render-syntax-section 'html doc-bit ll values))
 
+
+#| This is really just a cut-n-paste from HTML; see above.
 (defmethod render-syntax-section
            ((format (eql 'html5))
             (doc-bit parameterized-doc-bit)
@@ -762,6 +771,7 @@ The HTML5 documentation production is still very experimental and buggy.
            )) ; <:/pre <:/p
          ))
     ))
+|#
 
 
 (defmethod render-syntax-section
@@ -884,7 +894,7 @@ The HTML5 documentation production is still very experimental and buggy.
          )
     (declare (ignore name kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package: ")
@@ -917,7 +927,7 @@ The HTML5 documentation production is still very experimental and buggy.
     (declare (ignorable type-decls kind name))
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package: ")
@@ -951,7 +961,7 @@ The HTML5 documentation production is still very experimental and buggy.
          )
     (declare (ignore name kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package: ")
@@ -994,7 +1004,7 @@ The HTML5 documentation production is still very experimental and buggy.
          )
     (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package:")
@@ -1023,7 +1033,7 @@ The HTML5 documentation production is still very experimental and buggy.
          )
     (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package: ")
@@ -1079,7 +1089,7 @@ The HTML5 documentation production is still very experimental and buggy.
          )
     (declare (ignore kind))
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (produce-doc-bit-title-name doc-bit)
 
          (<:h2 "Package: ")
@@ -1138,7 +1148,7 @@ The HTML5 documentation production is still very experimental and buggy.
         )
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div :class "innertube")
+        ((<:div #| :class "innertube" |#)
          (<:h1 (<:i "Function") (<:strong name))
          (<:h2 "Package:")
          (<:h2 "Description:" (<:br) doc-string))
@@ -1193,7 +1203,7 @@ The HTML5 documentation production is still very experimental and buggy.
                           :if-exists :supersede
                           :if-does-not-exist :create)
         (<:with-html-syntax-output (ns :print-pretty t :syntax :compact)
-	  ((<:div :class "innertube")
+	  ((<:div #| :class "innertube" |#)
 	   (<:ul (make-nav-links)))
             #| OLD FRAME PRODUCTION
 	  (<:document
@@ -1544,7 +1554,7 @@ The HTML5 documentation production is still very experimental and buggy.
           (<:with-html-syntax-output (ps :print-pretty t :syntax :compact)
               (if pkg-doc-bits
                   (<:htmlise (:syntax :compact)
-                      ((<:div :class "innertube")
+                      ((<:div #| :class "innertube" |#)
                        (<:h3 "Package interface" <:br
                              (package-name pkg))
 
@@ -1568,7 +1578,7 @@ The HTML5 documentation production is still very experimental and buggy.
                        ))
 
                   (<:htmlise (:syntax :compact)
-                      ((<:div :class "innertube")
+                      ((<:div #| :class "innertube" |#)
                        (<:h3 "Package interface" <:br
                              (package-name pkg))
 
