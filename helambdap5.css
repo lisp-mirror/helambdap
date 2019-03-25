@@ -5,11 +5,18 @@
  *
  * New code, modifications
  * (c) Idan Gazit 2002, and
- * (c) Marco Antoniotti, 2003-2017
+ * (c) Marco Antoniotti, 2003-2019
  *
  * See COPYING file in main directory for license information.
  */
 
+
+/* Remember!
+ *
+ * <selector>  =  element tag
+ * #<selector> =  element id
+ * .<selector> =  element class
+ */
 
 
 /* body styles. */
