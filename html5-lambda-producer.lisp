@@ -1302,6 +1302,16 @@ The HTML5 documentation production is still very experimental and buggy.
 
 #| Made into a generic function (see protocol and xhtml-lambda-producer) |#
 
+(defun href-doc-bit-path (doc-bit &optional (location #P"."))
+  ;; The 'doc-bit-path' to be inserted in the HTML/JS is
+  ;; not the same w.r.t., the docunetation generation.
+  (declare (type doc-bit doc-bit))
+  (make-doc-bit-pathname doc-bit
+                         *default-html-extension*
+                         location)
+  )
+
+
 (defmethod produce-navigation-map ((format (eql 'html5))
                                    (da doc-area)
                                    (nav-element file-set)
@@ -1309,11 +1319,11 @@ The HTML5 documentation production is still very experimental and buggy.
                                    doc-bits
                                    documentation-title)
   (format t "~&HELAMBDAP: producing HTML5 NAV MAP file~%~:
-           ~S~%~:
-           ~S~%~:
-           ~S~2%"
+             ~S~%~:
+             ~S~%~:
+             ~S~2%"
           da nav-element nm-pathname)
-  (let ((nav-element-target (format nil "~A_frame" (element-name nav-element)))
+  (let ((nav-element-target "main" #|(format nil "~A_frame" (element-name nav-element))|# )
         (syss (remove-if (complement #'system-doc-bit-p)
                          doc-bits))
         (pkgs (remove-if (complement #'package-doc-bit-p)
@@ -1333,16 +1343,9 @@ The HTML5 documentation production is still very experimental and buggy.
              ;; mutually exclusive.
              ;; In practice it will not affect most people.
              )
-
-           (href-doc-bit-path (doc-bit)
-             ;; The 'doc-bit-path' to be inserted in the HTML/JS is
-             ;; not the same w.r.t., the docunetation generation.
-             (make-doc-bit-pathname doc-bit
-                                    *default-html-extension*
-                                    da-location)
-             )
            )
       (format t "~&HELAMBDAP: producing HTML5 NAV MAP file 2~%~:
+                 ~S~%~:
                  ~S~%~:
                  ~S~%~:
                  ~S~2%"
@@ -1353,7 +1356,9 @@ The HTML5 documentation production is still very experimental and buggy.
                            (base-name
                             (make-doc-bit-pathname (first doc-bits)
                                                    *default-html-extension*
-                                                   nm-pathname)))))
+                                                   nm-pathname))))
+              (href-doc-bit-path (first doc-bits))
+              )
     (with-open-file (nm nm-pathname
                         :direction :output
                         :if-exists :supersede
@@ -1363,19 +1368,20 @@ The HTML5 documentation production is still very experimental and buggy.
            (<:comment (base-name nm-pathname))
            
            ((<:div :class "nav_file_set_links")
-            ((<:div :class "nav_menu")
+            ((<:div :id "nav_map" :class "nav_menu")
              (<:h3 "Systems and Packages")
 
              (<:h4 () "Systems")
              (<:div ()
                     (loop for s in (remove-duplicate-syss)
-                          for s-doc-pathname
+                          #|for s-doc-pathname
                           = (make-doc-bit-pathname s
                                                    *default-html-extension*
-                                                   nm-pathname)
+                                                   nm-pathname)|#
 			 
                           #|FRAME TO BE LINKED --- DONE|#
-                          for s-filename = (base-name s-doc-pathname)
+                          ;; for s-filename = (base-name s-doc-pathname)
+                          for s-filename = (href-doc-bit-path s da-location)
                           collect (<:p ()
                                        (<:a (:href "#"
                                              :onclick
@@ -1397,14 +1403,29 @@ The HTML5 documentation production is still very experimental and buggy.
                           (make-doc-bit-pathname p
                                                  *default-html-extension*
                                                  nm-pathname)
-                          for p-filename = (base-name p-doc-pathname)
+                          ;; for p-filename = (base-name p-doc-pathname)
+                          for p-filename = (href-doc-bit-path p da-location)
 
                           for p-list-pathname =
                           (make-pathname :name (format nil "~A-list"
                                                        (pathname-name p-doc-pathname))
                                          :type *default-html-extension*
                                          :defaults nm-pathname)
-                          for p-list-filename = (base-name p-list-pathname)
+                          
+                          for p-list-filename
+                          = (merge-pathnames (base-name p-list-pathname)
+                                             da-location)
+
+                          do (format t
+                                     "~&HELAMBDAP: producing HTML5 NAV MAP file 3~%~:
+                                      ~S~%~:
+                                      ~S~%~:
+                                      ~S~%~:
+                                      ~S~%"
+                                     p-doc-pathname
+                                     p-filename
+                                     p-list-pathname
+                                     p-list-filename)
 
                           #|FRAME TO BE LINKED --- DONE|#
                           do (produce-package-navigation-list format
@@ -1418,29 +1439,28 @@ The HTML5 documentation production is still very experimental and buggy.
                                              :onclick
                                              (format nil
                                                      "hlp_get_section('~A', '~A');
-                                                         hlp_get_section('nav_list', '~A');"
+                                                      hlp_get_section('nav_list', '~A');"
                                                      nav-element-target
                                                      p-filename
                                                      p-list-filename)
                                              )
                                             (doc-bit-name p)))))
              )
-            ((<:div :class "nav_list")))
+            ((<:div :id "nav_list" :class "nav_menu")))
 
            (<:comment "end of file -- " (base-name nm-pathname)))
           )))))
 
 
 (defmethod produce-package-navigation-list ((format (eql 'html5))
-                                            fs
+                                            da
                                             nav-element
                                             pkg-doc-bit
                                             pkg-list-pathname
                                             doc-bits)
-  (declare (type frameset fs))
+  (declare (type doc-area da))
   (let* ((pkg (find-package (package-doc-bit-name pkg-doc-bit)))
-         (target (format nil "~A_frame"
-                         (element-name nav-element)))
+         (target "main" #|(format nil "~A_frame" (element-name nav-element))|#)
          (pkg-doc-bits
           (remove-if #'system-doc-bit-p
                      (remove-if (lambda (db &aux (dbn (doc-bit-name db)))
@@ -1462,7 +1482,7 @@ The HTML5 documentation production is still very experimental and buggy.
                ~S~%~:
                ~S~%~:
                ~S~2%"
-            fs
+            da
             (if pkg (package-name pkg) "#<not-yet-defined package>")
             (package-doc-bit-name pkg-doc-bit)
             pkg-list-pathname)
@@ -1495,10 +1515,13 @@ The HTML5 documentation production is still very experimental and buggy.
                  (list* (<:h4 () list-name)
                         (loop for db in doc-bits
                               for db-filename
+                              #|
                               = (base-name
                                  (make-doc-bit-pathname db
                                                         *default-html-extension*
                                                         pkg-list-pathname))
+                              |#
+                              = (href-doc-bit-path db (element-location da))
                               collect (<:p (:class "navindex")
                                            (<:a (:href "#"
 						 :onclick
