@@ -26,6 +26,9 @@
 ;;;;                   this is a Lisp source file containing READable
 ;;;;                   S-Expressions.
 
+;;;; See file COPYING for copyright and licensing information.
+
+
 (in-package "HELAMBDAP")
 
 
