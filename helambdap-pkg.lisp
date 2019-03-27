@@ -61,6 +61,13 @@
    "HTML"
    "HTML5"
    "TEXINFO"
+
+   "LIST-DOC-FORMATS"
+   "LIST-DOC-FORMAT-TAGS"
+   "OUTPUT-FORMAT"
+   "OUTPUT-FORMAT-TAG"
+
+   "DEFINE-OUTPUT-FORMAT"
    )
 
   (:documentation "The HELambdaP Package.

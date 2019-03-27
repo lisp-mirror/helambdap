@@ -40,10 +40,13 @@
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
+               (:file "doc-formats" :depends-on ("helambdap-pkg"))
+
                (:file "doc-structure"
                 :depends-on ("setup"
                              "utilities"
                              "collect-documentation"))
+
                (:file "documentation-production"
                 :depends-on ("impl-dependent"
                              "helambdap"
@@ -109,6 +112,11 @@
                              "doc-string-handling"
                              "html-source-handling"
                              "xhtml-lambda-producer-protocol"
+
+                             ;; The next dependency is needed because
+                             ;; some functions now call other ones
+                             ;; defined in the 'HTML' file.
+                             "xhtml-lambda-producer"
                              ))
 
 	       (:module "impl-dependent"
