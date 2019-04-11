@@ -524,6 +524,30 @@ The HTML5 documentation production is still very experimental and buggy.
             type-decls
             skip-description-header-p
             )
+  (process-doc-string s
+                      input-syntax
+                      'html ; Only thing changing, w.r.t. HTML
+                      args-n-values-p
+                      lambda-list
+                      result-p
+                      returns-decl
+                      type-decls
+                      skip-description-header-p
+                      ))
+
+#| Duplicate code just for different OUTPUT-FORMAT ; see above.
+(defmethod process-doc-string
+           ((s string)
+            (input-syntax (eql 'text/hyperspec))
+            (output-format (eql 'html5))
+            &optional
+            args-n-values-p
+            lambda-list
+            result-p
+            returns-decl
+            type-decls
+            skip-description-header-p
+            )
   (declare (ignorable type-decls))
   ;; Try to process Hyperspec-style.
 
@@ -618,6 +642,7 @@ The HTML5 documentation production is still very experimental and buggy.
 
         (nreverse elements)
         ))))
+|#
 
 
 (defmethod render-doc-bit ((format (eql 'html5))
@@ -913,7 +938,7 @@ The HTML5 documentation production is still very experimental and buggy.
                                   (out file-stream)
                                   doc-bits
                                   &key
-                                  ;; (documentation-title "")
+                                  (documentation-title "")
                                   &allow-other-keys)
   (declare (ignorable doc-bits))
   (let* ((db-name (doc-bit-name doc-bit))
@@ -927,22 +952,36 @@ The HTML5 documentation production is still very experimental and buggy.
     (declare (ignorable type-decls kind name))
 
     (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
-        ((<:div #| :class "innertube" |#)
-         (produce-doc-bit-title-name doc-bit)
+        (<:document
+         (<:html
+          +doctype-html5-control-string+
+          (string #\Newline)
 
-         (<:h2 "Package: ")
-         (<:p (package-name (doc-bit-package doc-bit)))
+          (<:comment documentation-title ": " kind name)
+          (string #\Newline)
 
-         (<:h2 "Syntax:")
-         (render-syntax-section format doc-bit)
+          (<:head
+           (<:title documentation-title ": " kind name)
+           (<:link :rel "stylesheet"
+                   :href #|*helambdap5-css-filename*|# *helambdap5-css-filename-up*)
+           )
 
-         (process-doc-string doc-string 'text/hyperspec 'html
-                             t
-                             (parse-ll :ordinary ll)
-                             t
-                             returns
-                             type-decls))
-        )))
+          (<:body
+           (produce-doc-bit-title-name doc-bit)
+
+           (<:h2 "Package: ")
+           (<:p (package-name (doc-bit-package doc-bit)))
+
+           (<:h2 "Syntax:")
+           (render-syntax-section format doc-bit)
+
+           (process-doc-string doc-string 'text/hyperspec 'html5
+                               t
+                               (parse-ll :ordinary ll)
+                               t
+                               returns
+                               type-decls)
+           ))))))
 
 
 (defmethod produce-documentation ((format (eql 'html5))
@@ -1160,6 +1199,192 @@ The HTML5 documentation production is still very experimental and buggy.
 ;;; The next method should be reworked in order to take advantage of
 ;;; RENDER-SYNTAX-SECTION.  However, it works and I need to do other
 ;;; things now (20130618).
+
+#-helambdap.version-using-MOP
+(defmethod produce-documentation ((format (eql 'html5))
+                                  (doc-bit generic-function-doc-bit)
+                                  (out file-stream)
+                                  doc-bits
+                                  &key
+                                  documentation-title
+                                  &allow-other-keys)
+  ;; "This specialized method produces the documentation for a generic function."
+
+  (declare (ignorable doc-bits documentation-title))
+  (labels ((method-signature (mdb)
+             (declare (type method-doc-bit mdb))
+             (let* ((mll (method-doc-bit-lambda-list mdb))
+                    (regular-arg-pos (position-if #'symbolp mll))
+                    )
+               (list
+                (mapcar (lambda (ll-elem
+                                 &aux
+                                 ;; (ll-elem-var (first ll-elem))
+                                 (ll-elem-class (second ll-elem)))
+                          (etypecase ll-elem-class
+                            (cons ; An EQL specializer (or something else?)
+                             ll-elem-class)
+                            (symbol
+                             ll-elem-class)
+                            (class
+                             (class-name ll-elem-class))
+                            ))
+                        (subseq mll 0 regular-arg-pos))
+                (when regular-arg-pos (subseq mll regular-arg-pos)))
+               ))
+
+           (render-lambda-list (ll)
+             (loop for lle in ll
+                   if (member lle +lambda-list-kwds+ :test #'eq)
+                   collect (<:span (:style "color: blue") (string lle))
+                   else
+                   collect (<:i () lle))
+             )
+
+           (pre-format-syntax-entry (name ll)
+             (let ((*print-right-margin* 75))
+               (format nil
+                       "  ~A ~@<~@/pprint-linear/~:>~%    &rarr; <i>result</i>"
+                       (<:span (:style "color: red") (<:strong () name))
+                       (render-lambda-list ll))
+               ))
+
+           #|
+           (bypass-pprint (s e &optional (colon-p t) at-sign-p)
+             (declare (ignore colon-p at-sign-p))
+             (let ((*print-pretty* nil))
+               (format s "~A" e)))
+           |#
+
+           (quoted-exp-p (exp) (and (listp exp) (eq 'quote (first exp))))
+
+           (eql-spec-p (sp) (and (listp sp) (eq 'eql (first sp))))
+
+           (render-method-specializers (specializers)
+             (loop for sp in specializers
+                   for s = (if (eql-spec-p sp)
+                               (cond ((quoted-exp-p (second sp))
+                                      (<:i () (format nil "(EQL '~A)" (second (second sp)))))
+                                     ((keywordp (second sp))
+                                      (<:i () (format nil "(EQL :~A)" (second sp))))
+                                     (t
+                                      (<:i () sp)))
+                               (<:i () (format nil "&lt;~A&gt;" sp)))
+                   collect s))
+
+           (render-known-methods (name doc-bit)
+             (let ((*print-right-margin* *formatted-section-right-margin*))
+               (loop for mdb of-type method-doc-bit in (generic-function-doc-bit-methods doc-bit)
+                     for (specializers other) = (method-signature mdb)
+                     ;; for mdb-doc = (doc-bit-doc-string mdb)
+                     for mdb-doc = (process-doc-string (doc-bit-doc-string mdb)
+                                                       'text/hyperspec
+                                                       'html
+                                                       nil
+                                                       nil
+                                                       t
+                                                       nil
+                                                       t
+                                                       t
+                                                       )
+                     for qualfs = (method-doc-bit-qualifiers mdb)
+                     collect (<:htmlise (:syntax :compact)
+                                 (<:li
+                                  (<:p
+                                   (<:pre
+                                    (let ((*print-pretty* t))
+                                      (with-output-to-string (pre-string)
+                                        (pprint-logical-block
+                                            (pre-string
+                                             (list (<:strong () name)
+                                                   qualfs
+                                                   ;; (list :around)
+                                                   (nconc
+                                                    (render-method-specializers specializers)
+                                                    (render-lambda-list other))
+                                                   ))
+                                          (write-string " " pre-string)
+                                          (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          ;; (write (pprint-pop) :stream pre-string)
+                                          (write-char #\Space pre-string)
+
+                                          (let ((qualfs (pprint-pop)))
+                                            (when qualfs
+                                              (pprint-linear pre-string qualfs nil)))
+                                          
+                                          (write-char #\Space pre-string)
+                                          (pprint-indent :block 8 pre-string)
+                                          (pprint-newline :linear pre-string)
+                                          (pprint-logical-block (pre-string (pprint-pop))
+                                            (loop (pprint-exit-if-list-exhausted)
+                                                  (bypass-pprint pre-string (pprint-pop) nil nil)
+                                                  (write-char #\Space pre-string)
+                                                  (pprint-newline :linear pre-string)
+                                                  ))
+                                          (pprint-indent :block 4 pre-string)
+                                          (pprint-newline :linear pre-string)
+                                          (write-string "&rarr; " pre-string)
+                                          (write-string "<i>result</i>" pre-string)
+                                          )))
+                                    )) ; <:/pre <:/p
+                                  (when mdb-doc
+                                    (<:p () mdb-doc))
+                                  ) ; <:li
+                                 ))))
+           )
+
+    (let* ((gfname (doc-bit-name doc-bit))
+           (name (string-downcase gfname))
+           (kind (doc-bit-kind doc-bit))
+           (doc-string (doc-bit-doc-string doc-bit))
+           (f-values (function-doc-bit-values doc-bit))
+           (ll (parameterized-doc-bit-lambda-list doc-bit))
+           )
+      (declare (ignore kind))
+      (<:with-html-syntax-output (out :print-pretty t :syntax :compact)
+          (<:document
+           (<:html
+            +doctype-html5-control-string+
+            (string #\Newline)
+
+            (<:comment documentation-title ": " kind name)
+            (string #\Newline)
+
+            (<:head
+             (<:title documentation-title ": " "Generic Function" name)
+             (<:link :rel "stylesheet"
+                     :href (namestring *helambdap5-css-filename-up*)))
+            (<:body
+
+             (produce-doc-bit-title-name doc-bit)
+             ;; (<:h1 (<:i "Generic Function") (<:strong name))
+
+             (<:h2 "Package:")
+             (<:p (package-name (symbol-package gfname)))
+
+             (<:h2 "Syntax:")
+             (<:p
+              (<:pre (pre-format-syntax-entry name ll)
+                     ))
+
+
+             ;; (<:h2 "Description:")
+             ;; (paragraphize-doc-string doc-string)
+             (process-doc-string doc-string 'text/hyperspec 'html
+                                 t (parse-ll :generic-function ll)
+                                 t f-values
+                                 )
+           
+
+             (let ((known-methods-els (render-known-methods name doc-bit))
+                   )
+               (when known-methods-els
+                 (<:div ()
+                        (<:h2 () "Known Documented Methods:")
+                        (<:ol () known-methods-els)))
+              
+               )))
+           )))))
 
 
 ;;;---------------------------------------------------------------------------
