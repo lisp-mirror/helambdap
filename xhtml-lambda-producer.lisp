@@ -2343,6 +2343,52 @@ given 'output-format'."))
               ))
            )))))
 
+#+do-not-use
+(defmethod render-syntax-section
+           ((format (eql 'html))
+            (doc-bit generic-function-doc-bit)
+            &optional
+            (ll (parameterized-doc-bit-lambda-list doc-bit))
+            (values ()))
+
+  (declare (ignore values))
+
+  (let ((db-name (doc-bit-name doc-bit))
+        (*print-pretty* t)
+        (*print-right-margin* *formatted-section-right-margin*)
+        )
+    (<:htmlise (:syntax :compact)
+        (<:div
+         (<:p 
+          (<:pre
+           (with-output-to-string (pre-string)
+             (pprint-logical-block (pre-string
+                                    (list (<:strong (:style "color: red")
+                                                    (format nil "~(~A~)" db-name))
+                                          (render-lambda-list format :ordinary ll))
+                                    )
+               (write-string "  " pre-string)
+               (bypass-pprint pre-string (pprint-pop) nil nil)
+                                          
+               (write-char #\Space pre-string)
+               (pprint-indent :block 8 pre-string)
+               (pprint-newline :linear pre-string)
+               (pprint-logical-block (pre-string (pprint-pop))
+                 (loop (pprint-exit-if-list-exhausted)
+                       (bypass-pprint pre-string (pprint-pop) nil nil)
+                       (write-char #\Space pre-string)
+                       (pprint-newline :linear pre-string)
+                       ))
+               (pprint-indent :block 4 pre-string)
+               (pprint-newline :linear pre-string)
+               (write-string "&rarr; " pre-string)
+               (write-string "<i>result</i>" pre-string)
+               ))
+           )) ; <:/pre <:/p
+         ))
+    ))
+
+
 
 ;;;---------------------------------------------------------------------------
 ;;; Auxiliary files production.
