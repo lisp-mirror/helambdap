@@ -221,4 +221,28 @@ section, aside, article, figure {
   display: block;
 }
 
+
+/* Special formatting. */
+
+.method_entry {
+    background: #F0F0F0;
+    /* background: lightgrey; */
+    /*
+      border-color: red;
+      border-width: 2px;
+      border-style: dotted;
+   */
+    display: block;
+}
+
+.method_descr {
+    /*
+      background: red;
+      border-color: red;
+      border-width: 2px;
+      border-style: dotted;
+   */
+    display: block;
+}
+
 /* end of file -- helambdap5.css */
