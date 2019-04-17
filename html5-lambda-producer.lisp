@@ -1279,7 +1279,7 @@ The HTML5 documentation production is still very experimental and buggy.
                      ;; for mdb-doc = (doc-bit-doc-string mdb)
                      for mdb-doc = (process-doc-string (doc-bit-doc-string mdb)
                                                        'text/hyperspec
-                                                       'html
+                                                       'html5
                                                        nil
                                                        nil
                                                        t
@@ -1288,49 +1288,52 @@ The HTML5 documentation production is still very experimental and buggy.
                                                        t
                                                        )
                      for qualfs = (method-doc-bit-qualifiers mdb)
-                     collect (<:htmlise (:syntax :compact)
-                                 (<:li
-                                  (<:p
-                                   (<:pre
-                                    (let ((*print-pretty* t))
-                                      (with-output-to-string (pre-string)
-                                        (pprint-logical-block
-                                            (pre-string
-                                             (list (<:strong () name)
-                                                   qualfs
-                                                   ;; (list :around)
-                                                   (nconc
-                                                    (render-method-specializers specializers)
-                                                    (render-lambda-list other))
-                                                   ))
-                                          (write-string " " pre-string)
-                                          (bypass-pprint pre-string (pprint-pop) nil nil)
-                                          ;; (write (pprint-pop) :stream pre-string)
-                                          (write-char #\Space pre-string)
+                     for method-html =
+                     (<:htmlise (:syntax :compact)
+                         (<:li
+                          ((<:div :class "method_entry")
+                           (<:pre
+                            (let ((*print-pretty* t))
+                              (with-output-to-string (pre-string)
+                                (pprint-logical-block
+                                    (pre-string
+                                     (list (<:strong () name)
+                                           qualfs
+                                           ;; (list :around)
+                                           (nconc
+                                            (render-method-specializers specializers)
+                                            (render-lambda-list other))
+                                           ))
+                                  (write-string " " pre-string)
+                                  (bypass-pprint pre-string (pprint-pop) nil nil)
+                                  ;; (write (pprint-pop) :stream pre-string)
+                                  (write-char #\Space pre-string)
 
-                                          (let ((qualfs (pprint-pop)))
-                                            (when qualfs
-                                              (pprint-linear pre-string qualfs nil)))
+                                  (let ((qualfs (pprint-pop)))
+                                    (when qualfs
+                                      (pprint-linear pre-string qualfs nil)))
                                           
+                                  (write-char #\Space pre-string)
+                                  (pprint-indent :block 8 pre-string)
+                                  (pprint-newline :linear pre-string)
+                                  (pprint-logical-block (pre-string (pprint-pop))
+                                    (loop (pprint-exit-if-list-exhausted)
+                                          (bypass-pprint pre-string (pprint-pop) nil nil)
                                           (write-char #\Space pre-string)
-                                          (pprint-indent :block 8 pre-string)
                                           (pprint-newline :linear pre-string)
-                                          (pprint-logical-block (pre-string (pprint-pop))
-                                            (loop (pprint-exit-if-list-exhausted)
-                                                  (bypass-pprint pre-string (pprint-pop) nil nil)
-                                                  (write-char #\Space pre-string)
-                                                  (pprint-newline :linear pre-string)
-                                                  ))
-                                          (pprint-indent :block 4 pre-string)
-                                          (pprint-newline :linear pre-string)
-                                          (write-string "&rarr; " pre-string)
-                                          (write-string "<i>result</i>" pre-string)
-                                          )))
-                                    )) ; <:/pre <:/p
-                                  (when mdb-doc
-                                    (<:p () mdb-doc))
-                                  ) ; <:li
-                                 ))))
+                                          ))
+                                  (pprint-indent :block 4 pre-string)
+                                  (pprint-newline :linear pre-string)
+                                  (write-string "&rarr; " pre-string)
+                                  (write-string "<i>result</i>" pre-string)
+                                  )))
+                            )) ; <:/pre <:/div
+                          (when mdb-doc
+                            (<:div (:class "method_descr") mdb-doc))
+                          ) ; <:li
+                         )
+                     collect method-html
+                     )))
            )
 
     (let* ((gfname (doc-bit-name doc-bit))
@@ -1370,7 +1373,7 @@ The HTML5 documentation production is still very experimental and buggy.
 
              ;; (<:h2 "Description:")
              ;; (paragraphize-doc-string doc-string)
-             (process-doc-string doc-string 'text/hyperspec 'html
+             (process-doc-string doc-string 'text/hyperspec 'html5
                                  t (parse-ll :generic-function ll)
                                  t f-values
                                  )
