@@ -41,11 +41,13 @@
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
                (:file "doc-formats" :depends-on ("helambdap-pkg"))
+               (:file "known-doc-formats" :depends-on ("doc-formats"))
 
                (:file "doc-structure"
                 :depends-on ("setup"
+                             "collect-documentation"
                              "utilities"
-                             "collect-documentation"))
+                             "known-doc-formats"))
 
                (:file "documentation-production"
                 :depends-on ("impl-dependent"
