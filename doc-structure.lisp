@@ -90,40 +90,6 @@ The default directory is set to the location of the source file.")
 
 
 ;;;---------------------------------------------------------------------------
-;;; Known output formats.
-
-(defparameter *known-output-formats*
-  (list 'html
-        'html5
-        ;; 'texinfo
-        )
-  "A list of known output formats.")
-
-
-(defgeneric output-format-tag (x)
-  (:documentation
-   "Translates from a 'user' tag to the canonical internal one.
-
-The internal tags are symbols in the HELambdaP implementation packages
-(which may, or may not be exported).
-
-Examples:
-
-(output-format-tag :html) ==> HLP:HTML
-
-")
-  (:method ((x (eql :html))) 'html)
-  (:method ((x (eql 'html))) 'html)
-
-  (:method ((x (eql :html5))) 'html5)
-  (:method ((x (eql 'html5))) 'html5)
-
-  (:method ((x (eql :texinfo))) 'texinfo)
-  (:method ((x (eql 'texinfo))) 'texinfo)
-  )
-
-
-;;;---------------------------------------------------------------------------
 ;;; Template/structure file management.
 
 ;;; documentation-structure --
