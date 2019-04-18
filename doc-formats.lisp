@@ -98,7 +98,7 @@ Examples:
   )
 
 
-
+#|
 ;;; texinfo-format
 ;;; --------------
 
@@ -112,14 +112,12 @@ Examples:
 
 (defparameter *texinfo-format* (%texinfo))
 
-(eval-when (:load-toplevel :compile-toplevel :execute)
+(eval-when (:load-toplevel :execute)
   (register-doc-format *texinfo-format*))
 
 (defmethod output-format-tag ((x (eql :texinfo))) 'texinfo)
 (defmethod output-format-tag ((x (eql 'texinfo))) 'texinfo)
-
-
-(eval-when (:load-toplevel :compile-toplevel :execute)
+|#
 
 
 ;;; define-doc-format
@@ -163,29 +161,7 @@ OUTPUT-FORMAT, OUTPUT-FORMAT-TAG
 
        ',name)))
 
-) ; closing eval-when
 
+;;;; Known formats in file 'known-doc-formats.lisp'.
 
-;;; HTML and HTML5 formats.
-;;; -----------------------
-
-(define-doc-format html-format html :html)
-
-(define-doc-format html5-format html5 :html5
-                   :derives-from html-format)
-
-
-
-
-#|
-
-(defun select-doc-structure (format-tag)
-  (ecase (output-format-tag format-tag)
-    (html *xhtml-simple-frame-documentation-structure*)
-    (html5 *html5-documentation-structure*)
-    (texinfo *texinfo-documentation-structure*)))
-
-|#
-
-
-;;;; end of file -- doc-structure.lisp --
+;;;; end of file -- doc-formats.lisp --
