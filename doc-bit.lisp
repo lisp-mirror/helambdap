@@ -12,15 +12,22 @@
 
 The structure of a documentation bit."
 
-  (name nil :type (or symbol naming string list) :read-only t) ; Either a name a CONS like (SETF s).
-  (kind t :read-only t) ; As per CL:DOCUMENTATION second argument, with extra "naming"
-                        ; accepted, in the fashion of LW DSPEC package
-  (kind-tag "" :type string :read-only t)
-  (doc-string "" :type (or null string))
-  (timestamp (get-universal-time) :type integer)
+  (name nil
+        :type (or symbol naming string list)
+        :read-only t) ; Either a name a CONS like (SETF s).
+  (kind t
+        :read-only t) ; As per CL:DOCUMENTATION second argument, with
+                      ; extra "naming" accepted, in the fashion of LW
+                      ; DSPEC package.
+  (kind-tag ""
+            :type string
+            :read-only t)
+  (doc-string ""
+              :type (or null string))
+  (timestamp (get-universal-time)
+             :type integer)
   location ; We assume that NAME is unique, hence LOCATION must be as
            ; well.  doc-bit => location is 1-1.
-
   )
 
 
