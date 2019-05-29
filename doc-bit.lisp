@@ -52,8 +52,18 @@ The structure of a documentation bit."
   (declare (type doc-bit))
   (typecase dbi
     (symbol (symbol-package dbi))
-    (string (if (package-doc-bit-p db) dbi "CL-USER"))
-    ))
+    (string (if (package-doc-bit-p db) dbi (find-package "CL-USER")))))
+
+
+(defun package-shortest-name (p &aux (ns (package-nicknames p)))
+  (declare (type package p))
+  (loop with sn = (package-name p)
+        with l = (length sn)
+        for x in ns
+        for nl = (length x)
+        when (< nl l)
+        do (setf sn x l nl)
+        finally (return sn)))
 
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
@@ -141,8 +151,10 @@ More specifically: #\\/ #\\Space #\\* #\%"
 (defun doc-bit-pathname-name (doc-bit
                               &aux
                               (bad-chars *bad-chars-replacements*)
-                              (dbpn (format nil "~A-~A"
+                              (dbpn (format nil "~A-~A-~A"
                                             (doc-bit-kind-tag doc-bit)
+                                            (package-shortest-name
+                                             (doc-bit-package doc-bit))
                                             (doc-bit-name doc-bit))))
   "Ensures that the resulting pathname does not contain 'problematic' characters.
 
