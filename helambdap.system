@@ -21,6 +21,8 @@
 
   :licence "BSD like"
 
+  :binary-pathname "_hlpbin"
+
   :components ((:file "helambdap-pkg")
                (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
                (:file "setup" :depends-on ("helambdap-globals"))
