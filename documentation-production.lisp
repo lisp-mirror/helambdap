@@ -78,13 +78,69 @@ can be used as building blocks for the final documentation."))
 (defvar *default-docs-destination-temp*
   (make-pathname :directory '(:relative "temp" "docs" "xhtmlx")))
 
-
+#|
 (defgeneric select-doc-destination (format)
   (:method ((format (eql 'html))) *default-docs-destination-html*)
   (:method ((format (eql :html))) *default-docs-destination-html*)
   (:method ((format (eql 'html5))) *default-docs-destination-html5*)
   (:method ((format (eql :html5))) *default-docs-destination-html5*)
   )
+|#
+
+
+(defgeneric select-doc-source (for-what)
+  (:documentation
+   "Returns the source (a folder pathname) for the documentation.")
+  
+  (:method ((for-what t)) #P".")
+  (:method ((for-what pathname)) for-what))
+
+
+(defgeneric select-doc-destination (for-what source format)
+  (:documentation
+   "Returns a default destination (a folder) for the documentation.
+
+The default destination is relative to SOURCE, depending on the final
+FORMAT desired.  If FOR-WHAT is a pathname then SOURCE must be EQUAL
+to it, otherwise a warning is issued.")
+  )
+
+
+(defmethod select-doc-destination ((for-what t)
+				   (source pathname)
+				   (format (eql :html)))
+  (select-doc-destination for-what source 'html))
+
+
+(defmethod select-doc-destination ((for-what t)
+				   (source pathname)
+				   (format (eql 'html)))
+  (merge-pathnames *default-docs-destination-html* source))
+
+
+(defmethod select-doc-destination :around ((for-what pathname)
+					   (source pathname)
+					   (format symbol))
+  (unless (equal for-what source)
+    (warn "HELambdaP: the folder to document and its presumed source differ. ~@
+           Folder : '~A' ~@
+           Source : '~A'"
+	  for-what
+	  source))
+  (call-next-method))
+
+
+(defmethod select-doc-destination ((for-what t)
+				   (source pathname)
+				   (format (eql :html5)))
+  (select-doc-destination for-what source 'html5))
+
+
+(defmethod select-doc-destination ((for-what t)
+				   (source pathname)
+				   (format (eql 'html5)))
+  (merge-pathnames *default-docs-destination-html5* source))
+
 
 
 (defun document (for-what
@@ -92,8 +148,8 @@ can be used as building blocks for the final documentation."))
                  (documentation-title "HE&Lambda;P Untitled Documentation")
                  (format :html)
                  (layout (select-doc-structure format))
-                 (source #P"")
-                 (destination (select-doc-destination format))
+                 (source (select-doc-source for-what))
+                 (destination (select-doc-destination for-what source format))
 
                  ((:supersede *supersede-documentation*)
                   *supersede-documentation*)
@@ -114,7 +170,9 @@ can be used as building blocks for the final documentation."))
   "Produces the documentation for something.
 
 The function is a wrapper for BUILD-DOCUMENTATION defaulting a few
-parameters, in particular the output FORMAT (which defaults to HTML).
+parameters, in particular the output FORMAT.  The current default for
+FORMAT is :HTML, and experimental :HTML5 is available and it can be
+used to produce the documentation in HTML5 format.
 
 Arguments and Values:
 
@@ -129,6 +187,7 @@ EXCLUDE-DIRECTORIES --- a LIST of directory pathnames not to be considered.
 EXCLUDE-FILES --- a list of FILES not to be considered.
 SPECIAL-METHODS-DEFS-FILES --- a list of FILES to be LOADed before running the parsers. 
 CLEAR-DOCUMENTATION-DB --- a KEYWORD stating if and when the documentation db should be cleared.
+
 
 Notes:
 
@@ -151,7 +210,10 @@ hamper the documentation procedure.
                     *only-exported*
                     *everything*
                     *exclude-directories*
-                    *exclude-files*))
+                    *exclude-files*)
+	   
+	   (type pathname source destination)
+	   )
   
   (when (and *everything* (or *only-documented* *only-exported*))
     (warn "EVERYTHNG is currently true: HELAMBDAP will produce all ~@
@@ -170,7 +232,7 @@ hamper the documentation procedure.
                            format
                            :layout layout
                            :source source
-                           :destination (pathname destination)
+                           :destination destination
                            :documentation-title documentation-title)
 
     (when (member clear-documentation-db '(t :after))
@@ -200,7 +262,7 @@ hamper the documentation procedure.
                                         (format t)
                                         &key
                                         (documentation-title)
-                                        (layout *default-documentation-structure*)
+                                        (layout (select-doc-structure format))
                                         &allow-other-keys
                                         )
   (when documentation-title
@@ -214,8 +276,8 @@ hamper the documentation procedure.
                                         &allow-other-keys
                                         )
   (warn "HELambdaP: note that, due to the presence of Javascript and CORS, ~@
-         the pages generated with the HTML5 format must be served by an HTTP server ~@
-         (use your favourite one).")
+         the pages generated with the HTML5 format must be served by ~@
+         an HTTP server (use your favourite one).")
   )
 
 
@@ -223,22 +285,26 @@ hamper the documentation procedure.
                                 (format t)
                                 &key
                                 (documentation-title)
-                                (layout *default-documentation-structure*)
+                                (layout (select-doc-structure format))
+				(source (select-doc-source p))
                                 (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
+				 (select-doc-destination p source format))
                                 &allow-other-keys
                                 )
-  "Builds the documentation given a PATHNAME in a given FORMAT.
+  "Builds the documentation given a pathname P in a given FORMAT.
 
 The pathname P can either denote a file or a folder.  If it is a folder
-then it is recursively traversed.
+then it is recursively traversed.  The documentation is produced in
+the DESTINATION directory/folder, which defaults to 'docs/html'
+relative to the pathname P.
 
 See Also:
 
 COLLECT-DOCUMENTATION.
 "
-
-  (let ((doc-bits (collect-documentation p)))
+  (declare (type pathname source destination))
+  
+  (let ((doc-bits (collect-documentation source)))
     (produce-documentation format
                            layout
                            destination
@@ -248,7 +314,8 @@ COLLECT-DOCUMENTATION.
 
 
 ;;; The :around method is used to proper "relativize" the excluded
-;;; files and directories to the pathname P.
+;;; files and directories either to the pathname P (which should be
+;;; EQUAL to SOURCE, unmentioned here).
 
 (defmethod build-documentation :around ((p pathname)
                                         (format t)
@@ -273,20 +340,27 @@ COLLECT-DOCUMENTATION.
                                 (format t)
                                 &key
                                 (documentation-title)
-                                (layout *default-documentation-structure*)
+                                (layout (select-doc-structure format))
+				(source (select-doc-source s))
                                 (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
+				 (select-doc-destination s source format))
                                 &allow-other-keys
                                 )
   "Builds the documentation for a ASDF system in a given FORMAT."
 
+  (declare (type pathname source destination))
+
   (let ((doc-bits (collect-documentation (asdf:files-in-system s))))
     (produce-documentation format
                            layout
-                           (pathname destination)
+                           destination
                            doc-bits
                            :documentation-title documentation-title))
   )
+
+#+asdf
+(defmethod select-doc-source ((s asdf:system))
+  (asdf:component-pathname s))
 
 
 #+asdf
@@ -296,7 +370,7 @@ COLLECT-DOCUMENTATION.
                                         &allow-other-keys
                                         )
   (declare (special *exclude-directories* *exclude-files*))
-  (let* ((p (asdf:component-pathname s))
+  (let* ((p (select-doc-source s))
          (*exclude-directories*
          (mapcar #'(lambda (ed) (merge-pathnames ed p)) *exclude-directories*))
         (*exclude-files*
@@ -312,22 +386,33 @@ COLLECT-DOCUMENTATION.
                                 (format t)
                                 &key
                                 (documentation-title)
-                                (layout *default-documentation-structure*)
+				(layout (select-doc-structure format))
+				(source (select-doc-source s))
                                 (destination
-                                 (make-pathname :directory '(:relative "docs" "html")))
+				 (select-doc-destination s source format))
                                 &allow-other-keys
                                 )
   "Builds the documentation for a MK-DEFSYSTEM system in a given FORMAT."
 
+  (declare (type pathname source destination))
+  
   (assert (eq :defsystem (mk::component-type s)))
 
-  (let ((doc-bits (collect-documentation (mapcar #'pathname (mk:files-in-system s)))))
+  (let ((doc-bits
+	 (collect-documentation
+	  (mapcar #'pathname (mk:files-in-system s))))
+	)
     (produce-documentation format
                            layout
-                           (pathname destination)
+                           destination
                            doc-bits
                            :documentation-title documentation-title))
   )
+
+
+#+mk-defsystem
+(defmethod select-doc-source ((s mk::component))
+  (directory-pathname (mk::component-full-pathname s :source)))
 
 
 #+mk-defsystem
@@ -340,7 +425,7 @@ COLLECT-DOCUMENTATION.
 
   (assert (eq :defsystem (mk::component-type s)))
 
-  (let* ((p (directory-pathname (mk::component-full-pathname s :source)))
+  (let* ((p (select-doc-source s))
          (*exclude-directories*
          (mapcar #'(lambda (ed) (merge-pathnames ed p)) *exclude-directories*))
         (*exclude-files*
