@@ -84,7 +84,10 @@ Examples:
 
 (output-format-tag :html) ==> HLP:HTML
 
-")
+"
+)
+
+
   #|
   (:method ((x (eql :html))) 'html)
   (:method ((x (eql 'html))) 'html)
@@ -95,7 +98,11 @@ Examples:
   (:method ((x (eql :texinfo))) 'texinfo)
   (:method ((x (eql 'texinfo))) 'texinfo)
   |#
-  )
+
+  (:method ((x t))
+    (warn "HELampdaP: unknown format  ~S; HTML assumed." x)
+    (call-next-method :html))
+)
 
 
 #|
