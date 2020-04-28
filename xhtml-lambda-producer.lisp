@@ -409,7 +409,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                           (element doc-file)
                           (where stream)
                           )
-  (<:frame (:src (namestring (file-pathname element))
+  (<:frame (:src (namestring (file-pathname element nil)) ; force the name as-is.
             :name (concatenate 'string
                                (pathname-name
                                 (file-pathname element))
