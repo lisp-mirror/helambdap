@@ -1,2 +1,5 @@
+2020-04-28 MA
+This file will be removed soon.
+
 2011-09-06 MA
 Tagged version.  Now I begin rewriting keeping in mind XSLT and DocBook.
