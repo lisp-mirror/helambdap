@@ -435,7 +435,9 @@ that include ELEMENT."))
 (defgeneric file-pathname (fd &optional defaults)
   (:method ((f file)
             &optional (defaults *default-pathname-defaults*))
-   (merge-pathnames (pathname (file-name f))) defaults))
+   (if defaults
+       (merge-pathnames (pathname (file-name f)) defaults)
+       (pathname (file-name f)))))
 
 
 (defmethod pprint-element ((os stream) (f file))
@@ -498,10 +500,12 @@ that include ELEMENT."))
 (defmethod file-pathname ((df doc-file)
                           &optional
                           (defaults *default-pathname-defaults*))
-  (merge-pathnames
-   (merge-pathnames (file-name df)
-                    (doc-file-pathname-type))
-   defaults))
+  (let ((dfp (merge-pathnames (file-name df)
+                              (doc-file-pathname-type)))
+        )
+    (if defaults ; It can be nil
+        (merge-pathnames dfp defaults)
+        dfp)))
 
 
 ;;; file-set --
