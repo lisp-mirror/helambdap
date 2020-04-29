@@ -222,7 +222,8 @@ given 'output-format'."))
 
 
 (defun bypass-pprint (s e &optional (colon-p t) at-sign-p)
-  (declare (ignore colon-p at-sign-p))
+  (declare (type stream s)
+           (ignore colon-p at-sign-p))
   (let ((*print-pretty* nil))
     (format s "~A" e)))
 
