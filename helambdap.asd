@@ -24,7 +24,6 @@
   :components (
 	       (:file "helambdap-pkg")
                (:file "helambdap-globals" :depends-on ("helambdap-pkg"))
-               (:file "setup" :depends-on ("helambdap-globals"))
                (:module "utilities"
                 :depends-on ("helambdap-pkg")
                 :components ((:file "text-utilities")
@@ -34,13 +33,15 @@
                              (:file "streams-utilities")
                              (:file "symbols-utilities")
                              (:file "lambda-list-parsing")
+                             (:file "debugging-utilities")
                              ))
+               (:file "setup" :depends-on ("helambdap-globals" "utilities"))
                (:file "naming" :depends-on ("setup"))
                (:file "doc-bit" :depends-on ("naming" "setup"))
                (:file "extract-doc" :depends-on ("doc-bit"))
                (:file "helambdap" :depends-on ("doc-bit"))
                (:file "collect-documentation" :depends-on ("doc-bit"))
-               (:file "doc-formats" :depends-on ("helambdap-pkg"))
+               (:file "doc-formats" :depends-on ("helambdap-pkg" "utilities"))
                (:file "known-doc-formats" :depends-on ("doc-formats"))
 
                (:file "doc-structure"
