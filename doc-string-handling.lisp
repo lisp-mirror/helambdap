@@ -218,7 +218,8 @@ given 'output-format'."))
 
 
 
-(defgeneric render-syntax-section (format doc-bit &optional lambda-list values))
+(defgeneric render-syntax-section (format doc-bit
+                                          &optional lambda-list values))
 
 
 (defun bypass-pprint (s e &optional (colon-p t) at-sign-p)
