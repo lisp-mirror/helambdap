@@ -45,79 +45,6 @@
 ;;;; CL-FAD:WALK-DIRECTORY does not do a proper DFS with links on some
 ;;;; FSs; so I roll my own.
 
-#+pre-truename-fix
-(defmethod collect-documentation ((p pathname)
-                                  &key
-                                  ((:exclude-directories *exclude-directories*)
-                                   *exclude-directories*)
-                                  ((:exclude-files *exclude-files*)
-                                   *exclude-files*)
-                                  &allow-other-keys
-                                  )
-  (declare (special *exclude-directories* *exclude-files*))
-  (let ((color-table (make-hash-table :test #'equal))
-        (doc-bits ())
-        (exclude-dir-names (mapcar #'directory-last-name *exclude-directories*))
-        (exclude-file-names (mapcar #'(lambda (exf)
-                                        (namestring (pathname exf)))
-                                    *exclude-files*))
-        )
-    (declare (type hash-table color-table)
-	     (type list
-		   doc-bits
-		   exclude-dir-names
-		   exclude-file-names)
-	     )
-    (labels (
-	     ;; (is-grey (ntp) (eq :grey (gethash ntp color-table)))
-
-             ;; (is-black (ntp) (eq :black (gethash ntp color-table)))
-
-             (is-white (ntp) (eq :white (gethash ntp color-table :white)))
-
-             (grey (ntp) (setf (gethash ntp color-table) :grey))
-
-             (blacken (ntp) (setf (gethash ntp color-table) :black))
-
-             ;; (whiten (ntp) (setf (gethash ntp color-table) :white))
-
-             (dfs (p)
-               (let* ((ntp (namestring (truename p)))
-                      (ed (enclosing-directory (truename p)))
-                      (trunc-p (make-pathname :directory ed :defaults p))
-                      )
-		 (declare (type string ntp))
-                 (when (is-white ntp)
-                   (format t "~&HELAMBDAP: Considering .../~A " trunc-p)
-                   (grey ntp)
-                   (cond ((cl-fad:directory-pathname-p p)
-                          (format t "[D]")
-                          (if (member (directory-last-name p)
-                                      exclude-dir-names
-                                      :test #'string-equal)
-                              (format t " excluded.~%")
-                              (progn
-                                (dolist (f (directory-source-files p))
-                                  (dfs f))
-                                (dolist (sd (subdirectories p))
-                                  (dfs sd)))
-                              ))
-                         (t ; A file.
-                          (format t "[F]")
-                          (if (member ntp exclude-file-names :test #'equal)
-                              (format t " excluded.~%")
-                              (setf doc-bits
-                                    (nconc (extract-documentation p)
-                                           doc-bits))))
-                         )
-                   (blacken ntp))
-                 ))
-             )
-      (dfs p)
-      doc-bits)))
-
-
-;;; #+post-truename-fix
 (defmethod collect-documentation ((p pathname)
                                   &key
                                   ((:exclude-directories *exclude-directories*)
@@ -171,7 +98,8 @@
                      (grey ntp)
                      (cond ((cl-fad:directory-pathname-p p)
                             (format t "[D]")
-                            (if (member (truename p) exclude-dir-names :test #'equal)
+                            (if (member (truename p) exclude-dir-names
+                                        :test #'equal)
                                 (format t " excluded.~%")
                                 (progn
                                   (dolist (f (directory-source-files p))
