@@ -13,6 +13,8 @@
               :documentation-title "HE&Lambda;P"
               :format :html
               :exclude-files (list
+                              ;; This list of files may or may not be
+                              ;; up to date.
                               "html5-lambda-producer-saved-1.lisp"
                               "html5-lambda-producer-saved-2.lisp")
               :only-documented t
