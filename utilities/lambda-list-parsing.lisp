@@ -2,7 +2,6 @@
 
 ;;;; lambda-list-parsing.lisp --
 ;;;;
-;;;; Copyright (c) 2013, Marco Antoniotti
 ;;;; See file COPYING for more information.
 
 (in-package "HELAMBDAP")
@@ -102,6 +101,7 @@
 
 (defstruct (generic-function-lambda-list
             (:include t_lambda-list)
+	    (:conc-name gf-lambda-list-)
             (:constructor
              make-generic-function-lambda-list (&optional
                                                 ordinary-vars
@@ -210,13 +210,13 @@
                         auxvars)
       (pll lltype ll nil)
     (declare (ignore wholevar envvar bodyvar))
-    (make-specialized-lambda-list reqvars
-                                  optvars
-                                  restvar
-                                  keyvars
-                                  (not (null allow-other-keys))
-                                  auxvars
-                                  )))
+    (make-generic-function-lambda-list reqvars
+				       optvars
+				       restvar
+				       keyvars
+				       (not (null allow-other-keys))
+				       auxvars
+				       )))
 
 
 (defmethod parse-ll ((lltype (eql :destructuring)) ll)
@@ -288,7 +288,9 @@
                                :non-destructuring)|#)
         )
     (declare (type lambda-list-var-type state)
-             (type list wholevar reqvars optvars restvar bodyvar keyvars auxvars envvar)
+             (type list
+		   wholevar reqvars optvars restvar bodyvar
+		   keyvars auxvars envvar)
              (type lambda-list-type destr-p)
              )
     (labels ((start (ll)
