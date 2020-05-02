@@ -378,10 +378,18 @@ Declarations."
       form
     (declare (ignore defpackage))
     ;; We must ensure that a package always has a doc string.
-    (make-package-doc-bit :name name
+    ;; We must also ensure that the USE-LIST and the NICKNAMES list
+    ;; contain strings, not fuc$@!ng uninterned symbols!!!!  Same for
+    ;; NAME.
+
+    (make-package-doc-bit :name (string name)
                           :kind 'package
-                          :use-list (rest (find :use options :key #'first))
-                          :nicknames (rest (find :nicknames options :key #'first))
+
+                          :use-list 
+                          (mapcar #'string (rest (find :use options :key #'first)))
+                          :nicknames
+                          (mapcar #'string (rest (find :nicknames options :key #'first)))
+
                           :doc-string (or (second (find :documentation options
                                                         :key #'first))
                                           (format nil "The ~A Package." name)
