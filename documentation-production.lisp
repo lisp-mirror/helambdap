@@ -158,7 +158,8 @@ to it, otherwise a warning is issued.")
                  ((:everything *everything*) *everything*)
 
                  ((:exclude-directories *exclude-directories*)
-                  *exclude-directories*)
+                  *exclude-directories*
+                  ed-supplied-p)
                  ((:exclude-files *exclude-files*)
                   *exclude-files*)
 
@@ -219,6 +220,12 @@ hamper the documentation procedure.
     (warn "EVERYTHNG is currently true: HELAMBDAP will produce all ~@
            documentation files regardless of the value of other 'limiting' ~@
            variables."))
+  ;; Ensure that "bad" directories are always excluded.
+
+  (when ed-supplied-p
+    (setq *exclude-directories*
+          (append *exclude-directories*
+                  *always-excluded-directories*)))
 
   (ignore-errors
     (dolist (smdf special-methods-defs-files)
