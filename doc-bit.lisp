@@ -81,56 +81,6 @@ The structure of a documentation bit."
 )
 
 
-#+old-version
-(defun doc-bit-pathname-name (doc-bit)
-  "Ensures that the resulting pathname does not contain 'problematic' characters."
-  (let ((name (string (doc-bit-name doc-bit)))
-        (kind (doc-bit-kind-tag doc-bit))
-        )
-    (with-output-to-string (result)
-      (write-string kind result)
-      (write-string "-" result)
-      (loop for c across name
-            if (char= #\* c)
-            do (write-string "\\*" result)
-            else if (char= #\Space c)
-            do (write-char #\_ result)
-            else
-            do (write-char c result)))))
-
-#+old-version
-(defun doc-bit-pathname-name (doc-bit)
-  (concatenate 'string
-               (substitute #\_ #\Space (doc-bit-kind-tag doc-bit))
-               "-"
-               (string (doc-bit-name doc-bit))))
-
-
-#+old-old-version
-(defun doc-bit-pathname-name (doc-bit)
-  "Ensures that the resulting pathname does not contain 'problematic' characters.
-
-More specifically: #\\/ #\\Space #\\*"
-  (nsubstitute #\= #\/
-               (nsubstitute #\_ #\Space
-                            (format nil "~A-~A"
-                                    (doc-bit-kind-tag doc-bit)
-                                    (doc-bit-name doc-bit)))))
-
-#+old-new-version
-(defun doc-bit-pathname-name (doc-bit
-                              &aux
-                              (dbpn (format nil "~A-~A"
-                                            (doc-bit-kind-tag doc-bit)
-                                            (doc-bit-name doc-bit))))
-  "Ensures that the resulting pathname does not contain 'problematic' characters.
-
-More specifically: #\\/ #\\Space #\\* #\%"
-  (nsubstitute #\_ #\*
-               (nsubstitute #\_ #\*
-                            (nsubstitute #\= #\/
-                                         (nsubstitute #\_ #\Space dbpn)))))
-
 (defparameter *bad-chars-replacements*
   '((#\/ "=")
     (#\Space "_")
@@ -201,6 +151,10 @@ More specifically: #\\/ #\\Space #\\* #\% #\( #\)"
 (defstruct (parameter-doc-bit (:include variable-doc-bit (kind-tag "Parameter"))))
 
 (defstruct (constant-doc-bit (:include variable-doc-bit (kind-tag "Constant"))))
+
+
+(def-doc-bit symbol-macro-doc-bit doc-bit "Symbol Macro"
+  (expansion nil :read-only t))
 
 
 (defstruct (parameterized-doc-bit (:include doc-bit)
@@ -297,10 +251,10 @@ More specifically: #\\/ #\\Space #\\* #\% #\( #\)"
 ;;;; "Document" doc bits; patterned after DocBook.
 
 ;;; Note.
+;;; This part is not yet used as of 202004.
+;;;
 ;;; It may be worth to bite the bullet ad start defining a DTD-like or a
 ;;; XSD-like set of macros, but WTH!
-;;;
-
 
 ;;; WHAT FOLLOWS IS UNUSED.
 
