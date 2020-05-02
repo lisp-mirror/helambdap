@@ -9,7 +9,6 @@
 ;;;;===========================================================================
 ;;;; Global special parameters controlling the documentation production.
 
-
 ;;;; Filesystem parameters.
 ;;;; ----------------------
 
@@ -46,6 +45,13 @@ pathnames.
 See Also:
 
 *HELAMBDAP-CSS-PATHNAME*, *HELAMBDAP5-CSS-PATHNAME*, *HELAMBDAP-JS-PATHNAME*")
+
+
+(defun helambdap-data-folder ()
+  "Returns the location of the HELambdaP 'data' folder."
+  *helambdap-data-folder*)
+
+
 
 
 ;;;; *helambdap-css-filename*
