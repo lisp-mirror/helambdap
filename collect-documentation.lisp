@@ -4,6 +4,9 @@
 ;;;; Collecting the documentation about a library entails a number of
 ;;;; steps, with the goal of producing a "structured" web site
 ;;;; organized as a (static) setf of pages.
+;;;;
+;;;; See file COPYING for copyright and licensing information.
+
 
 (in-package "HELAMBDAP")
 
