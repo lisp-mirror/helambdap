@@ -19,6 +19,8 @@
 
 (defvar *hlp-dbg-warn*   (* +max-debug-tag+ 0.9))
 
+(defvar *hlp-dbg-msg*    +max-debug-tag+)
+
 
 
 ;;;; Configuration parameters.
