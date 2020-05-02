@@ -70,6 +70,13 @@
    "DEFINE-OUTPUT-FORMAT"
    )
 
+  ;; Setup and debugging.
+  (:export
+   "HELAMBDAP-PRINT-CONFIGURATION"
+   "HELAMBDA-SOURCE-LOCATION"
+   "HELAMBDAP-DATA-FOLDER"
+   )
+
   (:documentation "The HELambdaP Package.
 
 The package containing the implementation of the 'semi-offline'
