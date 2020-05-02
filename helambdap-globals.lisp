@@ -175,8 +175,13 @@ See Also:
 ;;;; pathnames that the documentation extraction procedures will not
 ;;;; consider.
 
-(defparameter *exclude-directories*
+(defvar *always-excluded-directories*
   (list #P".git/" #P"CVS/" #P"svn/" #P"tmp/"))
+
+
+(defparameter *exclude-directories*
+  *always-excluded-directories*)
+
 
 (defparameter *exclude-files*
   ())
