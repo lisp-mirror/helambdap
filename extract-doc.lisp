@@ -61,12 +61,23 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
 ;;; read-form --
 ;;; The core reader for CL source code.
+;;; This function is necessarily kludgy because CL implementations
+;;; don't agree what to signal when they read something that is
+;;; kosher, like a symbol in an unknown package.  The standard reader
+;;; will continue reading without trying to recover, yielding, in some
+;;; implementations, "right parenthesis read" error, of course, non
+;;; standard.
+;;;
+;;; One solution would be to use a full blown re-implementation
+;;; of the reader, like Eclector
+;;; https://github.com/s-expressionists/Eclector
+;;; but FTTB I will postpone that.
 
 (defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
   (handler-case
-      (let ((*package* *current-package*)
-            )
+      (let* ((*package* *current-package*))
         (read forms-stream nil eof nil))
+
     (simple-error (e)
       (debugmsg *hlp-dbg-reader* "HLP form reader: "
                 "trying to read a form caused errors.
@@ -75,6 +86,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
                 (simple-condition-format-control e)
                 (simple-condition-format-arguments e))
       nil)
+
     (error (e)
       ;; (describe e)
       ;; (finish-output)
@@ -84,7 +96,6 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
                  The result will be NIL, hence the form will be ignored.~2%"
                 e)
       nil)))
-
 
 
 ;;; extract-documentation --
