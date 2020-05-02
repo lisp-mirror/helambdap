@@ -323,7 +323,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title fs-title)
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet"
                      :href (frameset-style structure)))
              
@@ -592,7 +592,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title dfname)
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet" :href *helambdap-css-filename*))
             
             (<:body
@@ -639,7 +639,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title fsn)
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet"
                      :href (namestring *helambdap-css-filename-up*)))
             
@@ -775,7 +775,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title (format nil "~A ~A" str-tag name))
           (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet"
                   :href (namestring *helambdap-css-filename-up*)))
          (<:body
@@ -1050,7 +1050,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title "Package " name)
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet"
                   :href (namestring *helambdap-css-filename-up*)))
 
@@ -1090,7 +1090,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title "System " name)
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet"
                   :href (namestring *helambdap-css-filename-up*)))
          (<:body
@@ -1280,7 +1280,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title documentation-title ": " kind name)
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
          (<:body
@@ -1323,7 +1323,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title documentation-title ": " kind name)
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet"
                   :href (namestring *helambdap-css-filename-up*)))
 
@@ -1367,7 +1367,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title documentation-title ": " kind name)
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet"
                   :href (namestring *helambdap-css-filename-up*)))
 
@@ -1424,7 +1424,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:head
            (<:title kind (string-downcase name))
            (<:meta :http-equiv "Content-Type"
-                   :content "text/html;charset=UTF-8")
+                   :content "text/html" :charset "UTF-8")
            (<:link :rel "stylesheet"
                    :href (namestring *helambdap-css-filename-up*)))
           (<:body
@@ -1466,7 +1466,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:head
            (<:title kind (string-downcase name))
            (<:meta :http-equiv "Content-Type"
-                   :content "text/html;charset=UTF-8")
+                   :content "text/html" :charset "UTF-8")
            (<:link :rel "stylesheet"
                    :href (namestring *helambdap-css-filename-up*))) 
           (<:body
@@ -1537,7 +1537,7 @@ Each FRAMESET and FRAME is contained in a separate file.
           (<:head
            (<:title kind (string-downcase name))
            (<:meta :http-equiv "Content-Type"
-                   :content "text/html;charset=UTF-8")
+                   :content "text/html" :charset "UTF-8")
            (<:link :rel "stylesheet"
                    :href (namestring *helambdap-css-filename-up*)))
 
@@ -1607,7 +1607,7 @@ Each FRAMESET and FRAME is contained in a separate file.
          (<:head
           (<:title (format nil "DOC FOR ~A" (string-downcase name)))
           (<:meta :http-equiv "Content-Type"
-                  :content "text/html;charset=UTF-8")
+                  :content "text/html" :charset "UTF-8")
           (<:link :rel "stylesheet" :href (namestring *helambdap-css-filename-up*)))
 
          (<:body
@@ -1853,7 +1853,7 @@ Each FRAMESET and FRAME is contained in a separate file.
            (<:head
             (<:title documentation-title ": " "Generic Function" name)
             (<:meta :http-equiv "Content-Type"
-                    :content "text/html;charset=UTF-8")
+                    :content "text/html" :charset "UTF-8")
             (<:link :rel "stylesheet"
                     :href (namestring *helambdap-css-filename-up*)))
 	   
@@ -2030,7 +2030,7 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:head
                (<:title fs-head-title)
                (<:meta :http-equiv "Content-Type"
-                       :content "text/html;charset=UTF-8")
+                       :content "text/html" :charset "UTF-8")
                (<:link :rel "stylesheet" :href (frameset-style fs)))
 
               ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
@@ -2129,7 +2129,7 @@ Each FRAMESET and FRAME is contained in a separate file.
               (<:head
                (<:title fs-head-title)
                (<:meta :http-equiv "Content-Type"
-                       :content "text/html;charset=UTF-8")
+                       :content "text/html" :charset "UTF-8")
                (<:link :rel "stylesheet" :href (frameset-style fs)))
 
               (<:body
@@ -2185,7 +2185,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title fs-head-title)
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet" :href (frameset-style fs)))
             
             ((<:frameset :rows "25%,75%"
@@ -2265,7 +2265,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title "Navigation Map")
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet"
                      :href (namestring *helambdap-css-filename-up*)) ; TESTING!
              (<:style (format nil
@@ -2464,7 +2464,7 @@ Each FRAMESET and FRAME is contained in a separate file.
                 (<:head
                  (<:title (format nil "~A Package List" (doc-bit-name pkg-doc-bit)))
                  (<:meta :http-equiv "Content-Type"
-                         :content "text/html;charset=UTF-8")
+                         :content "text/html" :charset "UTF-8")
                  (<:link :rel "stylesheet" :href (frameset-style fs))
                  (<:style (format nil
                                   ".helambdap_navmap li {
@@ -2534,7 +2534,7 @@ Each FRAMESET and FRAME is contained in a separate file.
             (<:head
              (<:title fs-head-title)
              (<:meta :http-equiv "Content-Type"
-                     :content "text/html;charset=UTF-8")
+                     :content "text/html" :charset "UTF-8")
              (<:link :rel "stylesheet" :href (frameset-style fs)))
 
             ((<:body :style "margin: 0pt 0pt 0pt 0pt;")
