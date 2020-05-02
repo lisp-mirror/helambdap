@@ -4,10 +4,21 @@
 
 ;;;; This will evolve in the tool "Never Underestimate The Debugging
 ;;;; Power of Print" (NUTDPP).
+;;;; For the time being, the facility is bare-bone and probably not so
+;;;; well thought out.
+;;;;
+;;;; Always, for the time being this is used only within HELambdaP and
+;;;; only with a very basic use of DEBUGMSG below.
+;;;; Just to setup some basic functionality in the file setup (in the
+;;;; main HELambdaP folder) I call:
+;;;;
+;;;;    (start-debug-logging :prefix "HLP: ")
+;;;;
+;;;; Then I use DEBUGMSG as needed.
 
-; (define-symbol-macro *debug-output* *debug-io*) ; It has to be so.
+(define-symbol-macro *debug-output* *debug-io*) ; It has to be so.
 
-(defvar *debug-output* *error-output*) ; For the time being; error
+; (defvar *debug-output* *error-output*) ; For the time being; error
                                        ; otherwise because of variable
                                        ; redefinition as a symbol-macro.
 
@@ -52,7 +63,8 @@
 
 (defstruct debug-log-channel
   (name :all :type symbol)
-  (stack () :type list))
+  (stack () :type list)
+  (stream *debug-output* :type stream))
 
 
 (defvar *debug-log-channels* (make-hash-table))
@@ -65,8 +77,6 @@
 
 (defun close-log-channel (name)
   (remhash name *debug-log-channels*))
-  
-
 
 
 (defun debugmsg (tag prefix format-control &rest format-arguments)
@@ -83,11 +93,12 @@ message.
                       (numberp *current-debug-tag*)
                       (plusp tag)
                       (or (<= +max-debug-tag+ tag)
-                          (<= *current-debug-tag* tag)))
+                          (<= tag *current-debug-tag*)))
                  (eq tag t)
                  (equal tag *current-debug-tag*)
                  (find tag *registered-debug-tags* :test #'equal)))
 
+    (fresh-line *debug-output*)
     (cond ((eq prefix t)
            (write-string *current-prefix* *debug-output*))
           ((stringp prefix)
@@ -104,6 +115,44 @@ message.
 
     (finish-output *debug-output*)
     ))
+
+
+(defun warnmsg (tag prefix format-control &rest format-arguments)
+  "Issues a warning under certain conditions.
+
+TAG and PREFIX can be both T to simplify WARNMSG usage; in that case
+defaults are used.
+
+PREFIX, if not T, should be a STRING to be used as a prefix to the
+message.
+"
+  (when (and tag
+             (or (and (numberp tag)
+                      (numberp *current-debug-tag*)
+                      (plusp tag)
+                      (or (<= +max-debug-tag+ tag)
+                          (<= tag *current-debug-tag*)))
+                 (eq tag t)
+                 (equal tag *current-debug-tag*)
+                 (find tag *registered-debug-tags* :test #'equal)))
+
+    (warn (with-output-to-string (warn-msg)
+            (cond ((eq prefix t)
+                   (write-string *current-prefix* warn-msg))
+                  ((stringp prefix)
+                   (write-string prefix warn-msg))
+                  ((listp prefix)
+                   (format warn-msg "~A: " prefix))
+                  (t ; Presumably NIL.
+                   (write-string "NUTPPD: " warn-msg)))
+
+            (apply #'format
+                   warn-msg
+                   format-control
+                   format-arguments)
+            (finish-output warn-msg)
+            )))
+  )
 
 
 (defmacro with-debug-settings ((&key (prefix *current-prefix*)
