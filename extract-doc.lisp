@@ -7,6 +7,10 @@
 (in-package "HELAMBDAP")
 
 
+;;;; Protocol.
+;;;; =========
+
+
 ;;; extract-documentation --
 
 (defgeneric extract-documentation (where-from)
@@ -56,30 +60,35 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
 
 ;;; read-form --
+;;; The core reader for CL source code.
 
 (defun read-form (forms-stream &optional (eof (gensym "FORMS-STREAM-EOF-")))
   (handler-case
-      (let ((*package* *current-package*))
-        (read forms-stream nil eof))
+      (let ((*package* *current-package*)
+            )
+        (read forms-stream nil eof nil))
     (simple-error (e)
-      (format *error-output*
-              "~%HELambdaP form reader: trying to read a form caused errors.
-               ~?
-               The result will be NIL, hence the form will be ignored.~2%"
-              (simple-condition-format-control e)
-              (simple-condition-format-arguments e)
-              )
+      (debugmsg *hlp-dbg-reader* "HLP form reader: "
+                "trying to read a form caused errors.
+                 ~?
+                 The result will be NIL, hence the form will be ignored.~2%"
+                (simple-condition-format-control e)
+                (simple-condition-format-arguments e))
       nil)
     (error (e)
-      (format *error-output*
-              "~&HELambdaP form reader: trying to read a form caused errors; most likely a missing package.
-               The error is ~S.
-               The result will be NIL, hence the form will be ignored.~2%"
-              e)
+      ;; (describe e)
+      ;; (finish-output)
+      (debugmsg *hlp-dbg-reader* "HLP form reader: "
+                "trying to read a form caused errors; most likely a missing package.
+                 The error is ~S.
+                 The result will be NIL, hence the form will be ignored.~2%"
+                e)
       nil)))
 
 
+
 ;;; extract-documentation --
+;;; ------------------------
 
 (defmethod extract-documentation ((forms-stream stream))
   (let ((saved-package *package*)
@@ -89,6 +98,15 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
         (loop with eof = (gensym "FORMS-STREAM-EOF-")
               for form = (read-form forms-stream eof)
               for form-doc = (form-documentation form)
+
+              #|
+              when (and (not (eq form eof))
+                        (or (eq form :sink)
+                            (and (consp form)
+                                 (eq (first form) 'write-doctype))))
+              do (break "Unexplicable on LW! ~S" form)
+              end
+              |#
 
               while (not (eq form eof))
                 when form-doc
@@ -132,6 +150,7 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 
 
 ;;; Form handling.
+;;; ==============
 
 (defun form-documentation (form)
   (when (consp form)
@@ -145,7 +164,10 @@ are done with *PACKAGE* bound to *CURRENT-PACKAGE*.")
 (defun extricate-doc-string (forms)
   "Given a list of FORMS finds a doc-string according to CL rules.
 
-Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations."
+Notes:
+
+Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and
+Declarations."
   (loop for (doc-or-decl . more-forms) on forms
         while (or (stringp doc-or-decl) (is-declaration doc-or-decl))
         when (and (stringp doc-or-decl) more-forms)
@@ -155,7 +177,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 (defun collect-declarations (forms)
   "Collects a list of declarations from a form list according to CL rules.
 
-Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations."
+Notes:
+
+Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and
+Declarations."
   ;; Not really really really right, but good enough FTTB.
   (loop for f in forms
         while (or (stringp f) (is-declaration f))
@@ -163,10 +188,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
 
 
 ;;; Documentation per form.
+;;; =======================
 
 (defmacro define-documentation-extractor (spec &body forms)
-  "Defines a specialized procedure to extract a doc string from a definition.
-"
+  "Defines a specialized procedure to extract a doc string from a definition."
   `(defmethod extract-form-documentation ((_%FK%_ (eql ',(first spec)))
                                           (_%FORM%_ cons))
      ;; I know I should gensym these...
@@ -177,6 +202,7 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
        
 
 ;;; extract-form-documentation --
+;;; -----------------------------
 
 ;;; Kitchen sink methods.
 
@@ -188,19 +214,23 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                                            form))
         )
     (unless doc-bit
-      (warn "Operator ~A not handled." fk))
+      (warnmsg t "HLP EFD: "
+               "Operator ~A not handled." fk))
     doc-bit))
 
 
 (defmethod extract-form-documentation ((fk cons) (form cons))
-  (warn "HELambdaP: trying to extract documentation from a form without a SYMBOL header.~:
-           ~S."
-        fk
-        )
+  (warnmsg t "HLP EFD: "
+           "trying to extract documentation from a form without a SYMBOL header.~:
+            ~S."
+           fk
+           )
   nil)
 
 
 ;;; Specialized methods.
+
+;;; DEFTYPE
 
 (defmethod extract-form-documentation ((fk (eql 'deftype)) (form cons))
   (destructuring-bind (deftype name ll &rest forms)
@@ -231,6 +261,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                              :doc-string (extricate-doc-string forms)))))
 
 
+;;; DEFMACRO
+
 (defmethod extract-form-documentation ((fk (eql 'defmacro)) (form cons))
   (destructuring-bind (defmacro name ll &rest forms)
       form
@@ -243,6 +275,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                         :doc-string (extricate-doc-string forms))))
 
 
+;;; DEFINE-COMPILER-MACRO
+
 (defmethod extract-form-documentation ((fk (eql 'define-compiler-macro)) (form cons))
   (destructuring-bind (define-compiler-macro name ll &rest forms)
       form
@@ -253,7 +287,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                                  :doc-string (extricate-doc-string forms))))
 
 
-(defmethod extract-form-documentation ((fk (eql 'define-setf-expander)) (form cons))
+;;; DEFINE-SETF-EXPANDER
+
+(defmethod extract-form-documentation ((fk (eql 'define-setf-expander))
+                                       (form cons))
   (destructuring-bind (define-setf-expander name ll &rest forms)
       form
     (declare (ignore define-setf-expander))
@@ -263,7 +300,10 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                                 :doc-string (extricate-doc-string forms))))
 
 
-(defmethod extract-form-documentation ((fk (eql 'defclass)) (form cons))
+;;; DEFCLASS
+
+(defmethod extract-form-documentation ((fk (eql 'defclass))
+                                       (form cons))
   (destructuring-bind (defclass name supers slots &rest options)
       form
     (declare (ignore defclass))
@@ -271,11 +311,15 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                         :kind 'type
                         :superclasses supers
                         :slots slots
-                        :doc-string (second (find :documentation options
-                                                  :key #'first)))))
+                        :doc-string (second
+                                     (find :documentation options
+                                           :key #'first)))))
 
 
-(defmethod extract-form-documentation ((fk (eql 'define-condition)) (form cons))
+;;; DEFINE-CONDITION
+
+(defmethod extract-form-documentation ((fk (eql 'define-condition))
+                                       (form cons))
   (destructuring-bind (define-condition name supers slots &rest options)
       form
     (declare (ignore define-condition slots))
@@ -285,6 +329,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                             :doc-string (second (find :documentation options
                                                       :key #'first)))))
 
+
+;;; DEFGENERIC
 
 (defmethod extract-form-documentation ((fk (eql 'defgeneric)) (form cons))
   (destructuring-bind (defgeneric name ll &rest options-and-methods)
@@ -313,6 +359,8 @@ Cfr. ANSI 3.4.11 Syntactic Interaction of Documentation Strings and Declarations
                                      :methods (delete nil m-doc-bits)
                                      ))))
 
+
+;;; DEFPACKAGE
 
 (defmethod extract-form-documentation ((fk (eql 'defpackage)) (form cons))
   (destructuring-bind (defpackage name &rest options)
@@ -408,7 +456,8 @@ T). Only top-level occurrences of these forms are considered.")
 |#
 
 
-(defmethod extract-form-documentation :before ((fk (eql 'defpackage)) (form cons))
+(defmethod extract-form-documentation
+           :before ((fk (eql 'defpackage)) (form cons))
   "This :before method takes care of ensuring that the defpackage is
 actually evaluated while avoing problems with package synonyms.  This
 method may signal a continuable error, that a user may decide s/he has
@@ -512,7 +561,10 @@ there exist a package named by one of the defpackage form nicknames."
       )))
 
 
-(defmethod extract-form-documentation :before ((fk (eql 'in-package)) (form cons))
+;;; IN-PACKAGE
+
+(defmethod extract-form-documentation
+           :before ((fk (eql 'in-package)) (form cons))
   (when *try-to-ensure-packages*
     (let* ((pkg-name (second form))
            (pkg (find-package pkg-name))
@@ -533,6 +585,54 @@ there exist a package named by one of the defpackage form nicknames."
       (setf *current-package* pkg))))
 
 
+;;; USE-PACKAGE
+
+(defmethod extract-form-documentation
+           :before ((fk (eql 'use-package)) (form cons))
+  (when *try-to-ensure-packages*
+    (destructuring-bind (use-pkg-fn
+                         package-use-list
+                         &optional (package *package*))
+        form
+      (declare (ignore use-pkg-fn))
+      (unless (listp package-use-list)
+        (setq package-use-list (list package-use-list)))
+      
+      (let ((pkg-name (and package
+                           (if (packagep package)
+                               (package-name package)
+                               package) ; Let's just hope it works FTTB.
+                           ))
+            (pkg (find-package package))
+            )
+
+        ;; In the rest we may not have all the packages available.
+        ;; So we make an educated guess about the "use package list"
+        ;; members.
+
+        (let ((pkg-use-list
+               (remove-if (lambda (p)
+                            (not (find-package p)))
+                          package-use-list)))
+
+          ;; An empty package use list should be ok.
+
+          (if pkg
+              ;; We actually run the USE-PACKAGE.
+              (use-package pkg-use-list pkg)
+            
+              ;; The next form can create 'nickname conflicts' with full
+              ;; DEFPACKAGE forms encountered 'later' by HELambdaP.
+              (make-package pkg-name :use pkg-use-list))))
+      )))
+
+
+(defmethod extract-form-documentation ((fk (eql 'use-package)) (form cons))
+  nil)
+
+
+;;; DEFMETHOD
+
 (defmethod extract-form-documentation ((fk (eql 'defmethod)) (form cons))
   (destructuring-bind (defmethod name &rest rest-method)
       form
@@ -547,27 +647,7 @@ there exist a package named by one of the defpackage form nicknames."
     ))
 
 
-#| Old simple one...
-(defmethod extract-form-documentation ((fk (eql 'defstruct)) (form cons))
-  (destructuring-bind (defstruct name-and-options &rest doc-string-and-slots)
-      form
-    (declare (ignore defstruct))
-    (make-struct-doc-bit :name (if (symbolp name-and-options)
-                                   name-and-options
-                                   (first name-and-options))
-                         :kind 'structure
-                         :doc-string (when (stringp (first doc-string-and-slots))
-                                       (first doc-string-and-slots))
-                         :include (when (consp name-and-options)
-                                    (second (find :include (remove-if #'symbolp name-and-options)
-                                                  :key #'first)))
-                         :slots (if (stringp (first doc-string-and-slots))
-                                    (rest doc-string-and-slots)
-                                    doc-string-and-slots)
-                         )
-    ))
-|#
-
+;;; DEFSTRUCT
 
 (defmethod extract-form-documentation ((fk (eql 'defstruct)) (form cons))
   (destructuring-bind (defstruct name-and-options &rest doc-string-and-slots)
@@ -647,12 +727,13 @@ there exist a package named by one of the defpackage form nicknames."
                         :lambda-list (list 'object)
                         :values (list type)
                         :doc-string
-                        (format nil "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A.
+                        (format nil
+                                "Accessor for the~:[~; read-only~] slot ~A of an object of type ~A.
                                      
-                                     Arguments and Values:
+                                 Arguments and Values:
                                      
-                                     OBJECT : a ~A
-                                     result : a ~A"
+                                 OBJECT : a ~A
+                                 result : a ~A"
                                 read-only
                                 sn
                                 name
@@ -764,6 +845,8 @@ there exist a package named by one of the defpackage form nicknames."
          )))))
 
 
+;;; EVAL-WHEN
+
 (defmethod extract-form-documentation ((fk (eql 'eval-when)) (form cons))
   (destructuring-bind (eval-when times &rest forms)
       form
@@ -771,12 +854,16 @@ there exist a package named by one of the defpackage form nicknames."
     (delete nil (mapcar #'form-documentation forms))))
 
 
+;;; PROGN
+
 (defmethod extract-form-documentation ((fk (eql 'progn)) (form cons))
   (destructuring-bind (progn &rest forms)
       form
     (declare (ignore progn))
     (delete nil (mapcar #'form-documentation forms))))
 
+
+;;; DEFPARAMETER, DEFVAR, DEFCONSTANT
 
 (defun extract-symbol-form-documentation (form)
   (fourth form))
@@ -804,17 +891,23 @@ there exist a package named by one of the defpackage form nicknames."
                            :doc-string doc)))
 
 
+;;; DECLAIM
+
 (define-documentation-extractor (declaim &rest forms)
   (declare (ignore forms))
   nil
   )
 
 
+;;; PROCLAIM
+
 (define-documentation-extractor (proclaim &rest forms)
   (declare (ignore forms))
   nil
   )
 
+
+;;; LET
 
 (define-documentation-extractor (let bindings &rest forms) ; Hmmmmm!
   ;; LET is a 'special operator'; it should work, but...
@@ -823,12 +916,76 @@ there exist a package named by one of the defpackage form nicknames."
   )
 
 
+;;; LET*
+
 (define-documentation-extractor (let* bindings &rest forms) ; Hmmmmm!
   ;; LET is a 'special operator'; it should work, but...
   (declare (ignore bindings))
   (mapcar #'form-documentation forms)
   )
 
+
+;;; IMPORT, EXPORT, SHADOW, SHADOWING-IMPORT
+
+(define-documentation-extractor (import symbols &optional pkg force)
+  (declare (ignore symbols pkg force))
+  nil
+  )
+
+
+(define-documentation-extractor (export symbols &optional pkg)
+  (declare (ignore symbols pkg))
+  nil
+  )
+
+
+(define-documentation-extractor (shadow symbols &optional pkg)
+  (declare (ignore symbols pkg))
+  nil
+  )
+
+
+(define-documentation-extractor (shadowing-import symbols &optional pkg)
+  (declare (ignore symbols pkg))
+  nil
+  )
+
+
+;;; SETQ, SETF, PSETF
+
+(define-documentation-extractor (setq &rest pairs)
+  (declare (ignore pairs))
+  nil
+  )
+
+
+(define-documentation-extractor (setf &rest pairs)
+  (declare (ignore pairs))
+  nil
+  )
+
+
+(define-documentation-extractor (psetf &rest pairs)
+  (declare (ignore pairs))
+  nil
+  )
+
+
+;;; PUSH, PUSHNEW
+
+(define-documentation-extractor (push obj place)
+  (declare (ignore obj place))
+  nil
+  )
+
+
+(define-documentation-extractor (pushnew obj place &rest keys)
+  (declare (ignore obj place keys))
+  nil
+  )
+
+
+;;; DEFSETF
 
 (define-documentation-extractor (defsetf access-fn &rest form)
   (if (symbolp (first form))
@@ -845,6 +1002,8 @@ there exist a package named by one of the defpackage form nicknames."
 				    :doc-string doc))))
 
 
+;;; DEFINE-MODIFY-MACRO
+
 (define-documentation-extractor (define-modify-macro name ll function
                                   &optional doc-string)
   (declare (ignore ll function))
@@ -852,6 +1011,18 @@ there exist a package named by one of the defpackage form nicknames."
                 :kind 'function
                 :doc-string doc-string))
 
+
+;;; DEFINE-SYMBOL-MACRO
+
+(define-documentation-extractor (define-symbol-macro name expansion
+                                  &optional doc-string)
+  (make-symbol-macro-doc-bit :name name
+                             :kind 'symbol-macro
+                             :expansion expansion
+                             :doc-string doc-string))
+
+
+;;; DEFINE-METHOD-COMBINATION
 
 (define-documentation-extractor (define-method-combination name &rest rest-dmc)
   (let ((doc (if (keywordp (first rest-dmc)) ; Short form.
@@ -868,6 +1039,8 @@ there exist a package named by one of the defpackage form nicknames."
                   :doc-string doc)))
 
 
+;;; MK-DEFSYSTEM
+
 #+mk-defsystem
 (define-documentation-extractor (mk:defsystem name &rest rest-system)
   ;; We must ensure that a system always has a doc string.
@@ -881,6 +1054,8 @@ there exist a package named by one of the defpackage form nicknames."
                                           ))
 
 
+;;; ASDF
+
 #+asdf
 (define-documentation-extractor (asdf:defsystem name &rest rest-system)
   (make-asdf-system-doc-bit :name name
@@ -893,6 +1068,8 @@ there exist a package named by one of the defpackage form nicknames."
                             ))
 
 
+;;; LW:DEFSYSTEM
+
 #+lispworks
 (define-documentation-extractor (lw:defsystem name options &rest keys)
   (declare (ignore keys))
@@ -901,13 +1078,77 @@ there exist a package named by one of the defpackage form nicknames."
                           :doc-string (getf options :documentation "")))
 
 
-(defmethod extract-form-documentation :around ((fk symbol) form)  ; Catch all that fixes all problems.
+;;; More kitchen sink.
+;;; ------------------
+;;; The method below is a catch all that fixes all problems with NIL
+;;; being generated by "empty" extractors.
+
+(defmethod extract-form-documentation :around ((fk symbol) form)
   ;; (declare (ignorable form))
   (let ((r (call-next-method fk form)))
     (etypecase r
       (doc-bit r)
       (null nil)
       (list (delete nil r)))))
+
+
+;;; HELambdaP special extractors.
+;;; -----------------------------
+;;; HELambdaP defines a few macros (like...
+;;; DEFINE-DOCUMENTATION-EXTRACTOR)  of the form DEF*.
+;;; They do not carry doc strings (maybe they should) and are used
+;;; only internally.  The following extractors simply ignore them.
+
+(define-documentation-extractor (define-documentation-extractor
+                                    name &body forms)
+  (declare (ignore name forms))
+  (warnmsg *hlp-dbg-warn* "HLP EDF: "
+           "Operator DEFINE-DOCUMENTATION-EXTRACTOR not handled.")
+           
+  nil)
+
+
+(define-documentation-extractor (define-doc-format
+                                    name tag key
+                                    &key
+                                    derives-from
+                                    documentation)
+  ;; Come back later for this.
+  (declare (ignore name tag key
+                   derives-from
+                   documentation))
+  (warnmsg *hlp-dbg-warn* "HLP EDF: "
+           "Operator DEFINE-DOC-FORMAT not handled.")
+           
+  nil)
+
+
+(define-documentation-extractor (def-doc-element-class
+                                 name
+                                 superclasses
+                                 pattern
+                                 &optional slots
+                                 &rest options)
+  (declare (ignore name
+                   superclasses
+                   pattern
+                   slots
+                   options))
+  (warnmsg *hlp-dbg-warn* "HLP EDF: "
+           "Operator DEF-DOC-ELEMENT-CLASS not handled.")
+  nil)
+
+
+(define-documentation-extractor (def-doc-bit
+                                    name
+                                    include
+                                    tag
+                                  &body
+                                  slots)
+  (declare (ignore name include tag slots))
+  (warnmsg *hlp-dbg-warn* "HLP EDF: "
+           "Operator DEF-DOC-BIT not handled.")
+  nil)
 
 
 ;;;;===========================================================================
