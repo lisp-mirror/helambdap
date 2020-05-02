@@ -8,6 +8,21 @@
 
 (in-package "HELAMBDAP")
 
+;;;; Debugging parameters.
+;;;; ---------------------
+
+(define-symbol-macro *hlp-dbg-level* *current-debug-tag*)
+
+(defvar *hlp-dbg-reader* (* +max-debug-tag+ 0.8))
+
+(defvar *hlp-dbg-trace*  (/ +max-debug-tag+ 2))
+
+(defvar *hlp-dbg-warn*   (* +max-debug-tag+ 0.9))
+
+
+
+;;;; Configuration parameters.
+;;;; -------------------------
 
 ;;;; HELambdaP source location: the key parameter.
 
@@ -57,10 +72,13 @@ See the file COPYING in folder for licensing information.
                         (let ((dt (multiple-value-list
                                    (get-decoded-time)))
                               )
-                          (format nil "~D~2,'0D~2,'0D"
+                          (format nil "~D~2,'0D~2,'0D" ; " (TZ: ~D, DLS: ~A)"
                                   (sixth dt)
                                   (fifth dt)
-                                  (fourth dt)))
+                                  (fourth dt)
+                                  ;; (ninth dt)
+                                  ;; (eight dt)
+                                  ))
                         ))
          (conf-readme-pathname
           (make-pathname :name "README"
@@ -159,6 +177,9 @@ WHERE : a destination stream to be used by FORMAT.
                          :defaults hlploc))
 
     (ensure-configuration-files)
+
+    (start-debug-logging :prefix "HLP: ")
+
     (pushnew :helambdap *features*)
     :helambdap
     ))
