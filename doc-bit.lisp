@@ -43,7 +43,7 @@ The structure of a documentation bit."
 
 
 (defun doc-bit-identifier (db &aux (dbn (doc-bit-name db)))
-  (declare (type doc-bit))
+  (declare (type doc-bit db))
   (etypecase dbn
     ((or symbol string) dbn)
     (naming (let ((n (naming-id dbn)))
@@ -56,10 +56,22 @@ The structure of a documentation bit."
 
 
 (defun doc-bit-package (db &aux (dbi (doc-bit-identifier db)))
-  (declare (type doc-bit))
+  ;; This is hairy because of the geniuses that came up with the idea
+  ;; that package names should be uninterned symbols
+  ;; (you-know-who-they-are-and-why).
+
+  (declare (type doc-bit db))
   (typecase dbi
-    (symbol (symbol-package dbi))
-    (string (if (package-doc-bit-p db) dbi (find-package "CL-USER")))))
+    (symbol (let ((sp (symbol-package dbi)))
+              (cond (sp sp)
+                    ((package-doc-bit-p db) dbi)
+                    (t (find-package "CL-USER")) ; Not exactly correct...
+                    )))
+                     
+    (string (if (package-doc-bit-p db)
+                dbi
+                (find-package "CL-USER") ; Not exactly correct...
+                ))))
 
 
 (defun package-shortest-name (p &aux (ns (package-nicknames p)))
